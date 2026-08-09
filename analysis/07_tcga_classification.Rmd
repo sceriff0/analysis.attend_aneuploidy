@@ -1,0 +1,1004 @@
+---
+title: "ATTEND — 7. TCGA integrated classification (Pearson/Ward clustering)"
+author: "sceriff0"
+date: "2026-08-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here, ggpubr (+ optional bioc::ComplexHeatmap, circlize for the
+# faithful Fig-1a heatmap; cluster for the silhouette; survival/ggsurvfit for the
+# Fig-1b KM). If missing: renv::install(c("ggpubr","bioc::ComplexHeatmap","circlize",
+# "cluster","survival","ggsurvfit")); renv::snapshot()
+library(tidyverse)
+library(here)
+library(ggpubr)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 7)
+
+source(here("code", "attend_harmonise.R"))   # make_id_cfg(), build_barcode_pid()
+source(here("code", "attend_classes.R"))     # attend_cnv/_pole, arm + cascade helpers
+source(here("code", "attend_plots.R"))       # fig1a_heatmap(), feature_positions(), km_by_cluster()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
+source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(), load_tmb_scores()
+
+# --- CNV clustering distance and linkage -----------------------------------------
+# 1 - Pearson correlation distance with Ward.D2 linkage. TCGA's Suppl. Methods S2 leaves
+# the *copy-number* clustering metric unstated, but its mRNA and methylation clusterings
+# both use 1 - Pearson / Ward, so the same pair is applied here to the CN matrix. This is
+# the only distance/linkage combination the pipeline uses.
+cnv_method <- "ward.D2"       # Ward linkage
+cnv_dist   <- "correlation"   # 1 - Pearson correlation (cluster_arm_matrix() correlation path)
+
+# Cut height for the DOWNSTREAM cascade / CN-high-burden label. TCGA found 4 SCNA clusters
+# (Fig. 1a); ATTEND has no POLE and is smaller, but k = 4 keeps parity. Change freely.
+k_cnv <- 4
+
+# The chromosome heatmap is drawn ONCE and annotated with a cluster bar for every k in
+# this range, so k = 2..8 can be compared in one figure (fig1a_heatmap_ksweep()).
+k_sweep <- 2:8
+```
+
+## What this report does
+
+Reproduces the **TCGA integrated genomic classification** of endometrial carcinoma
+(Kandoth et al., *Nature* 2013 — `papers/nature12113.pdf`) on the ATTEND cohort, and asks
+**which copy-number cluster is enriched for aneuploidy** — the hallmark of the
+*copy-number-high / serous-like* group.
+
+> ### How the serous-like cluster is chosen, and why it is directional
+>
+> Clustering copy-number profiles produces k unlabelled clusters. TCGA never had to decide
+> which one was serous-like: with 373 tumours and histology in hand, cluster 4 was visibly
+> 94% serous. ATTEND has no such label, so the call has to be **inferred from the copy-number
+> data itself** — and that inference step is **not part of TCGA's methodology**. Nothing
+> about the clustering below departs from TCGA; only this labelling step is ours.
+>
+> The obvious rule — pick the cluster with the largest **mean |value|**, i.e. the most
+> altered one — turns out to answer the wrong question. "Most altered" is not "most
+> serous-like", and on *thresholded* features the two come apart: an undirected score
+> rewards a deletion-dominated cluster just as much as the amplification-driven profile
+> that actually characterises serous-like disease.
+>
+> This report therefore scores clusters **directionally**: only *concordant* events count —
+> **gains at amplification peaks, losses at deletion peaks**. It is the same principle
+> `attend_scna$panel` already applies to the pre-specified locus panel in report 5
+> (*a deletion at MYC must not score as serous-like*).
+>
+> ⚠️ **Both calls are computed and printed, and a `[DISAGREE]` flag is raised when they
+> differ.** If they agree on ATTEND, the directional correction changed nothing here and
+> the result is a confirmation. Read that flag before drawing any conclusion from the
+> cluster labels.
+
+This report reproduces the **TCGA integrated genomic classification** of endometrial
+carcinoma (Kandoth et al., *Nature* 2013 — `papers/nature12113.pdf`) on the ATTEND
+cohort, and asks **which copy-number cluster is enriched for aneuploidy** — the
+hallmark of the *copy-number-high / serous-like* group.
+
+The TCGA classification is a **priority cascade** (their Fig. 2b). **POLE is omitted
+here** — ATTEND has no POLE-ultramutated cases — so the cascade **starts at MMRd**:
+
+1. **MMRd** — MMR-protein loss by **IHC** (`gianlu__MMR_STATUS` Deficient). This is the
+   top of the cascade and overwrites the CN split. The split is **MMRd vs MMRp by IHC
+   alone**; MSI-high by the NGS caller is a **correlate**, not a criterion.
+2. **Copy-number high (serous-like)** — many broad SCNAs, **extensive aneuploidy**.
+   How the call is made is set by `attend_tcga_serous_rule`, defaulting to the **faithful
+   TCGA rule `"cluster_only"`**: serous-like = membership in the high-aneuploidy CNV
+   cluster, exactly as TCGA defined it (Fig. 2b, "serous-like ... copy-number cluster 4").
+   *TP53* is **not** required here — it is a **property** of the cluster (~90% mutant),
+   which we **validate** below rather than gate on. Alternatives: `"and"` (also require
+   TP53 — higher precision), `"or"` (union), `"tp53_only"` (portable).
+3. **Copy-number low (endometrioid)** — MMR-proficient, few broad SCNAs, everything not
+   in the high-aneuploidy cluster.
+
+The copy-number split comes from **clustering copy-number profiles** (their Fig. 1a;
+cluster 4 = serous-like), then resolving the serous-like call per `attend_tcga_serous_rule`.
+Because the default is `"cluster_only"`, the serous call is earned from copy number alone;
+the **TP53-enrichment QC** below then confirms the cluster is genuinely ~90% *TP53*-mutant,
+i.e. that it corresponds to TCGA's serous-like group — a non-circular validation.
+
+## Data
+
+```{r data}
+master <- tryCatch(
+  read_intermediate("attend_master_joined") |> add_molecular_classes(),
+  error = function(e) { message("master unavailable: ", conditionMessage(e)); NULL }
+)
+
+# barcode -> pid crosswalk (the same derivation every other report uses)
+cw <- tryCatch(
+  build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
+  error = function(e) { message("crosswalk unavailable: ", conditionMessage(e)); NULL }
+)
+
+have_master <- !is.null(master)
+have_cw     <- !is.null(cw)
+
+# TMB definitions available on the master: upstream first, then the recomputed set.
+tmb_defs <- c(upstream = attend_cols$tmb, attend_cols$tmb_set)
+if (have_master) tmb_defs <- tmb_defs_present(master)
+```
+
+## Copy-number ingestion — GISTIC thresholded peaks (the only clustering input)
+
+This report clusters **exactly what TCGA clustered** (Kandoth et al., Suppl. Methods S2):
+*"thresholded relative copy number data in significantly reoccurring amplifications or
+deletions regions identified by GISTIC 2.0."* There is **one** clustering feature and no
+fallbacks — the arm-level / bin-level proxies have been removed. The matrix is built by
+`load_gistic_thresholded()` from GISTIC output in `data/gistic/`:
+
+- input `all_thresholded.by_genes.txt` — genes × samples, values in **{−2,−1,0,+1,+2}**;
+- restricted to the genes inside the **significant amp/del peaks** (`amp_genes`/`del_genes.conf`);
+- result: a sample × peak-gene **thresholded** matrix — TCGA's exact feature space.
+
+**Producing it requires running GISTIC on the DRAGEN `.seg`** (see *"Running GISTIC on the
+cluster"* at the bottom). Until `data/gistic/` is populated, every CNV/cascade section
+renders as scaffolding.
+
+> **Computational steps.** (1) `load_gistic_thresholded()` reads GISTIC's
+> `all_thresholded.by_genes.txt` and keeps only genes in the significant peaks. (2) The
+> per-sample aneuploidy **score** (external, for the enrichment check only) is loaded
+> separately (ASCETS if present, else the master). The clustering never sees the aneuploidy
+> score — that keeps the enrichment plot non-circular.
+
+```{r cnv-load}
+cnv_mat    <- tryCatch(load_gistic_thresholded(), error = function(e) NULL)  # ID x peak-gene {-2..+2}
+cnv_source <- "GISTIC 2.0 thresholded peaks"
+
+# per-sample aneuploidy SCORE — used ONLY for the enrichment cross-check, not for clustering
+ascets_aneu <- tryCatch(load_ascets_aneuploidy(), error = function(e) NULL)
+
+have_cnv <- !is.null(cnv_mat) && nrow(cnv_mat) >= k_cnv
+if (!have_cnv) {
+  message("No GISTIC matrix with >= ", k_cnv, " samples — run GISTIC (see the bottom of this ",
+          "report) so data/gistic/all_thresholded.by_genes.txt exists. CNV sections are scaffolding until then.")
+} else {
+  message("Clustering input: ", cnv_source, " — ", nrow(cnv_mat), " samples x ",
+          ncol(cnv_mat) - 1, " peak genes.")
+}
+```
+
+## The clustering feature — GISTIC thresholded peaks, and how it matches TCGA
+
+The clustering feature is a **sample × peak-gene** matrix of **thresholded** GISTIC calls
+({−2..+2}), restricted to the significantly recurrent amp/del regions — **identical in
+kind to TCGA's** (Suppl. Methods S2). This variant hierarchically clusters it with
+**1 − Pearson correlation distance and Ward.D2 linkage** (rather than Euclidean +
+complete). S2 names no metric for the *copy-number* clustering, but its mRNA/methylation
+clusterings use exactly this **1 − Pearson / Ward** pair — so this report asks what the CN
+groups look like under a correlation-shaped, variance-minimising linkage rather than the
+Euclidean/complete default. Instead of committing to one cut, the chromosome heatmap below
+is annotated with the cluster assignment at **every k from 2 to 8** in a single figure.
+What this gets right vs the old arm/bin proxies (now removed):
+
+- **Thresholded, not continuous** — {−2..+2} discretised calls, exactly S2.
+- **GISTIC significant peaks, not genome-wide** — the feature space is the recurrent
+  amp/del peak genes (MYC 8q24, ERBB2 17q12, CCNE1 19q12, 1q, …), exactly S2.
+- **Residual differences from TCGA** — platform (DRAGEN WES `.seg` vs SNP 6.0), cohort
+  (metastatic vs primary), N, and the unspecified CN metric/linkage (here **1 − Pearson /
+  Ward.D2**, S2's mRNA/methylation choice; switch via `cluster_arm_matrix(..., method=,
+  dist_method=)`).
+
+## CNV clustering (GISTIC thresholded peaks)
+
+> **Computational steps.** (1) Cluster the sample × peak-gene **thresholded** GISTIC matrix
+> `cnv_mat` with `cluster_arm_matrix(k = `r k_cnv`, method = "`r cnv_method`", dist_method =
+> "`r cnv_dist`")` — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
+> mRNA/methylation choice). (2) Label the **copy-number-high**
+> cluster by intrinsic SCNA burden = mean |thresholded value| per cluster
+> (`cnv_high_cluster_burden()`), independent of the aneuploidy score. (3) Heatmap: peak
+> genes (rows) × samples (columns by dendrogram), annotated by CN cluster, the **integrated
+> TCGA class** (POLE [no cases] > MMRd > CN-high > CN-low, from the `add_tcga_class()` cascade
+> shown below — the same call, drawn here on the Fig-1a clustering), MMR, TP53, **and the
+> per-sample aneuploidy score**. That aneuploidy bar is the external ASCETS aneuploidy value
+> (`data/ascets/`, `load_ascets_aneuploidy()`) or — when ASCETS is absent — the master's
+> `aneu__aneuploidy_score` (from `data/aneu_scores.csv` via report 1) mapped from `pid` back
+> onto sequencing barcodes through the report-01 crosswalk. It is a **continuous annotation,
+> not a clustering feature**: the clustering never sees it, so visible alignment between the
+> high-burden cluster and the high-aneuploidy samples is corroboration, not circularity.
+>
+> **vs TCGA.** *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant
+> peaks, hierarchical clustering. *Differs:* DRAGEN WES `.seg` vs SNP6; **1 − Pearson / Ward.D2**
+> (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the cascade
+> below reads a single k = `r k_cnv`, while the k-sweep heatmap shows k = 2..8; the
+> integrated-class and aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
+
+```{r cnv-cluster, fig.height=8}
+cl <- if (have_cnv) cluster_arm_matrix(cnv_mat, k = k_cnv,
+                                       method = cnv_method, dist_method = cnv_dist) else NULL
+
+if (!is.null(cl)) {
+  # Copy-number-high cluster from the matrix's OWN SCNA burden — derived only from the
+  # clustering features, so the aneuploidy-by-cluster boxplot below is an independent check,
+  # not a tautology.
+  #
+  # ⚠️ DIRECTIONAL (this is the ONLY change from the sibling report). The burden is scored
+  # over CONCORDANT events only — gains at GISTIC amplification peaks, losses at deletion
+  # peaks — instead of mean |value|. On thresholded GISTIC calls the two disagree: |value|
+  # rewards a deletion-dominated cluster as strongly as an amplification-dominated one, and
+  # on thresholded features it can pick the wrong cluster outright. `direction`
+  # comes from this run's own amp_genes/del_genes lists; if they are unavailable the helper
+  # falls back to |value| and says so, i.e. this report degrades to the sibling's behaviour.
+  feat_dir     <- gistic_feature_direction()
+  high_cluster <- cnv_high_cluster_burden(cl, direction = feat_dir)
+  burden_tbl   <- cluster_scna_burden(cl, direction = feat_dir)
+  high_absolute <- cnv_high_cluster_burden(cl)          # the undirected call, for comparison
+  message("Copy-number-high cluster (DIRECTIONAL burden): ", high_cluster,
+          " | undirected |value| would pick: ", high_absolute,
+          if (identical(high_cluster, high_absolute)) "  [agree]" else "  [DISAGREE]")
+
+  # Per-barcode aneuploidy, kept ONLY for the enrichment check + heatmap annotation:
+  # prefer ASCETS, else map the master's aneuploidy score back onto barcodes via the crosswalk.
+  aneu_id <- NULL
+  if (!is.null(ascets_aneu)) {
+    aneu_id <- ascets_aneu |> rename(aneuploidy_value = ascets_aneuploidy)
+  } else if (have_master && have_cw) {
+    aneu_id <- cw |>
+      left_join(master |> transmute(pid, aneuploidy_value =
+                  suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]]))), by = "pid") |>
+      transmute(ID = barcode, aneuploidy_value)
+  }
+
+  # Heatmap of the GISTIC thresholded peak matrix (TCGA Fig. 1a). Peak genes (rows) x
+  # samples (columns by dendrogram), annotated by CN cluster + INTEGRATED TCGA class + MMR +
+  # TP53 + the external aneuploidy SCORE. The integrated-class and MMR/TP53 bars show the
+  # molecular class distributing ACROSS the copy-number clusters — these are the *copy-number*
+  # clusters (Fig. 1a), NOT the integrated four groups (the cascade sits on top). The
+  # aneuploidy bar (aneu_id, built above from ASCETS or the master) is a CONTINUOUS annotation
+  # only — never a clustering feature.
+  ids <- rownames(cl$matrix)
+  ann <- data.frame(CN_cluster = factor(cl$cluster[ids]), row.names = ids)
+  if (have_master && have_cw) {
+    pid_v <- cw$pid[match(ids, cw$barcode)]
+    grab  <- function(col) if (col %in% names(master)) master[[col]][match(pid_v, master$pid)] else rep(NA, length(ids))
+
+    # Integrated TCGA class per column (barcode), from the SAME cascade as the "Integrated
+    # classification" section below (add_tcga_class): POLE omitted (no cases) > MMRd (MSI-high
+    # NGS OR MMR-loss IHC) > CN-high (serous-like) > CN-low. Derived from each patient's
+    # dominant CN cluster, so the Fig-1a heatmap shows where the integrated call lands on the
+    # copy-number clustering. POLE is kept as an (empty) legend level to document "no cases".
+    if (!is.na(high_cluster)) {
+      cnv_pid_hm <- cl$assignment |>
+        inner_join(cw, by = c("ID" = "barcode")) |>
+        count(pid, cnv_cluster) |>
+        group_by(pid) |> slice_max(n, n = 1, with_ties = FALSE) |> ungroup() |>
+        transmute(pid, cnv_high = cnv_cluster == high_cluster)
+      tcga_hm  <- master |> left_join(cnv_pid_hm, by = "pid") |> add_tcga_class()
+      tcga_lab <- setNames(as.character(tcga_hm$tcga_class), tcga_hm$pid)[pid_v]
+      ann$TCGA_class <- factor(tcga_lab,
+        levels = c("POLE (ultramutated)", attend_tcga_levels$msi,
+                   attend_tcga_levels$cn_high, attend_tcga_levels$cn_low))
+    }
+
+    mmrd  <- is_mmrd(grab("MMR_class"))   # MMRd = MMR IHC loss ONLY (shared is_mmrd; MSI not a criterion)
+    ann$MMR <- factor(ifelse(is.na(mmrd), NA, ifelse(mmrd, "MMRd", "MMRp")), levels = c("MMRp", "MMRd"))
+    tp <- grab("TP53_pathogenic")
+    if (!all(is.na(tp))) ann$TP53 <- factor(ifelse(as.logical(tp), "mut", "wt"), levels = c("wt", "mut"))
+  }
+  # Aneuploidy score as a continuous annotation bar (same aneu_id used by the enrichment
+  # boxplot below; keyed by barcode ID = heatmap column). Kept out of the clustering.
+  if (!is.null(aneu_id))
+    ann$Aneuploidy <- aneu_id$aneuploidy_value[match(ids, aneu_id$ID)]
+
+  # Feature positions: GISTIC genes -> cytoband (from the loader attribute).
+  fpos <- attr(cnv_mat, "feature_pos")
+  cyto <- if (!is.null(fpos)) setNames(fpos$cytoband, fpos$feature) else NULL
+  feat_pos <- feature_positions(colnames(cl$matrix), cytoband = cyto)
+  fig1a_heatmap(cl$matrix, feat_pos, cl$cluster, ann_col = ann,
+                value_type = "thresholded",
+                main = paste0("GISTIC thresholded peaks — TCGA Fig. 1a (Suppl. S2); cluster ",
+                              high_cluster, " = copy-number high"))
+} else {
+  message("CNV clustering skipped — run GISTIC so data/gistic/ exists (see bottom of report).")
+  high_cluster <- NA_integer_
+}
+```
+
+## The k-sweep — k = 2…8 on one chromosome heatmap
+
+This is the headline of this variant. The **Pearson/Ward dendrogram is computed once**, then
+**cut at every k from 2 to 8**. Because a single hierarchical tree is cut repeatedly, the
+partitions are **nested** (k = 8 is a refinement of k = 2), so they can share one figure:
+the GISTIC thresholded matrix is drawn once — peak genes (rows) grouped by chromosome,
+tumours (columns) ordered by the **actual Pearson/Ward dendrogram** — with a **stack of
+cluster bars beneath, one per k**. Reading a column downward shows how that tumour's cluster
+label subdivides as k grows; reading a bar left-to-right shows the k-cluster partition
+against the same chromosomal SCNA background. This makes the choice of k a **visual
+question** — at which k do the chromosome blocks stop corresponding to coherent SCNA
+patterns — rather than a number fixed in advance.
+
+> **Computational steps.** (1) Reuse the Pearson/Ward `cl$hclust` from the clustering chunk.
+> (2) `fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = `r paste0(min(k_sweep), ":", max(k_sweep))`)`
+> draws the matrix once (columns in dendrogram order, no per-k re-clustering) and adds one
+> `cutree(hc, k)` cluster bar per k, plus the same top annotation bars (integrated class,
+> MMR, TP53, aneuploidy score) as the single-k Fig-1a heatmap above. (3) The average
+> silhouette across k (next chunk) is the quantitative companion to this visual sweep.
+>
+> **vs TCGA.** TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it exposes the
+> whole cut spectrum on the Fig-1a canvas so the k = 4 parity cut used by the cascade can be
+> judged against its neighbours, under the Pearson/Ward metric.
+
+```{r cnv-ksweep, fig.height=9}
+if (!is.null(cl) && exists("feat_pos") && exists("ann")) {
+  fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
+                       value_type = "thresholded",
+                       main = paste0("GISTIC thresholded peaks (Pearson/Ward) — k = ",
+                                     min(k_sweep), "..", max(k_sweep), " cluster bars on one Fig-1a canvas"))
+} else message("k-sweep heatmap skipped — need the Pearson/Ward clustering (run GISTIC first).")
+```
+
+```{r cnv-ksweep-silhouette, fig.height=5}
+# Average silhouette width vs k over the SAME Pearson/Ward dendrogram — the quantitative
+# read on "how many clusters". Peaks flag the most internally-coherent cut(s); the cascade's
+# k = `r k_cnv` is marked for reference. Optional dependency `cluster`.
+if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
+  D  <- if (identical(cnv_dist, "correlation"))
+          stats::as.dist(1 - stats::cor(t(cl$matrix), use = "pairwise.complete.obs"))
+        else stats::dist(cl$matrix, method = cnv_dist)
+  ks <- k_sweep[k_sweep >= 2 & k_sweep <= (nrow(cl$matrix) - 1)]
+  avg_sil <- vapply(ks, function(k) {
+    s <- cluster::silhouette(stats::cutree(cl$hclust, k = k), D)
+    if (is.matrix(s)) mean(s[, "sil_width"]) else NA_real_
+  }, numeric(1))
+  sil_df <- data.frame(k = ks, avg_sil = avg_sil)
+  ggplot(sil_df, aes(k, avg_sil)) +
+    geom_line(colour = "grey50") + geom_point(size = 2) +
+    geom_vline(xintercept = k_cnv, linetype = 2, colour = "#D62728") +
+    scale_x_continuous(breaks = ks) +
+    labs(title = "Average silhouette width vs k (Pearson/Ward)",
+         subtitle = paste0("dashed = cascade cut k = ", k_cnv, "; higher = more coherent partition"),
+         x = "number of clusters (k)", y = "mean silhouette width") +
+    theme_minimal(base_size = 12)
+} else message("Silhouette-vs-k skipped — install the optional `cluster` package.")
+```
+
+> **TCGA Fig. 1b — progression-free survival by copy-number cluster.** KM of clinical
+> PFS (`gianlu__PFS_MONTHS`/`_EVENT` via `recode_event()`) for the raw copy-number clusters,
+> barcodes mapped to `pid` through the report-01 crosswalk. Log-rank P as in the paper.
+
+```{r cnv-km-pfs, fig.height=5}
+if (!is.null(cl) && have_master && have_cw) {
+  km_by_cluster(cl$assignment, cw, master)
+} else message("KM skipped — need CNV clusters + master + crosswalk.")
+```
+
+```{r cnv-silhouette, fig.height=5}
+# Per-sample silhouette at the cascade cut k = k_cnv, using the SAME 1 - Pearson distance the
+# clustering used (not Euclidean) so the widths are consistent with the Pearson/Ward tree.
+if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
+  D_sil <- if (identical(cnv_dist, "correlation"))
+             stats::as.dist(1 - stats::cor(t(cl$matrix), use = "pairwise.complete.obs"))
+           else stats::dist(cl$matrix, method = cnv_dist)
+  sil <- cluster::silhouette(cl$cluster[rownames(cl$matrix)], D_sil)
+  plot(sil, main = paste0("Silhouette (Pearson/Ward), k = ", k_cnv), col = "grey40")
+}
+```
+
+> **These are the *copy-number* clusters, not the four integrated molecular groups.** The
+> heatmap above is Fig. 1a — unsupervised clustering of *copy number alone*, cluster 4 =
+> serous-like. The four *integrated groups* (Fig. 2b: POLE → MMRd → CN-high → CN-low)
+> are a **separate object** — a cascade layered on top, where MMRd is set by MMR IHC (not
+> copy number) and the SCNA clusters collapse to high (cluster 4) vs low (1–3). The
+> integrated-class, MMR and TP53 annotation bars show exactly this: the molecular class
+> distributes *across* the CN clusters rather than defining them — the integrated-class bar is
+> the cascade's per-patient call painted onto the copy-number clustering, not a re-clustering.
+
+## Aneuploidy enrichment across clusters
+
+The copy-number-high cluster was labelled **above** from the arm matrix's own **SCNA
+burden** (mean |arm copy number|) — a signal built only from the clustering features.
+This section is therefore an **independent check**: does that same cluster also carry
+the highest **external aneuploidy score**? Because the label and the plotted score come
+from *different* signals, a positive result here is genuine enrichment, not the
+tautology you'd get by labelling the cluster with the very score you then plot. The
+burden table shows why the cluster was chosen; the boxplot (Kruskal–Wallis,
+red/turquoise palette) is the cross-check.
+
+> **Computational steps.** (1) `cluster_scna_burden()` — mean |arm log2| per sample,
+> averaged per cluster (the table). (2) Join the **external** per-sample aneuploidy score
+> (ASCETS if present, else the master's `aneu__aneuploidy_score` via the crosswalk) to the
+> cluster assignment. (3) Boxplot aneuploidy by cluster; **Kruskal–Wallis** across clusters.
+>
+> **vs TCGA.** This is an ATTEND **QC**, not a TCGA figure: TCGA *characterised* cluster 4
+> as the highest-SCNA/aneuploidy group but did not run this label-vs-independent-score check.
+> It exists to prove our burden-based CN-high label isn't circular with the aneuploidy score.
+
+```{r cnv-burden-table}
+if (!is.null(cl) && !is.null(burden_tbl)) {
+  knitr::kable(burden_tbl, digits = 3,
+    caption = paste0("Intrinsic SCNA burden per cluster (mean |arm copy number|) — ",
+                     "cluster ", high_cluster, " is copy-number-high. This is the label ",
+                     "signal; the aneuploidy boxplot below is the independent check."))
+}
+```
+
+```{r cnv-aneu-enrich}
+if (!is.null(cl) && exists("aneu_id") && !is.null(aneu_id)) {
+  d <- cl$assignment |>
+    inner_join(aneu_id, by = "ID") |>
+    filter(!is.na(aneuploidy_value)) |>
+    mutate(cluster = factor(cnv_cluster),
+           is_high = cnv_cluster == high_cluster)
+  if (exists("cw") && !is.null(cw)) d <- dplyr::left_join(d, cw, by = c("ID" = "barcode"))
+
+  if (nrow(d) > 0) {
+    ggplot(d, aes(cluster, aneuploidy_value)) +
+      geom_boxplot(outlier.shape = NA, aes(fill = is_high), width = 0.6, alpha = 0.5) +
+      aneu_point_layers(d, value_col = "aneuploidy_value") +
+      stat_compare_means(label = "p.format", size = 3) +
+      scale_fill_manual(values = c(`TRUE` = "red", `FALSE` = "turquoise3"),
+                        name = "copy-number high", labels = c("other", "serous-like")) +
+      labs(title = "Aneuploidy score by CNV cluster (independent check)",
+           subtitle = paste0("source: ", cnv_source, "; cluster ", high_cluster,
+                             " = copy-number high (labelled by SCNA burden, not this score)"),
+           x = "CNV cluster", y = "aneuploidy score") +
+      theme_minimal(base_size = 12)
+  }
+}
+```
+
+## Integrated classification cascade
+
+> **Computational steps.** (1) Per patient, collapse barcode → `pid` and take the
+> **dominant** CNV cluster (multi-sample patients), then flag `cnv_high` = membership in
+> the CN-high cluster. (2) Join to the master and apply `add_tcga_class()`, a **priority
+> cascade**: **MMRd** (MSI-high by NGS **OR** MMR-protein loss by IHC) > **CN-high**
+> (serous rule = `r attend_tcga_serous_rule`) > **CN-low**; the first positive test wins.
+> (3) Tabulate patients per class.
+>
+> **vs TCGA.** *Follows:* the per-sample priority stratification of their Fig. 2b —
+> substitution/POLE → MSI → copy-number cluster; CN-high = cluster membership. *Differs:*
+> **POLE omitted** (ATTEND has no POLE-ultramutated cases), so the cascade starts at MMRd;
+> and MMRd is called by **MMR IHC** alone (TCGA used MSI/MLH1).
+
+```{r cascade}
+tcga_summary <- NULL
+
+if (have_master && have_cw) {
+  # Cascade (POLE removed): MMRd (MMR IHC) > CN-high (serous-like) > CN-low. MMRd = MMR-IHC-deficient
+  # (MMR IHC only; MSI-high is a correlate); the serous-like call follows attend_tcga_serous_rule (default
+  # "cluster_only": high-aneuploidy CNV cluster membership = TCGA's serous-like cluster 4,
+  # TP53 NOT required — validated separately below). add_tcga_class(), attend_classes.R §12.
+
+  # CNV cluster per patient (barcode -> pid; dominant cluster if multi-sample),
+  # then the copy-number-high flag.
+  if (!is.null(cl) && !is.na(high_cluster)) {
+    cnv_pid <- cl$assignment |>
+      inner_join(cw, by = c("ID" = "barcode")) |>
+      count(pid, cnv_cluster) |>
+      group_by(pid) |> slice_max(n, n = 1, with_ties = FALSE) |> ungroup() |>
+      transmute(pid, cnv_high = cnv_cluster == high_cluster)
+  } else {
+    cnv_pid <- tibble(pid = character(), cnv_high = logical())
+  }
+
+  classed <- master |>
+    left_join(cnv_pid, by = "pid") |>
+    add_tcga_class()   # serous = high-aneuploidy cluster ("cluster_only"); TP53 validated, not gated
+
+  tcga_summary <- classed |>
+    count(tcga_class, .drop = FALSE) |>
+    mutate(pct = round(100 * n / sum(n), 1))
+  knitr::kable(tcga_summary, caption = paste0("Patients per TCGA integrated class (MMRd > serous-like > endometrioid; serous rule = '", attend_tcga_serous_rule, "')"))
+}
+```
+
+### TP53-enrichment QC — is the CN-high cluster really serous-like?
+
+With the faithful `"cluster_only"` rule, the serous-like call is made **from copy number
+alone**. TCGA's serous-like cluster 4 was **~90% *TP53*-mutant** — so if our CN-high
+cluster genuinely corresponds to it, it should come out **independently** enriched for
+*TP53* pathogenic mutations. This is the validation that replaces the TP53 *gate*: TP53
+is checked as a **property**, not required as a **criterion**. A high fraction here
+confirms the cluster is serous-like; a low fraction is a red flag that the copy-number
+cluster does **not** map to TCGA's group (reconsider `k_cnv`, the CNV input, or purity).
+
+> **Computational steps.** (1) Split patients by `cnv_high` (CN-high cluster vs the rest).
+> (2) Per group, count `TP53_pathogenic` and compute the mutant fraction. (3) **Fisher exact
+> test** on the 2×2 (cluster × TP53) for enrichment; stacked bar with a dashed **90%** line.
+>
+> **vs TCGA.** This *validates* the property Kandoth et al. reported (cluster 4 ≈ 90%
+> *TP53*-mutant) rather than assuming it. We do **not** gate the serous call on TP53 (that
+> would be the `"and"` rule); TP53 enrichment is the independent confirmation the cluster maps
+> to TCGA's serous-like group.
+
+```{r tp53-enrichment}
+if (exists("classed") && all(c("cnv_high", "TP53_pathogenic") %in% names(classed))) {
+  tp <- classed |>
+    filter(!is.na(cnv_high)) |>
+    mutate(cluster = ifelse(cnv_high, "CN-high cluster", "other clusters"),
+           tp53    = suppressWarnings(as.logical(TP53_pathogenic))) |>
+    filter(!is.na(tp53))
+
+  if (nrow(tp) > 0 && dplyr::n_distinct(tp$cluster) >= 1) {
+    tab <- tp |>
+      group_by(cluster) |>
+      summarise(n = dplyr::n(), TP53_mut = sum(tp53),
+                pct_TP53 = round(100 * mean(tp53), 1), .groups = "drop")
+    knitr::kable(tab, caption = "TP53-pathogenic fraction: CN-high cluster vs the rest (TCGA serous-like cluster 4 was ~90% TP53-mut)")
+
+    ct <- table(factor(tp$cluster, levels = c("other clusters", "CN-high cluster")), tp$tp53)
+    if (all(dim(ct) == c(2, 2)) && min(rowSums(ct)) > 0) {
+      ft <- fisher.test(ct)
+      message("TP53 enrichment in the CN-high cluster: Fisher p = ", signif(ft$p.value, 3),
+              ", OR = ", signif(unname(ft$estimate), 3),
+              if (is.finite(ft$p.value) && ft$p.value < 0.05) "  (enriched — cluster is serous-like)"
+              else "  (NOT clearly enriched — cluster may not map to TCGA serous-like)")
+    }
+
+    ggplot(tp, aes(cluster, fill = tp53)) +
+      geom_bar(position = "fill", width = 0.6) +
+      scale_y_continuous(labels = scales::percent) +
+      scale_fill_manual(values = c(`TRUE` = "red", `FALSE` = "grey80"),
+                        name = "TP53 pathogenic", labels = c("wild-type", "mutant")) +
+      geom_hline(yintercept = 0.90, linetype = 2, colour = "grey30") +
+      labs(title = "TP53 mutation fraction by copy-number cluster",
+           subtitle = "dashed = TCGA serous-like ~90% TP53-mut benchmark",
+           x = NULL, y = "% TP53 pathogenic") +
+      theme_minimal(base_size = 12)
+  } else message("TP53-enrichment QC: no CN-high assignments with TP53 status yet.")
+} else {
+  message("TP53-enrichment QC skipped — needs cnv_high (from clustering) + TP53_pathogenic on the master.")
+}
+```
+
+> **Computational steps (next two panels).** (1) Take the per-patient `tcga_class` from the
+> cascade. (2) **Aneuploidy panel:** aneuploidy score by class, Kruskal–Wallis. (3) **TMB
+> panel:** loop over every TMB definition on the master (`tmb_defs_present()` — baseline
+> `tmb__TMB_SCORE`, then robust/matched/nassar) and box TMB by class, one facet per definition.
+>
+> **vs TCGA.** *Follows:* their finding that CN-high/serous-like carries the highest SCNA
+> burden and lowest mutation rate, MSI the highest TMB (Fig. 1–2). *Differs:* per-definition
+> TMB panels are an ATTEND addition (ancestry-aware recompute), absent from TCGA.
+
+```{r cascade-panels, fig.height=6}
+# Aneuploidy by class (paper-style panel).
+if (exists("classed")) {
+  pd <- classed |>
+    mutate(tcga_class = forcats::fct_na_value_to_level(tcga_class, "unclassified"),
+           aneuploidy_value = suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]])))
+
+  ggplot(filter(pd, !is.na(aneuploidy_value)), aes(tcga_class, aneuploidy_value)) +
+    geom_boxplot(outlier.shape = NA, fill = "#A6CEE3") +
+    aneu_point_layers(filter(pd, !is.na(aneuploidy_value)), value_col = "aneuploidy_value") +
+    stat_compare_means(label = "p.format", size = 3) +
+    labs(title = "Aneuploidy by integrated class", x = NULL, y = "aneuploidy score") +
+    theme_minimal(base_size = 11) + theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+**TMB by integrated class, under both TMB definitions** — **TMB (normal)**, the upstream
+tumour-only score, and **TMB (ancestry corrected)**, the same score after the ancestry
+recalibration explained in the "Ancestry-corrected TMB" section below. One panel per
+definition, so each class's TMB can be read under both. The dashed line is the
+`r attend_thresholds$tmb` mut/Mb TMB-high cutoff.
+
+```{r cascade-panels-tmb, fig.height=6}
+if (exists("classed") && length(tmb_defs) > 0) {
+  tl <- classed |>
+    mutate(tcga_class = forcats::fct_na_value_to_level(tcga_class, "unclassified")) |>
+    select(pid, tcga_class, all_of(unname(tmb_defs))) |>
+    pivot_longer(all_of(unname(tmb_defs)), names_to = "tmb_col", values_to = "tmb_value") |>
+    mutate(tmb_def   = factor(tmb_def_labels(tmb_defs)[match(tmb_col, tmb_defs)],
+                              levels = tmb_def_labels(tmb_defs)),
+           tmb_value = suppressWarnings(as.numeric(tmb_value))) |>
+    filter(!is.na(tmb_value))
+
+  ggplot(tl, aes(tcga_class, tmb_value)) +
+    geom_boxplot(outlier.shape = NA, fill = "#B2DF8A") +
+    geom_jitter(width = 0.15, size = 0.6, alpha = 0.4) +
+    geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
+    facet_wrap(~ tmb_def, scales = "free_y", nrow = 1) +
+    labs(title = "TMB by integrated class, per TMB definition",
+         subtitle = paste0("dashed line = TMB-high cutoff (", attend_thresholds$tmb, " mut/Mb)"),
+         x = NULL, y = "TMB (mut/Mb)") +
+    theme_minimal(base_size = 11) + theme(axis.text.x = element_text(angle = 25, hjust = 1))
+}
+```
+
+## Ancestry-corrected TMB — how it works
+
+Tumour-only TMB is inflated by residual germline variants, and — because gnomAD's
+reference is Euro-skewed — the inflation is **ancestry-dependent** (Nassar et al.,
+*Cancer Cell* 2022). The ATTEND MAFs carry gnomAD v4.1 **per-sub-population** allele
+frequencies, which is what makes a correction possible without matched normals.
+
+**The pipeline reports two TMB definitions and no others:**
+
+| Reported | Column | What it is |
+|---|---|---|
+| **TMB (normal)** | `tmb__TMB_SCORE` | the upstream tumour-only score, uncorrected — the baseline |
+| **TMB (ancestry corrected)** | `tmb__TMB_nassar` | the endpoint of the correction chain below |
+
+Getting from one to the other passes through **two intermediates**, computed in report 1
+and living on the master, but **never plotted, faceted, or labelled anywhere**:
+
+- **robust** — drop variants common in **any** population (`grpmax` ≥
+  `r attend_tmb_recompute$af_threshold`). This is Nassar's germline filter, and it needs
+  no ancestry label.
+- **matched** — drop variants common in the **patient's own** sub-population, from the
+  self-reported clinical ancestry (`attend_ancestry`).
+
+The reported ancestry-corrected column is then the paper's actual method: an
+**ancestry-specific regression recalibration** `TMB = m·TMB_robust + b` (European vs
+non-European), applied on top of `robust`. Its coefficients (`attend_tmb_nassar$coef`)
+**default to identity**, so until values fit on TCGA WES are supplied this column equals
+`robust` — the published Oncopanel numbers are panel-specific and do not transfer to
+exome data.
+
+`tmb_defs_present()` cannot return the intermediates, so no report can reintroduce them
+into a figure by accident. An unfiltered recompute is also used internally to calibrate
+the exome denominator; it is not emitted, because it would simply duplicate the baseline.
+The whole recompute lives in R with no upstream re-run — see
+`attend_classes.R::tmb_variant_table()` and `apply_nassar_recalibration()`.
+
+### How the Nassar et al. recalibration actually works
+
+It helps to be precise about what Nassar et al. (*Cancer Cell* 2022) did, because our
+`nassar` column reproduces it and the distinction from the other variants is subtle.
+
+**The problem.** In tumor-only sequencing there is no matched normal, so inherited
+(germline) variants are mixed in with somatic ones. TMB should count only somatic
+mutations, so pipelines remove germline by filtering out variants that are **common in
+the population** (looked up in gnomAD). But gnomAD is **ancestry-skewed** — its v2.1
+exomes are ~57k European vs ~8k African. A variant that is common in African ancestry
+but rare in the (Euro-heavy) reference is *not recognised as germline*, survives the
+filter, and is **miscounted as a somatic mutation**. The net effect: tumor-only TMB is
+**inflated, and the inflation is larger for non-European patients** — who were then
+**over-classified as TMB-high**, a label that (in their data) did **not** predict
+immunotherapy response outside European ancestry.
+
+**Their method has two distinct steps.** Do not conflate them:
+
+1. **Germline filter (variant level).** Exclude any variant whose **maximum population
+   allele frequency across all gnomAD sub-populations** (`maxPOPAF`, i.e. `grpmax`)
+   exceeds **0.1%**. This is a *fixed, ancestry-agnostic* filter — it drops a variant if
+   it is common in *any* population. **This step is exactly our `robust` variant**
+   (`grpmax ≥ 0.001`). It removes most, but not all, of the ancestry-driven inflation.
+
+2. **Ancestry regression recalibration (sample level) — the headline contribution.**
+   This is **not another filter**. Using cohorts that had *both* tumor-only and matched
+   tumor-normal ("paired") TMB as ground truth, they fit a **linear regression of the
+   true paired TMB on the tumor-only TMB, separately for European and non-European
+   patients**:
+   $$\text{TMB}_{\text{paired}} \;=\; m_{\text{group}} \cdot \text{TMB}_{\text{tumor-only}} \;+\; b_{\text{group}}$$
+   The slope $m$ and intercept $b$ therefore encode, *per ancestry group*, how much the
+   tumor-only estimate over- (or under-) shoots the truth. To recalibrate a new sample
+   you apply its group's coefficients: $\text{TMB}_{\text{corrected}} = m_{\text{group}}
+   \cdot \text{TMB}_{\text{tumor-only}} + b_{\text{group}}$. Because $(m, b)$ differ
+   between European and non-European, the *same* tumor-only TMB is corrected by a *different*
+   amount depending on ancestry — that is precisely how the method removes the residual
+   ancestry bias that the fixed filter (step 1) leaves behind.
+
+**Two supporting details.** (a) **Ancestry was inferred *genetically*** — principal-
+component analysis of common germline SNPs called from the sequencing reads — not from
+self-reported race. (b) The coefficients were **fit and validated against matched
+tumor-normal** as the gold standard.
+
+**How our `nassar` column maps to this — and where it differs.**
+
+| Nassar step | Our implementation |
+|---|---|
+| germline filter `maxPOPAF ≤ 0.1%` | **`robust`** (`grpmax ≥ 0.001`) — identical in spirit |
+| regression `TMB = m·TMB + b`, per ancestry, on top of the filtered TMB | **`apply_nassar_recalibration()`** on top of `robust` |
+| ancestry via **genetic PCA** | **self-reported clinical** ancestry (`attend_ancestry`) — a coarser proxy; swap in EthSEQ/somalier genetic ancestry later |
+| coefficients fit on **paired tumor-normal**, panel-specific (e.g. Oncopanel v3 European `m=1.094, b=−1.94`) | **default identity `(m=1, b=0)`** — those published numbers are **panel-specific and do NOT transfer to whole-exome**, so `nassar` == `robust` until you fit WES coefficients |
+| gnomAD v2.1 + TOPMED | gnomAD **v4.1** (newer, larger, less Euro-biased) |
+
+**To make `nassar` genuinely faithful for ATTEND (whole-exome):** fit the regression on
+**TCGA WES** — compute paired-WES TMB and tumor-only-WES TMB (tumor-only simulated by
+dropping the normal and applying the same `robust` filter), label European vs
+non-European, then
+
+```r
+coefs <- fit_nassar_coefficients(tcga_ref)   # ref has paired_tmb, tumor_only_tmb, group
+attend_tmb_nassar$coef <- coefs              # paste into code/attend_classes.R
+```
+
+Until then, `nassar` deliberately equals `robust` rather than showing a spurious
+correction. (Sources: Nassar et al., *Cancer Cell* 2022,
+[full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC9559771/).)
+
+```{r ancestry-tmb, fig.height=5}
+tmb_recomp <- if (have_master) tmb_defs_present(master) else character(0)
+
+if (have_master && length(tmb_recomp) >= 2) {
+  # Per-patient TMB across recomputed definitions + reclassification vs the cutoff.
+  long <- master |>
+    select(pid, all_of(unname(tmb_recomp))) |>
+    pivot_longer(all_of(unname(tmb_recomp)), names_to = "tmb_col", values_to = "tmb") |>
+    mutate(def = factor(names(tmb_recomp)[match(tmb_col, tmb_recomp)], levels = names(tmb_recomp)),
+           tmb = suppressWarnings(as.numeric(tmb))) |>
+    filter(!is.na(tmb))
+
+  print(
+    ggplot(long, aes(def, tmb)) +
+      geom_boxplot(outlier.shape = NA, fill = "#FDBF6F", width = 0.6) +
+      geom_line(aes(group = pid), alpha = 0.15) +
+      geom_point(size = 0.7, alpha = 0.4) +
+      geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey40") +
+      labs(title = "Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions",
+           subtitle = "lines connect the same patient; dashed = TMB-high cutoff",
+           x = "TMB definition", y = "TMB (mut/Mb)") +
+      theme_minimal(base_size = 12)
+  )
+
+  # How many patients are TMB-high under each definition (the reclassification).
+  reclass <- long |> group_by(def) |>
+    summarise(n = sum(!is.na(tmb)),
+              tmb_high = sum(tmb >= attend_thresholds$tmb, na.rm = TRUE),
+              pct_high = round(100 * tmb_high / n, 1), .groups = "drop")
+  knitr::kable(reclass, caption = paste0("TMB-high (>= ", attend_thresholds$tmb,
+               " mut/Mb) count per definition — the ancestry-driven reclassification"))
+} else {
+  message("Ancestry-corrected TMB not on the master yet — rebuild report 1 with ",
+          "the gnomAD-annotated MAFs synced into data/variant_annotations/.")
+}
+```
+
+The diagnostic the whole correction exists for: **how much TMB the correction removes,
+broken down by ancestry**. Each point is one patient's `TMB (normal) − TMB (ancestry
+corrected)` in mut/Mb — the amount attributed to residual germline contamination.
+
+This is the plot that shows whether the bias is real *in this cohort*. Nassar et al.
+predict systematically **larger** removals in non-European groups, because gnomAD's
+non-European allele-frequency reference is sparser and more germline variants survive an
+undifferentiated filter. A flat distribution across sub-populations means either the
+cohort is too homogeneous to show it, or the correction is not doing anything.
+
+Sub-populations come from mapping the self-reported clinical ancestry column onto gnomAD
+codes (`attend_ancestry`); patients whose label does not map are `NA` and dropped, so
+group sizes here can be much smaller than the cohort.
+
+```{r ancestry-tmb-by-group, fig.height=5}
+anc <- if (have_master) ancestry_by_pid(master) else NULL
+if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master))) {
+  g <- master |>
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`)),
+              removed   = normal - corrected) |>
+    inner_join(anc, by = "pid") |>
+    filter(!is.na(removed))
+  if (nrow(g) > 0) {
+    ggplot(g, aes(subpop, removed)) +
+      geom_boxplot(outlier.shape = NA, fill = "#CAB2D6") +
+      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+      labs(title = "TMB removed by the ancestry correction, by ancestry",
+           subtitle = "TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed",
+           x = "gnomAD sub-population (from self-reported ancestry)",
+           y = "mut/Mb removed") +
+      theme_minimal(base_size = 12)
+  } else message("No patients with both TMB definitions and a mapped ancestry.")
+} else {
+  message("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
+          attend_ancestry$clinical_col, "') and tmb__TMB_nassar on the master ",
+          "for the by-ancestry view.")
+}
+```
+
+## Nassar recalibration coefficients
+
+`tmb__TMB_nassar = m_group · tmb__TMB_robust + b_group`, with `(m, b)` **per ancestry
+group** (European vs non-European). Which coefficients are applied is set by
+`attend_tmb_nassar$active_source`:
+
+- **`"identity"` (default)** — `m=1, b=0`, so `nassar` equals `robust`.
+- **`"oncopanel_v3"` / `"_v2"` / `"_v1"`** — the **published Nassar et al. 2022**
+  coefficients (STAR Methods, "TMB Recalibration"). ⚠️ These were fit on **OncoPanel**
+  (targeted-panel) tumor-only TMB with TCGA WES as ground truth, **not** on WES input —
+  so applied to ATTEND's exome `robust` TMB they are an **off-scale approximation** (the
+  slope maps OncoPanel→WES-truth, not WES→WES-truth). Available on request; use knowingly.
+- **`"custom"`** — your own values in `attend_tmb_nassar$coef`.
+
+The published values (per OncoPanel version): European `v3 m=1.094, b=−1.94`
+(`v2 0.994, −2.12`; `v1 0.989, −2.18`); Non-European `v3 m=0.895, b=−1.29`
+(`v2 0.840, −1.71`; `v1 0.821, −1.71`). To use them, set
+`attend_tmb_nassar$active_source <- "oncopanel_v3"` and re-knit.
+
+**To fit your own (the WES-correct path):** build a reference cohort with matched
+**paired (tumor-normal) TMB**, **tumor-only TMB** (simulated with the same robust/grpmax
+0.1% filter), and an ancestry `group` column, drop it in `data/nassar/` (any
+`*reference*.tsv/.csv`), re-knit to fit, paste the printed coefficients into
+`attend_tmb_nassar$coef`, and set `active_source = "custom"`. The panels below render the
+recalibration effect whenever the active coefficients are non-identity.
+
+```{r nassar-fit}
+nc      <- nassar_coef_table()               # active coefficients + identity flag
+ref_cfg <- attend_tmb_nassar$reference
+ref_dir <- here("data", ref_cfg$dir)
+ref_f   <- if (dir.exists(ref_dir))
+  list.files(ref_dir, pattern = utils::glob2rx(ref_cfg$glob), full.names = TRUE, recursive = TRUE) else character(0)
+
+if (length(ref_f) > 0) {
+  ref <- tryCatch(
+    if (grepl("\\.csv$", ref_f[1])) readr::read_csv(ref_f[1], show_col_types = FALSE)
+    else                            readr::read_tsv(ref_f[1], show_col_types = FALSE),
+    error = function(e) { message("nassar reference unreadable: ", conditionMessage(e)); NULL })
+  if (!is.null(ref)) {
+    fitted <- fit_nassar_coefficients(ref, paired = ref_cfg$paired,
+                                      tumor_only = ref_cfg$tumor_only, group = ref_cfg$group)
+    cat("Fitted from", basename(ref_f[1]), "— paste into attend_tmb_nassar$coef:\n")
+    cat(sprintf("  european     = list(m = %.4f, b = %.4f)\n", fitted$european$m, fitted$european$b))
+    cat(sprintf("  non_european = list(m = %.4f, b = %.4f)\n", fitted$non_european$m, fitted$non_european$b))
+  }
+} else {
+  message("No reference cohort in ", ref_dir, " — reporting the active coefficients only.")
+}
+
+if (grepl("^oncopanel", nc$source)) {
+  cat("WARNING: active_source = '", nc$source, "' — OncoPanel-derived published coefficients\n",
+      "applied to WES robust TMB. Off-scale approximation (slope maps OncoPanel->WES-truth,\n",
+      "not WES->WES-truth); prefer fitting on WES via the reference path.\n", sep = "")
+}
+knitr::kable(nc$table, digits = 4,
+             caption = paste0("Active Nassar coefficients — source: ", nc$source,
+                              " (identity = ", nc$identity, "; identity means nassar == robust)"))
+```
+
+What the correction actually does to each patient, on the two reported definitions.
+**TMB (normal)** on the x-axis, **TMB (ancestry corrected)** on the y-axis, one point per
+patient, coloured by ancestry group.
+
+How to read it: the **dashed diagonal** is no change — a point on it was unaffected. Points
+**below** it had TMB removed. The **dotted lines** are the `r attend_thresholds$tmb` mut/Mb
+TMB-high cutoff on each axis, so the off-diagonal quadrants they carve out are the patients
+whose **TMB-high/low call changed**. Those are the only patients for whom the choice of
+definition changes any downstream figure, and the table counts them per ancestry group.
+
+If the recalibration coefficients are still identity, this plot still shows the effect of
+the germline filter itself — the correction chain from the delivered score to the reported
+corrected one — which is the comparison every other report is drawing.
+
+```{r nassar-effect, fig.height=5}
+need <- c("tmb__TMB_SCORE", "tmb__TMB_nassar")
+anc  <- if (have_master) ancestry_by_pid(master) else NULL
+
+if (have_master && all(need %in% names(master)) && !is.null(anc)) {
+  grp <- anc |>
+    mutate(group = ifelse(subpop %in% attend_tmb_nassar$european_subpops,
+                          "european", "non_european")) |>
+    distinct(pid, group)
+  eff <- master |>
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`))) |>
+    inner_join(grp, by = "pid") |>
+    filter(!is.na(normal), !is.na(corrected))
+
+  if (nrow(eff) > 0) {
+    print(
+      ggplot(eff, aes(normal, corrected, colour = group)) +
+        geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey50") +
+        geom_point(alpha = 0.6) +
+        geom_hline(yintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
+        geom_vline(xintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
+        labs(title = "Effect of the ancestry correction, by ancestry group",
+             subtitle = paste0("dashed = no change; dotted = the ", attend_thresholds$tmb,
+                               " mut/Mb TMB-high cutoff on each axis",
+                               if (nc$identity) " | recalibration coefficients are identity, so this is the germline filter alone" else ""),
+             x = "TMB (normal), mut/Mb", y = "TMB (ancestry corrected), mut/Mb",
+             colour = NULL) +
+        theme_minimal(base_size = 12)
+    )
+    reclass_n <- eff |> group_by(group) |>
+      summarise(n = n(),
+                high_normal    = sum(normal    >= attend_thresholds$tmb),
+                high_corrected = sum(corrected >= attend_thresholds$tmb),
+                changed_call   = sum((normal >= attend_thresholds$tmb) !=
+                                     (corrected >= attend_thresholds$tmb)),
+                .groups = "drop")
+    knitr::kable(reclass_n, caption = paste0(
+      "TMB-high (>= ", attend_thresholds$tmb, " mut/Mb) reclassification between the two ",
+      "definitions, by ancestry group. changed_call = patients whose high/low call differs."))
+  } else message("No patients with both TMB definitions and a mapped ancestry group.")
+} else {
+  message("Need tmb__TMB_SCORE, tmb__TMB_nassar and an ancestry column on the master ",
+          "to show the correction effect.")
+}
+```
+
+## Running GISTIC — the required input, locally and on the HPC cluster
+
+The clustering above **requires GISTIC output in `data/gistic/`** (there is no fallback).
+GISTIC is a compiled MATLAB binary that runs **outside R**, so you produce its output once,
+then knit this report. The recipe reproduces Kandoth et al. Suppl. Methods S2 exactly:
+SNP6→tangent-norm→CBS→GISTIC 2.0 there, **DRAGEN `.seg`→GISTIC 2.0** here.
+
+**Step 1 — build the GISTIC input (R, on the cluster where the `.seg` live):**
+
+```bash
+Rscript -e 'source("code/load_wes_results.R"); write_gistic_seg()'
+# -> output/gistic_input/attend_all_segments.seg  (Sample/Chr/Start/End/Num_Markers/Seg.CN)
+```
+
+**Step 2 — run GISTIC via `code/run_gistic.sh`** (runs both locally and under SLURM):
+
+```bash
+# get GISTIC (pick what your HPC has):
+singularity pull gistic2.sif docker://genepattern/docker-gistic   # or: module load gistic/2.0.23
+# grab the hg38 refgene .mat (stock binary ships hg19 only — using it MISPLACES every peak):
+#   hg38.UCSC.add_mir.160920.refgene.mat  (GISTIC2 GitHub / bzhanglab/GISTIC2_example)
+
+# submit to the scheduler (or run ./code/run_gistic.sh interactively):
+GISTIC_SIF=gistic2.sif REFGENE=/path/hg38.UCSC.add_mir.160920.refgene.mat \
+  sbatch code/run_gistic.sh
+```
+
+The script carries `#SBATCH` directives (4 h, 32 GB, 4 cores), auto-wraps a Singularity
+image when `GISTIC_SIF` is set (else uses a `module`/conda `gistic2`), `cd`s to the repo
+root, and checks the seg + refgene exist. It writes `data/gistic/`:
+`all_thresholded.by_genes.txt` (the clustering input), `amp_genes`/`del_genes.conf_*.txt`
+(the significant peaks), `all_lesions.conf_*.txt` (report-07 oncoplot overlay).
+
+**Step 3 — knit this report.** `load_gistic_thresholded()` reads
+`all_thresholded.by_genes.txt`, restricts to the significant-peak genes, and the CNV
+sections above populate automatically.
+
+> **Distance/linkage note.** S2 names no metric or linkage for the *copy-number* clustering.
+> This variant uses **1 − Pearson correlation distance + Ward.D2 linkage** — the pair S2 does
+> name for its mRNA/methylation clusterings — set via `cnv_method`/`cnv_dist` at the top and
+> passed to `cluster_arm_matrix()`. Euclidean + complete is the obvious alternative; compare the
+> two to see how sensitive the CN groups are to the (unspecified) metric choice.
+
+## Better classification options given your tools (DRAGEN + ASCETS + variantalker)
+
+Flagging where this could go beyond the current GISTIC reproduction, ordered by
+effort-to-payoff:
+
+1. **GISTIC thresholded-peak clustering — DONE (the only clustering).** Reproduces Kandoth
+   Suppl. S2 exactly. The **ASCETS** aneuploidy score (`data/ascets/`) is still consumed as
+   an **independent** per-sample aneuploidy value for the enrichment cross-check — it does
+   not enter the clustering.
+2. **Metric/linkage — this variant uses 1 − Pearson / Ward.D2.** S2 leaves the CN
+   metric/linkage unstated; this report applies the mRNA/methylation pair (`cnv_dist =
+   "correlation"`, `cnv_method = "ward.D2"`). The k = 2..8 sweep + silhouette-vs-k above make
+   the cut choice inspectable; compare against base 09 (Euclidean/complete) for robustness.
+3. **POLE branch removed.** ATTEND has no POLE-ultramutated cases, so the cascade now
+   starts at MSI. `pole_ultramutated()` / `attend_pole` are kept (unwired) — if a POLE
+   branch is ever wanted, feed a MAF with a protein-change column to `pole_ultramutated()`
+   (matches P286R/V411L directly) and reinstate the branch in `add_tcga_class()`.
+4. **Purity/ploidy-correct the copy number (medium effort).** If DRAGEN ran
+   tumor-only, log2 ratios aren't purity-corrected, blurring low-purity samples.
+   Re-call with **ASCAT/FACETS** (matched normal) for integer allele-specific CN,
+   whole-genome-doubling and LOH — sharpening the CN-high boundary and enabling a
+   real **HRD** cross-check against `hrd__HRD_Score`.
+5. **Serous-like = SCNA cluster membership (faithful TCGA), TP53 validated not gated.**
+   `add_tcga_class()` sets the CN-high call via `attend_tcga_serous_rule`, now defaulting
+   to **`"cluster_only"`** — serous-like = the high-aneuploidy CNV cluster, exactly as TCGA
+   defined it (Fig. 2b, cluster 4). *TP53* is checked as a **property** (the TP53-enrichment
+   QC above should show ~90% mutant), not required. Alternatives remain: `"and"`
+   (also require TP53, higher precision), `"or"`, `"tp53_only"`. The top of the cascade is
+   **MMRd = MMR-loss by IHC (MMRd vs MMRp)**; MSI-high (NGS) is a correlate, not a criterion.
+   Remaining focal-CNV upgrade is note 2 (GISTIC).
+6. **Ancestry-aware TMB — robust/matched DONE; `nassar` scaffolded.** The recompute
+   (`tmb_variant_table()`) produces ancestry-robust (grpmax) / ancestry-matched (on the
+   upstream TMB_SCORE baseline)
+   TMB from the gnomAD-annotated MAFs (matched activates once
+   `attend_ancestry$clinical_col` points at the real ancestry field; swap in
+   EthSEQ/somalier genetic ancestry later for accuracy). The **`nassar`** regression
+   variant (`apply_nassar_recalibration()`) is wired with identity coefficients — the
+   remaining step is to **fit `(m, b)` per ancestry on TCGA WES** (paired vs
+   tumor-only-simulated TMB) and paste them into `attend_tmb_nassar$coef`.
+
+## Notes
+
+Config lives in `code/attend_classes.R`: `attend_cnv` (CNV sources + arm table),
+`attend_pole` (POLE hotspots/TMB cutoff), `attend_tcga_levels` (class labels),
+`attend_tmb_recompute` (germline-filter threshold, gnomAD columns, counted classes),
+`attend_ancestry` (self-reported → sub-population map; **set `clinical_col`**), and
+`k_cnv` at the top of this report. The arm-boundary table is
+`data/arm_boundaries_hg38.tsv` (UCSC hg38 cytoBand centromeres); set
+`attend_cnv$build`/`arm_table` for hg19. All sections are knit-safe — the CNV sections
+render as scaffolding until `data/ascets/` or `data/cnv_annotations/` is populated, and
+the ancestry-corrected TMB column appears once report 1 is rebuilt with the gnomAD-annotated
+MAFs synced into `data/variant_annotations/`.
+
+```{r session-info}
+sessionInfo()
+```

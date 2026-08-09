@@ -1,0 +1,12 @@
+---
+title: "License"
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+
+No license has been chosen yet. Until one is added, all rights are reserved by the
+ATTEND authors. Add a license here (and a `LICENSE` file at the repository root) before
+sharing.

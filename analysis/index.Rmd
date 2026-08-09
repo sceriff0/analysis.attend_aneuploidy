@@ -1,0 +1,99 @@
+---
+title: "ATTEND — multi-omic QC & analysis"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+
+The ATTEND study collects clinical records, radiology imaging, IHC, and WES-derived
+genomic features (TMB, MSI, HRD, aneuploidy, and a per-variant MAF) on the **same
+patients**. These eight reports link the modalities onto a shared patient ID, assemble a
+per-patient master table, and analyse it.
+
+**They run in order.** Report 1 builds; reports 2–8 analyse. Report 1 writes
+`output/clean_data/attend_master_joined` (Parquet, or CSV without `arrow`), and every
+later report reads that one file back through `code/attend_io.R`.
+
+### Build
+
+1. **[Data integration — the join, and who it leaves behind](01_data_integration.html)**
+   Translates three ID spaces onto one patient key, collapses each modality to one row
+   per patient, and writes the master table. Then reports what the join cost: which
+   records never reached a patient, which patients are missing which modality, and
+   whether the joined values are sane. **Writes `attend_master_joined`.**
+
+### Analyse
+
+2. **[Survival, stratified by molecular axis](02_survival_stratified.html)**
+   Kaplan–Meier curves comparing the treatment arms *within* panels defined by
+   aneuploidy × MMR, then by TMB, HRD, and MSI. Includes the subgroup Cox model and the
+   three-way interaction test, both flagged when underpowered.
+
+3. **[Aneuploidy vs mutations, within MMR-deficient tumours](03_aneuploidy_mutations_mmrd.html)**
+   Restricted to MMRd throughout. Aneuploidy score against each panel gene **one gene at
+   a time** — the MMR panel (`PMS2, MLH1, MSH2, MSH6, MSH3`) and the Wnt genes
+   (`CTNNB1, APC`) separately — plus TP53, the MMR union, and the score-derived classes.
+
+4. **[IHC, imaging, and cell-type composition in MMR-deficient tumours](04_ihc_imaging_spatial.html)**
+   Two halves. **Part 1** validates automated FlowPath quantification against the
+   pathologist's calls, on every imaged patient. **Part 2** asks whether cell-type
+   composition tracks aneuploidy — **MMR-deficient only**, with one pre-specified primary
+   endpoint (CD45+ / all cells inside).
+
+5. **[Mutation landscape and recurrent copy number](05_oncoplots_recurrent_cna.html)**
+   Oncoplots with molecular and arm-level CNV annotation; the TCGA Fig. 2d per-subgroup
+   mutation-frequency comparison with FDR; recurrent copy number at arm, focal, and
+   genome-wide resolution; and the **aneuploidy × MMR contrast** — do aneuploidy-high MMRd
+   tumours (n ≈ 9) carry the same recurrent peaks as aneuploidy-high MMRp tumours?
+
+6. **[Covariate distributions by MMR status](06_ecdf_covariates.html)**
+   Empirical cumulative distributions of each continuous covariate, MMR-deficient vs
+   -proficient, with a Kolmogorov–Smirnov test per covariate. Shows *where* in the range
+   the groups differ, not just whether they do.
+
+7. **[TCGA integrated classification](07_tcga_classification.html)**
+   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013) on ATTEND, clustering
+   GISTIC thresholded peaks with **1 − Pearson distance and Ward.D2 linkage**, sweeping
+   k = 2–8 on one chromosome heatmap. The copy-number-high (serous-like) cluster is
+   chosen **directionally** — gains at amplification peaks, losses at deletion peaks —
+   with the undirected call printed alongside and `[DISAGREE]` flagged when they differ.
+
+8. **[Is the TMB distribution split? (and does TCGA agree)](08_tmb_distribution.html)**
+   Tests whether TMB resolves the hypermutator population as a genuine second mode, using
+   three independent bimodality criteria, and validates any high mode against MMR status.
+   Reproduces the whole test in **TCGA UCEC**, which is tumour-normal paired and therefore
+   free of the germline inflation the ancestry correction targets.
+
+### Two conventions that hold across every report
+
+**TMB always means one of exactly two things.**
+
+| Name | Column | What it is |
+|---|---|---|
+| **TMB (normal)** | `tmb__TMB_SCORE` | the upstream tumour-only score, as delivered |
+| **TMB (ancestry corrected)** | `tmb__TMB_nassar` | after the Nassar ancestry recalibration |
+
+ATTEND is sequenced tumour-only, so residual germline inflates TMB in an
+ancestry-dependent way (Nassar et al., *Cancer Cell* 2022). Every TMB figure is drawn
+under both definitions so a result that depends on the correction is visible as such.
+Two intermediates (`robust`, `matched`) exist on the master because the correction is
+fitted on top of them, but `tmb_defs_present()` cannot return them — they are never
+plotted or labelled anywhere.
+
+**Highlighted points mean the same thing everywhere.** Gold marks patients who **have
+IHC / imaging data** (the multi-modal subset); magenta marks sample **21S188**
+(*polipo*). Both are defined once in `attend_highlight` and matched by patient id or
+sequencing barcode.
+
+### Configuration lives in one place
+
+- `code/attend_harmonise.R` — ID spaces, the two crosswalks, the collapse-to-patient rule.
+- `code/attend_classes.R` — column names (`attend_cols`), thresholds, class derivation,
+  gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
+- `code/attend_plots.R` — shared palettes, `attend_theme()`, the highlight overlay.
+- `code/attend_ihc.R` — FlowPath IHC metric definitions (report 4).
+- `code/attend_scna.R` — GISTIC peak union, panel score, permutation and LOO stability
+  (report 5).

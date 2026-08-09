@@ -1,0 +1,260 @@
+---
+title: "ATTEND — 2. Survival, stratified by molecular axis"
+author: "sceriff0"
+date: "2026-08-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: needs survival, survminer (faceted KM), gtsummary (survival table), tidyverse, here.
+# km_facet() matches the reference attend_wes_analysis figures (ggsurvplot_facet). If missing:
+#   renv::install(c("survival","survminer","gtsummary")); renv::snapshot()
+library(tidyverse)
+library(here)
+library(survival)
+library(survminer)
+library(gtsummary)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 7)
+
+source(here("code", "attend_classes.R"))   # column config + km_facet() / surv_table()
+source(here("code", "attend_io.R"))        # read_intermediate() (Parquet/CSV)
+```
+
+## What this report does
+
+One question, asked repeatedly: **does the treatment comparison behave differently in
+different molecular subgroups?**
+
+Every figure below has the same structure. The two **coloured curves** are always the
+same comparison — `attend_cols$km_group`, the treatment arm. What changes between
+figures is how the cohort is **split into panels**: by aneuploidy and MMR status
+(the headline figure), then by TMB, HRD, and MSI. Each panel carries its own log-rank
+p-value, comparing the two arms *within* that panel only.
+
+Reading them: if the gap between the two curves is similar in every panel, the
+molecular axis does not modify the treatment effect. If the gap opens in one panel and
+closes in another, it might — and the interaction test after the headline figure is
+what puts a number on that.
+
+**Where the data comes from.** Everything is read from
+`output/clean_data/attend_master_joined`, the one-row-per-patient table built in report
+1. Continuous scores are binarised into classes by `add_molecular_classes()` at the
+thresholds configured in `code/attend_classes.R`: aneuploidy at
+`r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
+`r attend_thresholds$hrd`. Survival time and event columns are named in `attend_cols`.
+Every chunk is guarded by `have_cols()`, so the report knits to a legible skeleton
+before those column names are set.
+
+## Data
+
+The master table, with the binarised molecular classes added. The table below is a
+cross-tabulation of those five class variables — it shows how the cohort actually
+distributes across the panels used later, which is the fastest way to spot a panel that
+will be too small to interpret.
+
+```{r data}
+master <- read_intermediate("attend_master_joined") |>
+  add_molecular_classes()
+
+# quick visibility on the binarised classes
+master |>
+  count(aneuploidy_class, MMR_class, TMB_class, HRD_class, MSI_class) |>
+  arrange(desc(n)) |> head(20)
+```
+
+### Survival summary table
+
+A publication-style survival table (`gtsummary::tbl_survfit`) for the comparison
+group — survival at 1/2/3/5 years with confidence intervals. Guarded on the same
+columns as the curves below.
+
+```{r surv-table}
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group)) {
+  tryCatch(surv_table(master, group = attend_cols$km_group),
+           error = function(e) message("surv_table skipped (gtsummary/cardx): ", conditionMessage(e)))
+}
+```
+
+## Headline figure — aneuploidy x MMR status
+
+The main result. Curves are the two treatment arms; **columns** are MMR status
+(proficient / deficient, from `MMR_class`) and **rows** are aneuploidy high vs low
+(split at `r attend_thresholds$aneuploidy` on the ASCETS aneuploidy score). Each panel's
+log-rank p compares the two arms within that panel alone — it is *not* a test of
+aneuploidy or MMR.
+
+The table underneath gives each panel's N and event count, with a `small_n` flag
+(n < 10 or fewer than 5 events). A panel carrying that flag can produce a dramatic-looking
+curve separation from a handful of patients; the flag is there so that is visible rather
+than inferred.
+
+```{r km-reference}
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
+              attend_cols$km_group, "aneuploidy_class", "MMR_class")) {
+  print(km_facet(master, group = attend_cols$km_group,
+           facets = c("aneuploidy_class", "MMR_class"),
+           title = "Survival by group — faceted by aneuploidy × MMR status"))
+  cnt <- km_panel_counts(master, facets = c("aneuploidy_class", "MMR_class"))
+  if (nrow(cnt) > 0)
+    knitr::kable(cnt, caption = "Per-panel N / events across both arms (small_n = n<10 or events<5 — interpret with caution).")
+}
+```
+
+### Supporting statistics — subgroup Cox and 3-way interaction
+
+The Kaplan–Meier grid above is the headline result. The subgroup Cox model and the
+3-way interaction test below are **supporting** evidence only — they quantify effects
+the KM panels already show and stress-test whether the aneuploidy × MMR split
+modifies the treatment effect. At this cohort's size the 3-way interaction test is
+expected to be underpowered; a non-significant or NA result there is reported
+honestly (flagged, never suppressed) and should be read as **suggestive**, not
+confirmatory.
+
+```{r cox-mmrd-aneuhigh}
+mmrd_aneuhigh <- master |>
+  dplyr::filter(MMR_class == attend_levels$mmr_deficient,
+                aneuploidy_class == "aneuploidy-high")
+eff <- logrank_cox_effect(mmrd_aneuhigh, group = attend_cols$km_group)
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
+              "aneuploidy_class", "MMR_class") && isTRUE(eff$n_groups == 2)) {
+  small_flag <- eff$n < 20 || eff$n_events < 10
+  cat(sprintf("\n\n**MMRd + aneuploidy-high subgroup: n = %d, events = %d%s**\n\n",
+              eff$n, eff$n_events,
+              if (small_flag) " — SMALL SAMPLE, treat as suggestive only" else ""))
+  ct <- tryCatch(cox_table(mmrd_aneuhigh, covariates = attend_cols$km_group),
+                 error = function(e) { message("cox_table skipped: ", conditionMessage(e)); NULL })
+  if (!is.null(ct))
+    knitr::kable(ct$tidy, digits = 3,
+                 caption = "MMRd + aneuploidy-high — Cox PH: PFS ~ treatment arm (HR, 95% CI). n/events via logrank_cox_effect().")
+} else message("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
+```
+
+```{r interaction-3way}
+d_int <- master |>
+  dplyr::mutate(dplyr::across(dplyr::all_of(attend_cols$surv_event), recode_event)) |>
+  dplyr::filter(dplyr::if_all(dplyr::all_of(c(attend_cols$surv_time, attend_cols$surv_event,
+                              attend_cols$km_group, "aneuploidy_class", "MMR_class")), ~ !is.na(.))) |>
+  dplyr::mutate(arm  = droplevels(as.factor(.data[[attend_cols$km_group]])),
+                aneu = droplevels(as.factor(aneuploidy_class)),
+                mmr  = droplevels(as.factor(MMR_class)))
+n_int <- nrow(d_int); events_int <- sum(d_int[[attend_cols$surv_event]] == 1, na.rm = TRUE)
+levels_ok <- have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
+                       "aneuploidy_class", "MMR_class") &&
+             dplyr::n_distinct(d_int$arm) == 2 && dplyr::n_distinct(d_int$aneu) == 2 &&
+             dplyr::n_distinct(d_int$mmr) == 2
+if (levels_ok && n_int >= 20 && events_int >= 10) {
+  ft <- attend_cols$surv_time; fe <- attend_cols$surv_event
+  full <- tryCatch(survival::coxph(stats::as.formula(sprintf(
+            "survival::Surv(`%s`, `%s`) ~ arm * aneu * mmr", ft, fe)), data = d_int),
+          error = function(e) NULL)
+  null <- tryCatch(survival::coxph(stats::as.formula(sprintf(
+            "survival::Surv(`%s`, `%s`) ~ arm + aneu + mmr", ft, fe)), data = d_int),
+          error = function(e) NULL)
+  if (!is.null(full) && !is.null(null)) {
+    # count only ESTIMATED (non-NA) coefficients: coxph keeps an aliased empty-cell
+    # term as an NA entry, so length() would inflate df and mis-calibrate the LRT.
+    ddf <- sum(!is.na(stats::coef(full))) - sum(!is.na(stats::coef(null)))
+    chi <- 2 * (as.numeric(stats::logLik(full)) - as.numeric(stats::logLik(null)))
+    p   <- if (ddf > 0) stats::pchisq(chi, df = ddf, lower.tail = FALSE) else NA_real_
+    under <- n_int < 60 || events_int < 30
+    cat(sprintf("\n\n**arm × aneuploidy × MMR interaction LRT**: n = %d, events = %d, df = %s, chi-sq = %.2f, p = %s%s\n\n",
+        n_int, events_int, ddf, chi,
+        if (is.na(p)) "NA (rank-deficient — an empty cell)" else formatC(p, digits = 3, format = "g"),
+        if (under) " — **UNDERPOWERED: interpret as suggestive, not confirmatory**" else ""))
+  } else message("3-way interaction Cox models failed to fit (rank-deficient/empty cell).")
+} else message(sprintf("3-way interaction skipped — need arm/aneu/MMR each 2 levels and n>=20/events>=10 (got n=%d, events=%d).", n_int, events_int))
+```
+
+## Split by TMB (cutoff `r attend_thresholds$tmb`) — both TMB definitions
+
+The same arm comparison, now panelled by TMB-high/low against MMR status — **drawn
+twice, once per TMB definition**.
+
+Why twice: ATTEND's sequencing is tumour-only, with no matched normal, so leftover
+germline variants inflate TMB. Because germline allele frequencies differ between
+ancestries, that inflation is ancestry-dependent (Nassar et al., *Cancer Cell* 2022).
+The pipeline therefore carries two definitions and never silently picks one:
+
+- **TMB (normal)** — `tmb__TMB_SCORE`, the upstream tumour-only score as delivered.
+- **TMB (ancestry corrected)** — `tmb__TMB_nassar`, the same score after the ancestry
+  recalibration.
+
+Each definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
+`tmb_class_of()`, so the only thing differing between the two figures is the TMB value
+itself. If a patient sits near the cutoff, the correction can move them across it — so
+comparing the two figures shows whether any survival signal is robust to the germline
+correction or is an artefact of it.
+
+The ancestry-corrected figure is skipped entirely (not drawn empty) until
+`attend_ancestry$clinical_col` is set, because the column is all-`NA` before then.
+
+```{r km-tmb, results='asis'}
+tmb_defs02 <- tmb_defs_present(master)          # normal + ancestry corrected
+tmb_labs02 <- tmb_def_labels(tmb_defs02)
+
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
+              attend_cols$km_group, "MMR_class") && length(tmb_defs02) >= 1) {
+  for (i in seq_along(tmb_defs02)) {
+    d <- master |> mutate(TMB_class_def = tmb_class_of(.data[[tmb_defs02[[i]]]]))
+    if (all(is.na(d$TMB_class_def))) next       # ancestry corrected before clinical_col is set
+    cat("\n\n#### ", tmb_labs02[i], " (`", tmb_defs02[[i]], "`)\n\n", sep = "")
+    p <- km_facet(d, group = attend_cols$km_group,
+                  facets = c("TMB_class_def", "MMR_class"),
+                  title = paste0("Survival by arm — ", tmb_labs02[i], " x MMR status"))
+    if (!is.null(p)) print(p)
+  }
+}
+```
+
+## Split by HRD score (cutoff `r attend_thresholds$hrd`)
+
+Arms compared within panels of homologous-recombination-deficiency score (high vs low at
+`r attend_thresholds$hrd`, from `hrd__`) crossed with MMR status.
+
+```{r km-hrd}
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
+              attend_cols$km_group, "HRD_class", "MMR_class")) {
+  km_facet(master, group = attend_cols$km_group,
+           facets = c("HRD_class", "MMR_class"),
+           title = "Survival by group — faceted by HRD × MMR status")
+}
+```
+
+## Split by MSI status
+
+Arms compared within panels of microsatellite-instability status crossed with MMR status.
+MSI and MMR are biologically correlated — MMR loss is the usual cause of MSI — so the
+off-diagonal panels here are small by construction and often carry the `small_n`
+caveat.
+
+```{r km-msi}
+if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
+              attend_cols$km_group, "MSI_class", "MMR_class")) {
+  km_facet(master, group = attend_cols$km_group,
+           facets = c("MSI_class", "MMR_class"),
+           title = "Survival by group — faceted by MSI × MMR status")
+}
+```
+
+## What to take away
+
+- The coloured curves are **always the treatment arm**. The panels are the molecular
+  split. Every p-value is a within-panel comparison of the two arms.
+- A per-panel p-value is **not** a test of the molecular axis. Whether aneuploidy or MMR
+  *modifies* the treatment effect is the interaction test, and at this cohort size that
+  test is underpowered — it is reported flagged, and reads as suggestive only.
+- Panels flagged `small_n` (n < 10 or events < 5) can separate dramatically on very few
+  patients. Check the counts table before believing a gap.
+- TMB appears twice, once per definition. A result that only survives under one of the
+  two definitions is a result about the germline correction, not about the tumour.
+
+To change which variable is coloured and which are panels, edit the `group =` and
+`facets =` arguments; `km_facet()` accepts one or two facet variables.
+
+```{r session-info}
+sessionInfo()
+```

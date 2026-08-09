@@ -1,0 +1,167 @@
+---
+title: "ATTEND — 6. Covariate distributions by MMR status"
+author: "sceriff0"
+date: "2026-08-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+
+source(here("code", "attend_classes.R"))   # attend_cols / attend_levels
+source(here("code", "attend_io.R"))        # read_intermediate()
+```
+
+## What this report does
+
+Compares the **whole distribution** of each continuous molecular covariate between
+MMR-deficient and MMR-proficient tumours, rather than comparing group averages.
+
+### Why an ECDF rather than a boxplot
+
+An empirical cumulative distribution function plots, for every value on the x-axis, the
+fraction of patients at or below it. Reading one:
+
+- The curve always rises from 0 to 1, left to right.
+- **Where the two curves separate** tells you *where in the range* the groups differ — a
+  gap only at the right-hand end means the groups differ in their high tail, not overall.
+- **A curve further right** means systematically higher values in that group.
+- The **largest vertical gap** between the curves is the KS statistic `D` tested below.
+
+This matters here because the expected differences are tail phenomena. MMR-deficient
+tumours are expected to carry higher TMB and MSI, but through a *hypermutated subset*
+rather than a uniform shift — a difference an ECDF shows plainly and a boxplot's median
+can hide.
+
+### The two TMB definitions
+
+As everywhere in this pipeline, TMB appears exactly twice: **TMB (normal)**
+(`tmb__TMB_SCORE`, the upstream tumour-only score) and **TMB (ancestry corrected)**
+(`tmb__TMB_nassar`, after the ancestry recalibration). They get their own ECDF panels, so
+whether the germline correction changes the MMR-deficient tail is directly visible.
+
+## Data
+
+Everything is read from `output/clean_data/attend_master_joined` (report 1). Covariates
+are mapped to readable labels here; only those actually present on the master are kept,
+so a covariate that failed to join is dropped rather than drawn empty.
+
+MMR status is `attend_cols$mmr_status`, collapsed to two groups: deficient
+(`r attend_levels$mmr_deficient`) versus everything else non-missing.
+
+```{r data}
+master <- read_intermediate("attend_master_joined")
+
+# continuous covariates (prefixed master columns) -> readable labels
+covar_map <- c(
+  "aneuploidy score" = attend_cols$aneuploidy,   # aneu__aneuploidy_score
+  "HRD score"        = attend_cols$hrd,          # hrd__HRD_Score
+  "MSI (% unstable)" = "msi__MSI_SCORE"
+)
+
+# The two TMB definitions, under their reader-facing names. tmb_defs_present() returns
+# normal first, then ancestry corrected (only if it is on the master), so this cannot
+# drift from the TMB panels in any other report.
+tmb_defs06 <- tmb_defs_present(master)
+tmb_map    <- setNames(unname(tmb_defs06), paste0(tmb_def_labels(tmb_defs06), " (mut/Mb)"))
+covar_map  <- c(covar_map, tmb_map)
+
+covar_map <- covar_map[covar_map %in% names(master)]   # keep only those present
+
+mmr_col <- attend_cols$mmr_status                       # gianlu__MMR_STATUS
+cat("covariates available:", paste(names(covar_map), collapse = ", "), "\n")
+```
+
+## ECDF by MMR status
+
+One panel per covariate. Each curve is a group's cumulative distribution; the x-axis is
+the covariate's own scale (panels are free-scaled, so they are not comparable to each
+other). Patients missing a value are dropped from that panel only, so panel denominators
+differ — the KS table below reports each panel's group sizes.
+
+```{r ecdf}
+if (length(covar_map) > 0 && mmr_col %in% names(master)) {
+  long <- master |>
+    transmute(
+      MMR = case_when(
+        .data[[mmr_col]] == attend_levels$mmr_deficient ~ "MMR deficient",
+        !is.na(.data[[mmr_col]])                         ~ "MMR proficient",
+        TRUE                                            ~ NA_character_),
+      across(all_of(unname(covar_map)), ~ suppressWarnings(as.numeric(.x)))
+    ) |>
+    pivot_longer(all_of(unname(covar_map)), names_to = "covariate", values_to = "value") |>
+    mutate(covariate = names(covar_map)[match(covariate, covar_map)]) |>
+    filter(!is.na(MMR), !is.na(value))
+
+  ggplot(long, aes(value, colour = MMR)) +
+    stat_ecdf(linewidth = 0.9) +
+    facet_wrap(~ covariate, scales = "free_x") +
+    # colours are the shared attend_mmr_cols (proficient grey / deficient orange)
+    scale_colour_manual(values = attend_mmr_cols) +
+    labs(title = "ECDF of molecular covariates by MMR status",
+         x = "value", y = "F(x) — cumulative fraction of patients", colour = NULL) +
+    attend_theme() +
+    theme(legend.position = "top")
+} else {
+  message("No covariate columns or the MMR column are present in the master.")
+}
+```
+
+## Per-covariate Kolmogorov–Smirnov test
+
+The formal counterpart to the figure. The two-sample KS test asks whether the two
+distributions differ **anywhere**, without assuming a shape or testing only the mean.
+`D` is the largest vertical gap between the two curves above — so the test statistic is
+literally the thing the eye picks out of the plot.
+
+`n_deficient` and `n_proficient` are that covariate's own group sizes after dropping
+missing values, which is why they vary between rows.
+
+**No multiple-testing correction is applied** across the covariates listed. With a handful
+of pre-specified covariates that is defensible, but the p-values are per-covariate and
+should be read that way. Note also that the two TMB rows are **not independent** — they
+are the same patients under two definitions — so they cannot be treated as two separate
+pieces of evidence.
+
+```{r ks}
+if (length(covar_map) > 0 && mmr_col %in% names(master)) {
+  mmr <- case_when(
+    master[[mmr_col]] == attend_levels$mmr_deficient ~ "deficient",
+    !is.na(master[[mmr_col]])                         ~ "proficient",
+    TRUE                                             ~ NA_character_)
+
+  imap_dfr(covar_map, function(col, label) {
+    d <- tibble(x = suppressWarnings(as.numeric(master[[col]])), mmr = mmr) |>
+      filter(!is.na(x), !is.na(mmr))
+    g <- split(d$x, d$mmr)
+    if (length(g) == 2) {
+      kt <- suppressWarnings(ks.test(g[["deficient"]], g[["proficient"]]))
+      tibble(covariate = label,
+             n_deficient = length(g[["deficient"]]), n_proficient = length(g[["proficient"]]),
+             D = round(unname(kt$statistic), 3), p = signif(kt$p.value, 3))
+    } else {
+      tibble(covariate = label, n_deficient = NA_integer_, n_proficient = NA_integer_,
+             D = NA_real_, p = NA_real_)
+    }
+  })
+}
+```
+
+## What to take away
+
+- **Where the curves separate matters as much as whether they separate.** A gap confined
+  to the right-hand tail is a hypermutated-subset story, not a shift in the typical
+  patient.
+- **TMB appears under both definitions.** If the MMR-deficient tail moves between the two
+  panels, that is the germline correction acting, not new biology.
+- **The KS test is uncorrected and the two TMB rows are the same patients twice.**
+
+```{r session-info}
+sessionInfo()
+```

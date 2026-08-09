@@ -1,0 +1,806 @@
+---
+title: "ATTEND — 4. IHC, imaging, and cell-type composition in MMR-deficient tumours"
+author: "sceriff0"
+date: "2026-08-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: needs tidyverse, here, survival, survminer (KM via km_facet()), ggpubr (boxplot
+# p-values), gtsummary (tbl_summary).
+#   renv::install(c("survival","survminer","ggpubr","gtsummary")); renv::snapshot()
+#   # richer spatial stack, if/when point-pattern statistics are added (research/ §5):
+#   renv::install(c("bioc::SpatialExperiment","bioc::imcRtools","spatstat.geom","sf","dbscan"))
+library(tidyverse)
+library(here)
+library(survival)
+library(survminer)
+library(ggpubr)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 6)
+
+source(here("code", "load_phenotypes.R"))    # load_ihc_data(), load_ihc_celltypes()
+source(here("code", "load_clinical.R"))      # load_imaging_data(), load_gianlu_clinical_data()
+source(here("code", "attend_harmonise.R"))   # crosswalks + pid_vector
+source(here("code", "attend_classes.R"))     # add_molecular_classes(), km_facet()
+source(here("code", "attend_plots.R"))       # highlight_points() + attend_highlight overlay
+source(here("code", "attend_io.R"))          # read_intermediate() (Parquet/CSV)
+source(here("code", "attend_ihc.R"))         # FlowPath IHC metric definitions
+```
+
+## What this report does
+
+Two halves, with different cohorts, and it matters which is which.
+
+**Part 1 — does the automated quantification agree with the pathologist?**
+FlowPath counts individual cells on each IHC slide and turns them into positivity and
+composition fractions. A pathologist independently scored the same slides by eye. Part 1
+compares the two, on **all patients with IHC data**. This is a measurement-validation
+question, so restricting it to a subgroup would only make it noisier.
+
+**Part 2 — does cell-type composition track aneuploidy?**
+Using the same FlowPath counts, Part 2 asks whether the mix of cells inside the annotated
+tumour region differs between aneuploidy-high and aneuploidy-low tumours. **This half is
+restricted to MMR-deficient (MMRd) tumours.** MMR deficiency drives both immune
+infiltration and genomic instability, so in a mixed cohort any aneuploidy–immune
+association could simply be MMR status showing through. Conditioning on MMRd removes that
+confound, at the cost of a much smaller cohort — the MMRd aneuploidy-high group is
+roughly **n ≈ 9**, so every p-value in Part 2 is suggestive, not confirmatory.
+
+### What the highlighted points mean
+
+Most scatter and box plots carry two overlays drawn on top of the ordinary points:
+
+| Overlay | What it marks |
+|---|---|
+| **Gold** | Patients who **have IHC / imaging data** — the multi-modal subset. On a genomics figure this shows where the patients in *this* report sit within the wider cohort. |
+| **Magenta** | Sample **21S188** (*polipo*), always drawn in its own colour so it never blends into the gold group or the plot's own encoding. |
+
+The groups are defined once in `attend_highlight` (`code/attend_classes.R`) and matched
+by `pid` **or** sequencing barcode, so the same patients are highlighted identically in
+every report. `polipo` is listed before `cohort` so 21S188 can never be absorbed into the
+gold group.
+
+### Cell types and normalization
+
+"Cell type" is `phenotype_clean`, the parenthetical phenotype label in the FlowPath
+export (changeable in `code/load_phenotypes.R`). Every count is taken **inside the
+annotated region** and expressed as a fraction — but the denominator changes the
+question, so all three are shown:
+
+| Normalization | Denominator | The question it answers |
+|---|---|---|
+| **all cells inside** | every cell in the annotation | what fraction of the tissue is this cell type? |
+| **tumour cells inside** | tumour cells only | how much of this cell type per unit of tumour? |
+| **CD45+ cells inside** | leukocytes only | what is the composition *of the immune compartment*? |
+
+Each is drawn twice: the **raw fraction with a Wilcoxon** test, and the
+**arcsine-square-root transformed** fraction with a **two-sample t-test**. The arcsine
+transform is the standard variance-stabiliser for proportions — fractions near 0 or 1
+have compressed variance, which the t-test otherwise assumes away. The two are companions,
+not a choice: agreement between them is reassurance, disagreement is a signal that the
+result depends on the test rather than the data.
+
+**No multiple-testing correction is applied anywhere in this report.** With one test per
+cell type per normalization that is a lot of comparisons, so read them as descriptive.
+
+---
+
+# Part 1 — IHC and imaging: does FlowPath agree with the pathologist?
+
+## Loading and mapping to patients
+
+The FlowPath export is keyed by `image_id`, the imaging annotation sheet carries both
+`image_id` and the patient id, and the master is keyed by `pid`. Everything is put onto
+`pid` through the image crosswalk built in `code/attend_harmonise.R` — the same one report
+1 used, so this report's cohort cannot drift from the master's.
+
+The two counts below are the ceiling for everything in Part 1: rows that fail to map are
+invisible to every figure that follows.
+
+```{r load}
+ihc_data     <- load_ihc_data()        # FlowPath per-image cell counts, keyed by image_id
+imaging_data <- load_imaging_data()    # pathologist annotations, keyed by image_id
+
+id_cfg         <- make_id_cfg()
+cw_image_pid   <- build_image_pid(imaging_data, id_cfg)   # image -> pid
+cw_barcode_pid <- build_barcode_pid(load_gianlu_clinical_data(), id_cfg)
+pid_vector     <- make_pid_vector(cw_barcode_pid, cw_image_pid)
+
+ihc_pid     <- ihc_data     |> mutate(pid = pid_vector(ihc_data,     id_cfg$ihc))
+imaging_pid <- imaging_data |> mutate(pid = pid_vector(imaging_data, id_cfg$imaging))
+
+cat("IHC rows mapped to a patient    :", sum(!is.na(ihc_pid$pid)),     "/", nrow(ihc_pid), "\n")
+cat("imaging rows mapped to a patient:", sum(!is.na(imaging_pid$pid)), "/", nrow(imaging_pid), "\n")
+```
+
+Survival and MMR columns are attached from the master so Part 1 can end with a
+survival figure without re-deriving anything.
+
+```{r survival-join}
+master <- read_intermediate("attend_master_joined")
+
+surv_cols <- intersect(c(attend_cols$surv_time, attend_cols$surv_event,
+                         attend_cols$km_group, attend_cols$mmr_status),
+                       names(master))
+
+clinical_min <- master |> select(pid, all_of(surv_cols))
+
+ihc_clin     <- ihc_pid     |> filter(!is.na(pid)) |> left_join(clinical_min, by = "pid")
+imaging_clin <- imaging_pid |> filter(!is.na(pid)) |> left_join(clinical_min, by = "pid")
+```
+
+## The imaged cohort
+
+Per-image FlowPath counts joined to the pathologist annotations, with the
+positivity/composition ratios derived by `ihc_image_metrics()` (`code/attend_ihc.R`). The
+summary table describes the cohort the IHC slides came from — not the whole ATTEND
+cohort, which is the relevant denominator for everything in Part 1.
+
+```{r ihc-metrics}
+ihc_img <- ihc_image_metrics(ihc_data, imaging_data)
+cat("IHC images joined to imaging annotations:", sum(!is.na(ihc_img$ID)), "/", nrow(ihc_img), "\n")
+
+if (requireNamespace("gtsummary", quietly = TRUE)) {
+  ihc_img |>
+    select(any_of(c("MSI_Status", "treatment", "ARID1A", "MMR_Status"))) |>
+    gtsummary::tbl_summary()
+}
+```
+
+## Concordance — continuous measures
+
+For these three, the pathologist also gave a **number**, so the two methods can be
+plotted against each other directly. Each point is one image. The dashed red line is
+`x = y`, perfect agreement: points systematically above it mean the pathologist scored
+higher than FlowPath, below it the reverse. Spearman's rho measures whether the two
+**rank** images the same way, which is the weaker but more robust claim — a high rho with
+points far off the diagonal means consistent but miscalibrated.
+
+Pathologist percentages are divided by 100 so both axes are fractions.
+
+### Neoplastic cellularity
+
+FlowPath tumour fraction = all tumour cells / all cells, against the pathologist's
+neoplastic-cellularity percentage.
+
+```{r concordance-cellularity}
+cc <- ihc_img |>
+  transmute(ID,                                          # ID == pid; kept so the highlight can match
+            flowpath    = tumor_over_all,
+            pathologist = suppressWarnings(as.numeric(Neoplastic_cellularity)) / 100) |>
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(cc) > 2) {
+  rho <- cor(cc$flowpath, cc$pathologist, method = "spearman", use = "complete.obs")
+  ggplot(cc, aes(flowpath, pathologist)) +
+    highlight_points(cc, "flowpath", "pathologist", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_abline(slope = 1, linetype = "dashed", colour = "red") +
+    coord_equal() +
+    annotate("text", x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0("Spearman = ", round(rho, 2))) +
+    labs(title = "Neoplastic cellularity", x = "FlowPath tumour fraction",
+         y = "Pathologist cellularity") +
+    theme_classic(base_size = 12)
+}
+```
+
+### Immune infiltrate
+
+FlowPath immune content = CD45+ cells / all cells inside the annotation, against the
+pathologist's immune-infiltrate percentage.
+
+```{r concordance-immune}
+ii <- ihc_img |>
+  transmute(ID,
+            flowpath    = cd45_over_inside,
+            pathologist = suppressWarnings(as.numeric(Immune_infiltrate)) / 100) |>
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(ii) > 2) {
+  rho <- cor(ii$flowpath, ii$pathologist, method = "spearman", use = "complete.obs")
+  ggplot(ii, aes(flowpath, pathologist)) +
+    highlight_points(ii, "flowpath", "pathologist", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_abline(slope = 1, linetype = "dashed", colour = "red") +
+    coord_equal() +
+    annotate("text", x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0("Spearman = ", round(rho, 2))) +
+    labs(title = "Immune infiltrate", x = "FlowPath CD45 fraction (inside)",
+         y = "Pathologist immune infiltrate") +
+    theme_classic(base_size = 12)
+}
+```
+
+### PD-1 on immune cells
+
+FlowPath PD-1+ immune = PD-1+ CD45 cells / CD45 cells inside the annotation. A linear
+trend line replaces the `x = y` line here, because the pathologist's PD-1 score is not on
+the same scale as the FlowPath fraction — only the ranking is comparable.
+
+```{r concordance-pd1}
+pd1 <- ihc_img |>
+  transmute(ID,
+            flowpath    = cd45_pd1_over_cd45_inside,
+            pathologist = suppressWarnings(as.numeric(Immune_infiltrate_PD1)) / 100) |>
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(pd1) > 2) {
+  rho <- cor(pd1$flowpath, pd1$pathologist, method = "spearman", use = "complete.obs")
+  ggplot(pd1, aes(flowpath, pathologist)) +
+    highlight_points(pd1, "flowpath", "pathologist", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_smooth(method = "lm", se = FALSE, colour = "grey40", linewidth = 0.6) +
+    annotate("text", x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0("Spearman = ", round(rho, 2))) +
+    labs(title = "PD-1 on immune cells", x = "FlowPath PD-1+ / CD45 (inside)",
+         y = "Pathologist PD-1 infiltrate") +
+    theme_classic(base_size = 12)
+}
+```
+
+## Concordance — categorical calls
+
+For these three the pathologist gave a **category**, not a number, so the comparison is
+a boxplot: the FlowPath fraction distribution within each pathologist call. Concordance
+looks like boxes that step monotonically across the categories. Overlapping boxes mean
+the automated fraction does not reproduce the call.
+
+### ARID1A
+
+FlowPath ARID1A+ = ARID1A+ tumour cells / tumour cells inside the annotation. The
+pathologist's categories run from complete loss through clonal loss to positive, so the
+FlowPath fraction should **increase** left to right.
+
+```{r concordance-aridia}
+if ("ARID1A" %in% names(ihc_img)) {
+  d <- ihc_img |>
+    mutate(ARID1A = factor(ARID1A, levels = c("Complete loss", "Clonal loss", "Positive"))) |>
+    filter(!is.na(ARID1A), !is.na(tumor_aridia_over_tumor_inside))
+  ggplot(d, aes(ARID1A, tumor_aridia_over_tumor_inside, colour = ARID1A)) +
+      geom_boxplot(outlier.shape = NA) +
+      highlight_points(d, "ARID1A", "tumor_aridia_over_tumor_inside", base_colour = "ARID1A",
+                       base_name = "Pathologist", jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = "ARID1A on tumour cells", x = NULL, y = "FlowPath positivity (fraction)") +
+      theme_classic(base_size = 12)
+}
+```
+
+### PD-L1 on immune cells
+
+FlowPath PD-L1+ immune = PD-L1+ CD45 cells / CD45 cells inside. The pathologist's IC
+categories are explicit percentage bands (IC0 < 1%, IC1 1–5%, IC2 5–10%), so this is the
+strictest of the categorical checks — the FlowPath fraction should land inside the named
+band, not merely increase across bands.
+
+```{r concordance-pdl1}
+if ("Immune_infiltrate_PDL1" %in% names(ihc_img)) {
+  d <- ihc_img |>
+    mutate(Immune_infiltrate_PDL1 = factor(Immune_infiltrate_PDL1,
+             levels = c("", "IC0 (<1%)", "IC1 (>=1% and <5%)", "IC2 (>=5% and <10%)"))) |>
+    filter(!is.na(Immune_infiltrate_PDL1), !is.na(cd45_pdl1_over_cd45_inside))
+  ggplot(d, aes(Immune_infiltrate_PDL1, cd45_pdl1_over_cd45_inside, colour = Immune_infiltrate_PDL1)) +
+      geom_boxplot(outlier.shape = NA) +
+      highlight_points(d, "Immune_infiltrate_PDL1", "cd45_pdl1_over_cd45_inside",
+                       base_colour = "Immune_infiltrate_PDL1", base_name = "Pathologist",
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = "PD-L1 on immune cells", x = NULL, y = "FlowPath positivity (fraction)") +
+      theme_classic(base_size = 12)
+}
+```
+
+### PD-L1 on tumour cells
+
+FlowPath PD-L1+ tumour = PD-L1+ tumour cells / tumour cells inside the annotation.
+
+```{r concordance-tcpdl1}
+if ("Tumor_cells_PDL1" %in% names(ihc_img)) {
+  d <- ihc_img |>
+    filter(!is.na(Tumor_cells_PDL1), Tumor_cells_PDL1 != "", !is.na(tumor_pdl1_over_tumor_inside))
+  ggplot(d, aes(Tumor_cells_PDL1, tumor_pdl1_over_tumor_inside, colour = Tumor_cells_PDL1)) +
+      geom_boxplot(outlier.shape = NA) +
+      highlight_points(d, "Tumor_cells_PDL1", "tumor_pdl1_over_tumor_inside",
+                       base_colour = "Tumor_cells_PDL1", base_name = "Pathologist",
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = "PD-L1 on tumour cells", x = NULL, y = "FlowPath positivity (fraction)") +
+      theme_classic(base_size = 12) +
+      theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+## Per-patient IHC metrics
+
+Everything above is per **image**. A patient can contribute several images, so the
+metrics are collapsed to one row per patient (mean across that patient's images) before
+being used against patient-level variables like survival or aneuploidy.
+
+```{r ihc-patient}
+ihc_pt <- ihc_patient_metrics(ihc_data, imaging_data)
+glimpse(ihc_pt)
+```
+
+Survival split by immune content, on the **whole imaged cohort**. Immune content is the
+CD45 fraction inside the annotation, binarised at its **median** — a data-driven split,
+not a pre-registered threshold, so it is descriptive. Panels are MMR status; curves are
+immune-high vs immune-low.
+
+```{r survival-by-ihc}
+d <- ihc_pt |>
+  left_join(master |> select(pid, any_of(c(attend_cols$surv_time, attend_cols$surv_event,
+                                           attend_cols$mmr_status))), by = "pid") |>
+  mutate(immune_class = if_else(cd45_over_inside >= median(cd45_over_inside, na.rm = TRUE),
+                                "immune-high", "immune-low"))
+
+if (have_cols(d, attend_cols$surv_time, attend_cols$surv_event,
+              attend_cols$mmr_status, "immune_class")) {
+  km_facet(d, group = "immune_class", facets = attend_cols$mmr_status)
+} else message("survival columns not set in attend_cols — skipping KM by IHC feature.")
+```
+
+---
+
+# Part 2 — Cell-type composition vs aneuploidy, in MMR-deficient tumours
+
+Everything from here on is **MMR-deficient only**, with one clearly-marked exception
+(the interaction model, which cannot be estimated inside a single stratum).
+
+## Building the restricted cohort
+
+Three things are joined on `pid`: the aneuploidy class from the master, the per-patient
+cell-type composition from the FlowPath tree, and the continuous covariates. MMR status
+comes from `add_scna_group()`, which calls `is_mmrd()` — **IHC-based, with MSI
+deliberately not a criterion** — so this report's MMRd definition is identical to the one
+the copy-number and classification reports use.
+
+The counts printed here are the cohort for the whole of Part 2.
+
+```{r data}
+master <- read_intermediate("attend_master_joined") |>
+  add_molecular_classes() |>
+  mutate(aneuploidy_class = factor(aneuploidy_class,
+                                   levels = c("aneuploidy-high", "aneuploidy-low")))
+
+master_grp <- add_scna_group(master)        # adds mmr_group ("MMRd"/"MMRp") + scna_group
+mmrd_pids  <- master_grp |> filter(mmr_group == "MMRd") |> pull(pid)
+
+# per-patient cell-type composition inside the annotation (reads the FlowPath tree)
+ct_all <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class))
+ct <- ct_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
+
+# per-patient continuous covariates + TP53 status, restricted the same way
+numcol <- function(col) if (col %in% names(master)) suppressWarnings(as.numeric(master[[col]])) else NA_real_
+pt_all <- tibble(
+  pid              = master$pid,
+  aneuploidy_class = master$aneuploidy_class,
+  aneuploidy_score = numcol(attend_cols$aneuploidy),
+  HRD              = numcol(attend_cols$hrd),
+  MSI              = numcol("msi__MSI_SCORE"),
+  TP53             = if ("TP53_pathogenic" %in% names(master))
+                       if_else(master$TP53_pathogenic, "TP53-abnormal", "TP53-normal") else NA_character_
+)
+
+# The two TMB definitions, added under their reader-facing names so every facet reads
+# "TMB (normal)" / "TMB (ancestry corrected)" rather than an internal column name.
+tmb_defs04 <- tmb_defs_present(master)
+tmb_labs04 <- tmb_def_labels(tmb_defs04)
+for (i in seq_along(tmb_defs04)) pt_all[[tmb_labs04[i]]] <- numcol(tmb_defs04[[i]])
+covar_cols04 <- c(tmb_labs04, "HRD", "MSI")
+
+pt <- pt_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
+
+cat("MMR-deficient patients                       :", length(mmrd_pids), "\n")
+cat("  ... with cell-type metrics + aneuploidy class:", n_distinct(ct$pid), "\n")
+cat("  ... cell types measured                      :", n_distinct(ct$cell_type), "\n")
+cat("TMB definitions plotted:", paste(tmb_labs04, collapse = " | "), "\n\n")
+if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
+  ct |> distinct(pid, aneuploidy_class) |> pull(aneuploidy_class)))))
+```
+
+```{r box-helpers, include=FALSE}
+# One boxplot per cell type: aneuploidy-high vs -low. Boxes are filled by aneuploidy
+# class; the highlight overlay is drawn on top in its own colour scale (colour != fill,
+# so the two legends do not collide), partitioned so no patient is plotted twice.
+box_by_aneu <- function(df, frac_col, denom_label) {
+  d <- df |> filter(is.finite(.data[[frac_col]]))
+  if (nrow(d) == 0) return(NULL)
+  ggplot(d, aes(aneuploidy_class, .data[[frac_col]], fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "aneuploidy_class", frac_col, base_size = 0.5, base_alpha = 0.35,
+                     base_const = "black") +
+    facet_wrap(~ cell_type, scales = "free_y") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — normalized by ", denom_label),
+         x = NULL, y = paste0("fraction of ", denom_label)) +
+    attend_theme() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+}
+
+# Variance-stabilised companion: same panels, arcsine-square-root fraction + t-test.
+box_by_aneu_arcsin <- function(df, frac_col, denom_label) {
+  d <- df |> filter(is.finite(.data[[frac_col]])) |>
+    mutate(.y = arcsin_sqrt(.data[[frac_col]]))
+  if (nrow(d) == 0) return(NULL)
+  ggplot(d, aes(aneuploidy_class, .y, fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "aneuploidy_class", ".y", base_size = 0.5, base_alpha = 0.35,
+                     base_const = "black") +
+    facet_wrap(~ cell_type, scales = "free_y") +
+    stat_compare_means(method = "t.test", label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — arcsin(sqrt), by ", denom_label),
+         subtitle = "arcsine-square-root transformed fraction; two-sample t-test",
+         x = NULL, y = paste0("arcsin(sqrt(fraction of ", denom_label, "))")) +
+    attend_theme() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+## Cell-type composition by aneuploidy class
+
+One panel per cell type, aneuploidy-high vs -low, within MMRd. Each normalization is
+shown as a raw-fraction/Wilcoxon figure followed by its arcsine/t-test companion — see
+the normalization table at the top for what each denominator asks.
+
+### Normalized by all cells inside
+
+```{r box-inside, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu(ct, "frac_inside", "all cells inside")
+```
+
+```{r box-inside-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu_arcsin(ct, "frac_inside", "all cells inside")
+```
+
+### Normalized by tumour cells inside
+
+```{r box-tumor, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu(ct, "frac_tumor", "tumour cells inside")
+```
+
+```{r box-tumor-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu_arcsin(ct, "frac_tumor", "tumour cells inside")
+```
+
+### Normalized by CD45+ cells inside
+
+```{r box-cd45, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu(ct, "frac_cd45", "CD45+ cells inside")
+```
+
+```{r box-cd45-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+box_by_aneu_arcsin(ct, "frac_cd45", "CD45+ cells inside")
+```
+
+## Immune content — the headline contrast
+
+The biological question Part 2 exists for: **among MMR-deficient tumours, is
+aneuploidy-high associated with an immune-cold phenotype?**
+
+Two leukocyte metrics counted inside the annotation — **CD45+ total** (all leukocytes)
+and **CD3+CD45+** (double-positive T cells) — under each normalization. CD3+CD45+
+requires a `CD3_sign` column in the FlowPath export; without it those rows are `NA` and
+their facets drop out on their own.
+
+```{r immune-data}
+imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class))
+imm_metrics <- imm_all |> filter(pid %in% mmrd_pids)      # <- the MMRd restriction
+
+cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
+    "| metrics present:", paste(sort(unique(imm_metrics$metric)), collapse = ", "), "\n")
+```
+
+```{r immune-box-helper, include=FALSE}
+box_immune <- function(df, arcsin = FALSE) {
+  d <- df |> filter(is.finite(frac))
+  if (nrow(d) == 0) return(NULL)
+  if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
+  method <- if (arcsin) "t.test"                 else "wilcox.test"
+  ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
+  ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
+  ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "aneuploidy_class", "frac", base_size = 0.6, base_alpha = 0.4,
+                     base_const = "black") +
+    facet_wrap(~ metric + denom_label, scales = "free_y") +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = paste0("Immune content by aneuploidy (MMRd only) — ", ttl),
+         x = NULL, y = ylab) +
+    attend_theme() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
+if (nrow(filter(imm_metrics, is.finite(frac))) > 2) {
+  print(box_immune(imm_metrics, arcsin = FALSE))
+  print(box_immune(imm_metrics, arcsin = TRUE))
+} else message("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")
+```
+
+### The pre-specified primary contrast
+
+Of everything above, one comparison is designated **primary**: **CD45+ / all cells
+inside**, tested with the **arcsine-square-root transform and a two-sample t-test**. The
+Wilcoxon on the raw fraction is reported next to it as a companion, not a substitute.
+The other two normalizations, and CD3+CD45+, are **secondary** — they can and do degrade
+to a skip when counts are missing.
+
+Naming one primary endpoint in advance is what keeps this from being a search across six
+panels for the smallest p-value.
+
+```{r immune-mmrd-test}
+mmrd_arcsin_t_wilcox <- function(df, metric_, denom_) {
+  d <- df |> dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac))
+  tab <- table(d$aneuploidy_class)
+  if (length(tab) < 2 || any(tab < 2)) {
+    message("MMRd ", metric_, " / ", denom_, ": insufficient n per aneuploidy arm — skipping.")
+    return(invisible(NULL))
+  }
+  t_res <- t.test(arcsin_sqrt(frac) ~ aneuploidy_class, data = d)     # primary
+  w_res <- wilcox.test(frac ~ aneuploidy_class, data = d)             # companion
+  cat(sprintf("MMRd %-10s / %-20s  n=%d (high=%d, low=%d)  arcsin-t p=%.3g  Wilcoxon p=%.3g\n",
+      metric_, denom_, nrow(d), tab[["aneuploidy-high"]], tab[["aneuploidy-low"]],
+      t_res$p.value, w_res$p.value))
+  list(d = d, t = t_res, w = w_res)
+}
+res_primary <- mmrd_arcsin_t_wilcox(imm_metrics, "CD45+", "all cells inside")      # PRIMARY
+res_tumor   <- mmrd_arcsin_t_wilcox(imm_metrics, "CD45+", "tumour cells inside")   # secondary
+res_cd45n   <- mmrd_arcsin_t_wilcox(imm_metrics, "CD3+CD45+", "CD45+ cells inside") # secondary
+```
+
+The primary contrast on its own. The subtitle carries both p-values and the group size —
+at this n a single patient moving between groups can change the result, which is why the
+count is on the figure rather than in a caption.
+
+```{r immune-mmrd-box, fig.width=6, fig.height=5}
+if (!is.null(res_primary)) {
+  d <- res_primary$d
+  ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "aneuploidy_class", "frac", base_size = 1.2, base_alpha = 0.5, base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = "PRIMARY: CD45+ immune fraction (all cells inside) — MMR-deficient only",
+         subtitle = paste0("arcsin(sqrt) t p = ", signif(res_primary$t$p.value, 3),
+                           " | Wilcoxon p = ", signif(res_primary$w$p.value, 3),
+                           " (n = ", nrow(d), "; small-n — suggestive only)"),
+         x = NULL, y = "CD45+ fraction of all cells inside") +
+    attend_theme() + theme(legend.position = "none")
+} else message("Primary within-MMRd immune contrast skipped — see message above.")
+```
+
+### The one model that needs MMR-proficient patients
+
+This is the single exception to Part 2's MMRd restriction, and it has to be: an
+**interaction** asks whether the aneuploidy effect *differs between* MMRd and MMRp, and
+that cannot be estimated inside one stratum. The model is
+`arcsin(sqrt(CD45+/all cells inside)) ~ aneuploidy_class * mmr_group`, fitted on both
+groups.
+
+The interaction term is the row of interest — a large coefficient there is what would
+justify the MMRd-only restriction the rest of Part 2 applies. No correction is applied.
+
+```{r immune-interaction}
+imm_int <- imm_all |>
+  dplyr::filter(metric == "CD45+", denom_label == "all cells inside", is.finite(frac)) |>
+  dplyr::left_join(master_grp |> dplyr::select(pid, mmr_group), by = "pid") |>
+  dplyr::filter(!is.na(mmr_group), !is.na(aneuploidy_class)) |>
+  dplyr::mutate(y = arcsin_sqrt(frac))
+
+if (nrow(imm_int) > 4 && dplyr::n_distinct(imm_int$aneuploidy_class) == 2 &&
+    dplyr::n_distinct(imm_int$mmr_group) == 2) {
+  fit <- lm(y ~ aneuploidy_class * mmr_group, data = imm_int)
+  coef_tbl <- if (requireNamespace("broom", quietly = TRUE)) broom::tidy(fit) else
+    as.data.frame(summary(fit)$coefficients)
+  print(knitr::kable(coef_tbl, digits = 3,
+        caption = "arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group — BOTH MMR groups, no correction"))
+} else message("Not enough patients across both MMR groups for the interaction model.")
+```
+
+## Aneuploidy against the continuous covariates
+
+Aneuploidy score against TMB (**both definitions**), HRD, and MSI — within MMRd. One
+point per patient, coloured by aneuploidy class, with Spearman's rho per panel. Spearman
+rather than Pearson because these scores are bounded and skewed.
+
+The two TMB panels are the same patients under the two definitions, so a visible
+difference between them is the germline correction moving values, not new data.
+
+```{r aneu-scatter, fig.width=12, fig.height=7}
+scat <- pt |>
+  pivot_longer(all_of(covar_cols04), names_to = "covariate", values_to = "value") |>
+  filter(!is.na(aneuploidy_score), !is.na(value)) |>
+  mutate(covariate = factor(covariate, levels = covar_cols04))
+
+if (nrow(scat) > 2) {
+  rho <- scat |>
+    group_by(covariate) |>
+    summarise(label = paste0("rho = ",
+                round(suppressWarnings(cor(aneuploidy_score, value, method = "spearman",
+                                           use = "complete.obs")), 2)), .groups = "drop")
+  ggplot(scat, aes(aneuploidy_score, value, colour = aneuploidy_class)) +
+    highlight_points(scat, "aneuploidy_score", "value", base_colour = "aneuploidy_class",
+                     base_palette = attend_aneu_cols,
+                     base_name = "aneuploidy", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_smooth(method = "lm", se = FALSE, colour = "grey40", linewidth = 0.6) +
+    geom_text(data = rho, aes(x = Inf, y = Inf, label = label),
+              inherit.aes = FALSE, hjust = 1.05, vjust = 1.5, size = 3) +
+    facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
+    labs(title = "Aneuploidy score vs continuous covariates (MMR-deficient only)",
+         x = "aneuploidy score", y = "covariate value", colour = NULL) +
+    attend_theme() + theme(legend.position = "top")
+} else message("Not enough MMR-deficient patients with aneuploidy score + a covariate.")
+```
+
+The same covariates against the **binarised** aneuploidy class rather than the continuous
+score — the categorical counterpart to the scatter above, with a per-covariate Wilcoxon.
+Comparing the two is a check on the `r attend_thresholds$aneuploidy` cutpoint: a
+correlation visible in the scatter but absent here means the cutpoint is discarding it.
+
+```{r aneu-class-box, fig.width=12, fig.height=7}
+cb <- pt |>
+  pivot_longer(all_of(covar_cols04), names_to = "covariate", values_to = "value") |>
+  filter(!is.na(aneuploidy_class), !is.na(value)) |>
+  mutate(covariate = factor(covariate, levels = covar_cols04))
+
+if (nrow(cb) > 2) {
+  ggplot(cb, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(cb, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
+                     base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = "Continuous covariates by aneuploidy class (MMR-deficient only)",
+         x = NULL, y = "covariate value") +
+    attend_theme() + theme(legend.position = "none")
+} else message("Not enough MMR-deficient patients with aneuploidy class + a covariate.")
+```
+
+## Aneuploidy by TP53 status
+
+Within MMRd, aneuploidy score in TP53-abnormal versus TP53-normal tumours. TP53 status is
+`TP53_pathogenic` from the master, derived from the MAF in report 1. TP53 loss is the
+canonical driver of chromosomal instability, so this is the expected-positive control for
+the aneuploidy score itself: if aneuploidy does not separate on TP53 here, the score is
+suspect before any of the immune results are interpreted.
+
+```{r mmrd-tp53, fig.width=5, fig.height=5}
+tp <- pt |> filter(!is.na(TP53), !is.na(aneuploidy_score))
+
+if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
+  ggplot(tp, aes(TP53, aneuploidy_score, fill = TP53)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(tp, "TP53", "aneuploidy_score", base_size = 1.5, base_alpha = 0.5,
+                     base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format") +
+    scale_fill_manual(values = attend_tp53_cols) +
+    labs(title = "Aneuploidy by TP53 status (MMR-deficient only)",
+         x = NULL, y = "aneuploidy score") +
+    attend_theme() + theme(legend.position = "none")
+} else {
+  message("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",
+          "is missing from the master (rebuild report 1).")
+}
+```
+
+## Aneuploidy against the pathologist's imaging calls
+
+The pathologist's per-patient scores compared between aneuploidy high and low, within
+MMRd. These come from the imaging sheet keyed by image → pid, averaged over a patient's
+images for the continuous measures and taking the first non-missing value for the
+categorical calls.
+
+```{r imaging-covars}
+first_nonNA <- function(x) { x <- x[!is.na(x)]; if (length(x)) x[1] else NA }
+
+imaging_pt <- load_imaging_data() |>
+  filter(!is.na(ID)) |>
+  group_by(pid = as.character(ID)) |>
+  summarise(
+    Immune_infiltrate      = mean(suppressWarnings(as.numeric(Immune_infiltrate)),     na.rm = TRUE),
+    Immune_infiltrate_PD1  = mean(suppressWarnings(as.numeric(Immune_infiltrate_PD1)), na.rm = TRUE),
+    ARID1A                 = first_nonNA(ARID1A),
+    Tumor_cells_PDL1       = first_nonNA(Tumor_cells_PDL1),
+    Immune_infiltrate_PDL1 = first_nonNA(Immune_infiltrate_PDL1),
+    .groups = "drop"
+  ) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class), pid %in% mmrd_pids)   # <- the MMRd restriction
+
+cat("MMR-deficient patients with imaging covariates:", n_distinct(imaging_pt$pid), "\n")
+```
+
+Continuous pathologist scores (immune infiltrate and PD-1 infiltrate, as percentages) by
+aneuploidy class, Wilcoxon per panel. These are the pathologist's independent read of the
+same immune question the FlowPath contrast above asked.
+
+```{r imaging-covars-cont, fig.width=8, fig.height=4}
+icc <- imaging_pt |>
+  pivot_longer(c(Immune_infiltrate, Immune_infiltrate_PD1),
+               names_to = "covariate", values_to = "value") |>
+  filter(is.finite(value))
+
+if (nrow(icc) > 2) {
+  ggplot(icc, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(icc, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
+                     base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    facet_wrap(~ covariate, scales = "free_y") +
+    scale_fill_manual(values = attend_aneu_cols) +
+    labs(title = "Pathologist immune scores by aneuploidy class (MMR-deficient only)",
+         x = NULL, y = "pathologist %") +
+    attend_theme() + theme(legend.position = "none")
+}
+```
+
+Categorical calls as stacked proportions — how each call distributes within aneuploidy
+high vs low. Bars are proportions, so the **group sizes are not visible in this figure**;
+read them from the count printed above. `MMR_Status` is omitted because it is constant
+here by construction.
+
+```{r imaging-covars-cat, fig.width=11, fig.height=4}
+icat <- imaging_pt |>
+  select(aneuploidy_class, ARID1A, Tumor_cells_PDL1, Immune_infiltrate_PDL1) |>
+  pivot_longer(-aneuploidy_class, names_to = "covariate", values_to = "level") |>
+  filter(!is.na(level), level != "")
+
+if (nrow(icat) > 0) {
+  ggplot(icat, aes(aneuploidy_class, fill = level)) +
+    geom_bar(position = "fill") +
+    facet_wrap(~ covariate, scales = "free_x", nrow = 1) +
+    labs(title = "Pathologist categorical calls by aneuploidy class (MMR-deficient only)",
+         x = NULL, y = "proportion of patients", fill = NULL) +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+## Survival by aneuploidy x immune content
+
+Crossing the two axes of Part 2, within MMRd: curves are immune-high vs immune-low (CD45+
+fraction of all cells inside, split at the **median** — data-driven, not pre-registered),
+panelled by aneuploidy class. With the MMRd cohort split four ways, panel sizes here are
+very small.
+
+```{r survival-aneu-immune}
+imm <- ct |>
+  distinct(pid, n_inside, n_cd45_inside) |>
+  mutate(cd45_frac = n_cd45_inside / n_inside) |>
+  left_join(master |> select(pid, aneuploidy_class,
+                             any_of(c(attend_cols$surv_time, attend_cols$surv_event))),
+            by = "pid") |>
+  mutate(immune_class = if_else(cd45_frac >= median(cd45_frac, na.rm = TRUE),
+                                "immune-high", "immune-low"))
+
+if (have_cols(imm, attend_cols$surv_time, attend_cols$surv_event,
+              "immune_class", "aneuploidy_class")) {
+  km_facet(imm, group = "immune_class", facets = "aneuploidy_class")
+} else message("survival columns not set in attend_cols — skipping KM.")
+```
+
+## What to take away
+
+- **Part 1 is measurement validation, Part 2 is biology.** Part 1 runs on every imaged
+  patient; Part 2 runs on MMR-deficient patients only. They are not the same cohort and
+  should not be quoted together.
+- **Concordance first.** If FlowPath and the pathologist disagree on a marker in Part 1,
+  any Part 2 result built on that marker inherits the disagreement.
+- **One primary endpoint.** CD45+ / all cells inside, arcsine + t-test. Everything else in
+  the immune section is secondary or exploratory.
+- **The n is small and no correction is applied.** MMRd aneuploidy-high is around 9
+  patients. Treat every p-value in Part 2 as suggestive.
+- **The median split is not a threshold.** Immune-high/low is defined by this cohort's own
+  median, so it moves if the cohort does.
+
+```{r session-info}
+sessionInfo()
+```

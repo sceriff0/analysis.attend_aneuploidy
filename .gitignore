@@ -1,0 +1,70 @@
+# --- R / RStudio ---
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+# base-graphics byproduct: any Rscript that draws to the null device drops this here
+Rplots.pdf
+
+# --- renv ---
+# Track renv.lock, settings, and activate.R; ignore the local library + cache.
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+
+# --- workflowr ---
+# The rendered site (docs/) IS tracked by workflowr — do not ignore it.
+# Knit byproducts that should not be committed:
+analysis/*_cache/
+analysis/figure/
+
+# --- data / outputs ---
+# Large raw data and regenerable outputs are not version-controlled here.
+# Remove these lines if you intend to commit small reference inputs/outputs.
+data/*.csv
+data/*.tsv
+data/*.maf
+data/*.seg
+output/clean_data/*.csv
+output/gistic_input/
+# The data inventory is 62 MB (ids.tsv alone is 61 MB) and is fully regenerable by
+# code/inventory_data.R. Kept on disk, kept out of git — a blob that size can never be
+# removed from history, and GitHub rejects single files over 100 MB.
+output/inventory/
+# Raw WES/CNV inputs synced from HPC live in these subfolders — never commit them:
+data/seg/
+data/ascets/
+data/cnv_annotations/
+data/variant_annotations/
+data/gistic/
+data/nassar/
+data/tcga/
+data/tcga_2013/
+# ...but the small bundled reference tables (config, not raw data) ARE tracked:
+!data/arm_boundaries_*.tsv
+# TCGA 2013 published GISTIC peaks (Suppl. Data File S2.1), converted to TSV — a small
+# reference table, not raw data, and the pipeline reads it instead of the .xls.
+!data/tcga_gistic_peaks_2013.tsv
+
+# --- third-party tools cloned by helper scripts (not vendored) ---
+# code/run_ascets_tcga.sh clones github.com/beroukhim-lab/ascets here.
+tools/
+
+# --- research / planning notes (local only) ---
+research/
+papers/
+
+# --- Claude Code / Citadel harness (local only, not version-controlled) ---
+.claude/
+.citadel/
+.planning/
+docs/superpowers/
+AGENTS.md
+CLAUDE.md
+
+# --- OS ---
+.DS_Store

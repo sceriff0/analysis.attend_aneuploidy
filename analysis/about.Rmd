@@ -1,0 +1,17 @@
+---
+title: "About"
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+
+ATTEND is a reproducible multi-omic QC and analysis pipeline built with
+[workflowr](https://workflowr.github.io/workflowr/) and
+[renv](https://rstudio.github.io/renv/).
+
+- **R 4.3.2**, **Bioconductor 3.18** (pinned in `renv.lock`).
+- Restore the environment with `renv::restore()` before building.
+
+See `CLAUDE.md` in the repository root for the architecture and command reference.

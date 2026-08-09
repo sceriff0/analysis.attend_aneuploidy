@@ -1,0 +1,5 @@
+# workflowr options
+# The seed makes every report's random numbers reproducible.
+seed: 20260622
+# Record the compute environment at the end of each report.
+sessioninfo: "sessionInfo()"
