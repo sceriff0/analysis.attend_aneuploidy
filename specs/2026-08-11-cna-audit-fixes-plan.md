@@ -299,3 +299,90 @@ Also update §8's phase table so the audit fixes appear as work that precedes th
 
 Prose follows the spec's own §5 rules: at most two bold spans per paragraph, numbers as
 facts not adjectives, no takeaway section.
+
+---
+
+## Task 6 — Make the corrected pileup denominator reach production (P0 follow-up)
+
+**Added after Task 1.** Task 1 implemented §1b exactly as written, and verification showed
+the specification was incomplete: the corrected denominator is opt-in and nothing opts in.
+
+**Files:** `code/load_wes_results.R`, `code/attend_classes.R`,
+new `code/tests/test_pileup_profiled_denominator.R`
+
+### The gap
+
+Task 1 made `segment_pileup()` count distinct ids in `cnv_long` before filtering. That
+fixes the case where a sample has segments that all fail the `min_abs` cut. It cannot fix
+the case where a sample contributes **no rows at all** — and that is the production case:
+
+- `load_cnv_data()` (`code/load_wes_results.R:174`) reads one `*.cnv.annotated.tsv` per
+  sample. ClassifyCNV annotates *called* CNVs, so a copy-number-quiet tumour yields a file
+  with zero data rows, and `mutate(ID = id)` on a zero-row tibble yields zero rows. The
+  sample disappears before `segment_pileup()` ever sees it.
+- The only call site, `analysis/05_oncoplots_recurrent_cna.Rmd:334`, is
+  `segment_pileup(load_cnv_data(), load_arm_boundaries())` — no `n_samples` argument.
+
+Verified against the Task 1 code:
+
+| Fixture | `n_samples` used | `gain` reported | Correct |
+|---|---|---|---|
+| 4 samples, 2 filtered out by `min_abs` | 4 | 0.5 | 0.5 — fixed |
+| 4 samples, 2 contribute no rows | 2 | 1.0 | 0.5 — still wrong |
+| same, with explicit `n_samples = 4` | 4 | 0.5 | 0.5 — correct |
+
+### 6a — `load_cnv_data()` reports how many samples it profiled
+
+In `code/load_wes_results.R`, `load_cnv_data()` already computes `files`, one path per
+sample. Attach the count to the returned tibble:
+
+```r
+attr(out, "n_profiled") <- length(files)
+```
+
+Set it on every return path that reads a folder, including the path that returns an empty
+tibble because the folder has no matching files (`n_profiled = 0`). The early return for a
+missing folder keeps returning a bare `tibble()` with no attribute — absence of the folder
+is not the same as zero profiled samples.
+
+Preserve the attribute through the final `relocate()` — dplyr verbs drop non-standard
+attributes, so set it **after** the last dplyr call, immediately before returning.
+
+### 6b — `segment_pileup()` prefers the profiled count
+
+In `code/attend_classes.R`, when the `n_samples` argument is `NULL`, resolve the
+denominator in this order:
+
+1. `attr(cnv_long, "n_profiled")`, when present, non-`NA`, and at least the number of
+   distinct ids actually present. (The floor guard means a stale or wrong attribute can
+   never *shrink* the denominator below the samples in hand.)
+2. otherwise `dplyr::n_distinct(cnv_long[[id_col]])`, computed before any filtering, as
+   Task 1 implemented.
+
+An explicit `n_samples` argument still wins over both. Record which source was used in a
+new attribute `attr(wide, "n_samples_source")`, one of `"argument"`, `"profiled"`,
+`"observed"`, so the report can state its denominator honestly.
+
+### 6c — Tests, `code/tests/test_pileup_profiled_denominator.R`
+
+`load_cnv_data()` needs `data.table`, which is **not installed on this machine**, so 6a is
+not locally testable. Test 6b only, by setting the attribute on an inline fixture:
+
+1. A fixture carrying `attr(x, "n_profiled") <- 4` with only 2 ids present gives
+   `gain = 0.5`, `attr(., "n_samples") == 4`, `n_samples_source == "profiled"`.
+2. No attribute present falls back to the observed distinct-id count;
+   `n_samples_source == "observed"`.
+3. An explicit `n_samples` argument overrides a present attribute;
+   `n_samples_source == "argument"`.
+4. The floor guard: an attribute of 1 with 2 ids present does not shrink the denominator —
+   the observed count wins.
+5. `NA` attribute is ignored, falling back to observed.
+6. `NULL` in -> `NULL` out still holds (GC2).
+
+State in the report that 6a is untested locally and why.
+
+### 6d — Report prose
+
+Do not edit `analysis/05_oncoplots_recurrent_cna.Rmd` in this task — Task 3 owns that file
+and must state the denominator and its source in the pileup prose. Note the requirement in
+your report so Task 3 picks it up.
