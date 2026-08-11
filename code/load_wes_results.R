@@ -179,9 +179,12 @@ load_cnv_data <- function(cnv = attend_cnv) {
   }
   files <- dir_ls(folder, recurse = TRUE, type = "file", glob = "*.cnv.annotated.tsv")
   if (length(files) == 0) {
-    message("load_cnv_data(): no *.cnv.annotated.tsv under ", folder); return(tibble())
+    message("load_cnv_data(): no *.cnv.annotated.tsv under ", folder)
+    out <- tibble()
+    attr(out, "n_profiled") <- 0L
+    return(out)
   }
-  files |>
+  out <- files |>
     map(function(p) {
       id <- str_remove(path_file(p), "\\.cnv\\.annotated\\.tsv$")
       id <- str_remove(id, cc$id_strip)
@@ -198,6 +201,14 @@ load_cnv_data <- function(cnv = attend_cnv) {
     }) |>
     list_rbind() |>
     relocate(ID)
+  # Attach AFTER the final dplyr verb — relocate() (like every dplyr verb) drops
+  # non-standard attributes, so setting this any earlier would lose it. `files` is
+  # one path per sample (including samples that contributed zero data rows, e.g. a
+  # copy-number-quiet tumour with no ClassifyCNV calls), so length(files) is the
+  # true number of samples PROFILED — the denominator segment_pileup() needs, since
+  # a quiet sample vanishes from `out`'s rows entirely.
+  attr(out, "n_profiled") <- length(files)
+  out
 }
 
 # --- CNV: DRAGEN genome-wide segmentation (.seg) for the Fig-1a heatmap ------

@@ -530,6 +530,11 @@ attend_cnv <- list(
     all_thresholded_glob = "*all_thresholded*.txt"
   ),
 
+  # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 5): an arm must be
+  # EVALUABLE (call != LOWCOV/NC/NA) in at least this fraction of samples to be eligible
+  # for top_arms — keeps a poorly-covered arm from ranking on a handful of confident calls.
+  arm_calls = list(min_evaluable_frac = 0.5),
+
   # Genome-wide recurrent-SCNA pileup (report 5, TCGA nature12113 Fig-1 style):
   # base-pair-resolution fraction of samples gained/lost along the genome, from the
   # ClassifyCNV altered segments. `bin` = window width (bp). Direction comes from the
@@ -550,7 +555,8 @@ attend_cnv <- list(
 #              `min_evaluable_frac` of samples (the ones worth annotating)
 #   wide_top : ID + one "CNV_<arm>" column per top arm — the oncoplot annotation table
 # NULL in -> NULL out (knit-safe).
-recurrent_arm_calls <- function(calls, n_top = 5, min_evaluable_frac = 0.5) {
+recurrent_arm_calls <- function(calls, n_top = 5,
+                                min_evaluable_frac = attend_cnv$arm_calls$min_evaluable_frac) {
   if (is.null(calls) || nrow(calls) == 0 || !"ID" %in% names(calls)) return(NULL)
   arm_cols <- setdiff(names(calls), "ID")
   if (length(arm_cols) == 0) return(NULL)
@@ -611,13 +617,37 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
                            n_samples = NULL) {
   if (is.null(cnv_long) || nrow(cnv_long) == 0 || is.null(arms)) return(NULL)
 
-  # Denominator = samples PROFILED, not samples with a surviving altered segment.
-  # Must be taken from the UNFILTERED cnv_long, before min_abs / direction drop rows —
-  # a sample whose genome is quiet (or below min_abs) still counts in the denominator.
-  # A caller may instead pass the full cohort size (e.g. covering samples whose
-  # annotation file failed to parse); never derive it from the filtered `segs` below.
-  if (is.null(n_samples))
-    n_samples <- dplyr::n_distinct(cnv_long[[id_col]])
+  # Denominator = samples PROFILED, not samples with a surviving altered segment. Three
+  # sources, tried in this order, recorded in attr(wide, "n_samples_source") so the report
+  # can state its denominator honestly:
+  #   "argument" — an explicit n_samples always wins (e.g. the full cohort size, covering
+  #                samples whose annotation file failed to parse entirely).
+  #   "profiled" — attr(cnv_long, "n_profiled"), set by load_cnv_data() from the count of
+  #                per-sample files it read. This is the ONLY source that can see a sample
+  #                that contributed ZERO rows to cnv_long (a copy-number-quiet tumour whose
+  #                ClassifyCNV file has no calls) — no inspection of cnv_long's rows can
+  #                recover that count. Used only when present, non-NA, numeric, and at
+  #                least the observed distinct-id count below (a floor guard: a stale or
+  #                wrong attribute can never SHRINK the denominator below the samples
+  #                actually in hand).
+  #   "observed" — dplyr::n_distinct() on the UNFILTERED cnv_long, before min_abs /
+  #                direction drop rows (Task 1) — a sample whose genome is
+  #                quiet-but-present (or whose segments are all below min_abs) still
+  #                counts.
+  n_observed <- dplyr::n_distinct(cnv_long[[id_col]])
+  if (!is.null(n_samples)) {
+    n_samples_source <- "argument"
+  } else {
+    profiled <- attr(cnv_long, "n_profiled")
+    if (!is.null(profiled) && length(profiled) == 1 && !is.na(profiled) &&
+        is.numeric(profiled) && profiled >= n_observed) {
+      n_samples        <- profiled
+      n_samples_source <- "profiled"
+    } else {
+      n_samples        <- n_observed
+      n_samples_source <- "observed"
+    }
+  }
 
   segs <- cnv_long |>
     transmute(
@@ -680,8 +710,9 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
     mutate(gain = tidyr::replace_na(gain, 0),
            loss = tidyr::replace_na(loss, 0))
 
-  attr(wide, "chrom_offsets") <- chrom_len
-  attr(wide, "n_samples")     <- n_samples
+  attr(wide, "chrom_offsets")    <- chrom_len
+  attr(wide, "n_samples")        <- n_samples
+  attr(wide, "n_samples_source") <- n_samples_source
   wide
 }
 
