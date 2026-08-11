@@ -279,6 +279,7 @@ Each phase leaves the site knittable.
 
 | Phase | Work | Verify |
 |---|---|---|
+| audit | Recurrent-CNA audit (§11): three denominator bugs, genome ordering, amplitude tiers, centromere marks, chrY drop, memo-sorted oncoplot. Implemented on `cna-audit-fixes`, lands before phase 0. | `test_recurrent_cna_denominators.R`, `test_cna_plot_inputs.R`, `test_pileup_profiled_denominator.R`, `test_classifycnv_file_id.R` all pass |
 | 0 | Create `_explainers/`, `00_methods.Rmd` (empty shell), `runbooks/`, `code/tests/test_rmd_style.R` (expected to fail). | test runs, reports still knit |
 | 1 | Extract `07:619–1005` into `00_methods.Rmd` + `runbooks/`. No renumbering. | `07` drops to ~620 lines; knits |
 | 2 | Write the five explainer fragments; replace the six in-report copies with `child=` chunks. | knit diff shows identical rendered text |
@@ -300,7 +301,10 @@ can ship independently of 3–6.
   boundaries settle. Tracked separately.
 - `renv` initialization, the missing `data/attend_barcodes.csv`, and the placeholder
   `attend_cols` entries. Unrelated to this refactor.
-- Any change to `code/*.R` behaviour. Only `code/tests/test_rmd_style.R` is added.
+- Any change to `code/*.R` behaviour by *this reorganization*. Only
+  `code/tests/test_rmd_style.R` is added by it. The recurrent-CNA denominator and
+  convention fixes described in §11 are a separate, prior effort on `cna-audit-fixes`
+  and do touch `code/attend_classes.R` and `code/load_wes_results.R`.
 
 ## 10. Open items
 
@@ -309,3 +313,115 @@ can ship independently of 3–6.
   `20` and note the exception in `30`'s `Out of scope` line.
 - The 400-line cap in §7 is a first guess. `40_tcga_classification` may land above it even
   after the methods extraction; adjust the cap rather than force an unnatural split.
+
+## 11. Recurrent-CNA audit (2026-08-11)
+
+Before the split in §§3–8, report 05's two recurrent-CNA figures were audited against
+field convention on branch `cna-audit-fixes` (base `b0188e0`). Three denominator bugs were
+found and fixed, five convention gaps were closed, and a memo-sorted oncoplot was added.
+No statistical test was added — that stays open. This section is the record.
+
+### 11.1 Denominator bugs — one root, three instances
+
+Each bug counted a *proxy* for "samples profiled" (rows that survived a filter, or files
+found on disk) instead of the concept itself. Filtering and file-globbing are means of
+finding profiled samples, not definitions of the term, and each proxy diverged from it in
+its own report.
+
+| # | Function | Location (`b0188e0`) | Proxy counted | Observed | Correct |
+|---|---|---|---|---|---|
+| 1 | `recurrent_arm_calls()` | `code/attend_classes.R:548`, catch-all at `:556` | rows not explicitly gain/loss/neutral | 0.500 (2 AMP, 1 NEUTRAL, 1 LOWCOV) | 0.667 (2 of 3 evaluable) |
+| 2 | `segment_pileup()` | `code/attend_classes.R:586`, denominator at `:616` | rows surviving the magnitude/direction filters | 1.000 (4 profiled, 2 altered) | 0.500 |
+| 3 | `load_cnv_data()` | `code/load_wes_results.R:174` | files found on disk | 3 files → `n_profiled = 3` for 2 distinct samples | 2 |
+
+Bug 1: ASCETS emits `LOWCOV` for an arm below its breadth-of-coverage threshold. The
+`case_when` catch-all `TRUE ~ "neutral"` swept `LOWCOV` into the denominator as evidence of
+no alteration. `code/load_wes_results.R:485` and `code/run_ascets_tcga.sh:12` already
+divided by `sum(call != "LOWCOV")` on the same file — the aneuploidy score and the
+recurrence barplot used different denominators on identical input.
+
+Bug 2: `n_samples <- dplyr::n_distinct(segs$ID)` ran after the magnitude and direction
+filters, so a sample with no surviving altered segment vanished from the denominator
+instead of counting as profiled-but-quiet. The oncoplot in the same report already passes
+`removeNonMutated = FALSE` for exactly this reason — to keep whole-cohort denominators for
+mutations.
+
+Bug 3 surfaced while verifying the fix for bug 2, not in the original audit. ASCETS/
+ClassifyCNV filenames get stripped to a sample id via `attend_cnv$classifycnv$id_strip`
+(`-1TAD104|_tumor_only`), by design collapsing a resequenced sample's two filenames onto
+one id — so `S1-1TAD104.cnv.annotated.tsv` and `S1_tumor_only.cnv.annotated.tsv` both
+derive `S1`. Counting `length(files)` treats those as two profiled samples. This bug
+inflates rather than deflates the denominator — the mirror of bug 2. The floor guard added
+for bug 2 cannot catch it, since that guard only stops the attribute from being smaller
+than the observed count, never larger.
+
+All three are fixed. `recurrent_arm_calls()` gained an explicit four-way classification
+(no catch-all), `n_evaluable`/`n_lowcov` columns, and a `min_evaluable_frac` gate that keeps
+a poorly-covered arm out of `top_arms` while leaving it in `freq`. `segment_pileup()` now
+resolves its denominator in order: an explicit `n_samples` argument, then
+`attr(cnv_long, "n_profiled")` when present and no smaller than the observed count, then
+the observed distinct-id count. It records which source won in
+`attr(wide, "n_samples_source")`. `load_cnv_data()` attaches `n_profiled` as the count of
+distinct ids derived by `.classifycnv_file_id()`, not `length(files)`.
+
+### 11.2 Convention gaps closed
+
+| Convention | Fix | Source |
+|---|---|---|
+| Arm display order | genome order (1p→22q, X, Y) via `order_arms_genomic()`; selection of the top 20 arms by alteration frequency is unchanged | [GenVisR `cnFreq`](https://genviz.org/module-03-genvisr/0003/05/01/cnFreq_GenVisR/) |
+| Amplitude tiers | low/high split at `attend_cnv$pileup$high_abs_logratio = 1.0` (\|log2 ratio\| >= 1) | Beroukhim 2010; [Zack et al. 2013](https://www.nature.com/articles/ng.2760) |
+| Centromere marks | dashed vertical line at each chromosome's p/q boundary, read from `load_arm_boundaries()` | [TCGA SCNA analysis, Front. Oncol. 2021](https://www.frontiersin.org/articles/10.3389/fonc.2021.700568/full) |
+| chrY | dropped from the genome-wide pileup axis; the cohort is uterine and therefore all female; chrX is kept | cohort composition |
+| Theme | `theme_minimal()` replaced by `attend_theme()` in both figures | pipeline house style |
+
+### 11.3 No significance testing
+
+Both figures remain descriptive frequencies; no test was added. GISTIC 2.0 q-values are
+the field's standard for recurrence significance, and loaders for GISTIC output already
+exist in this codebase (`code/attend_classes.R`, `code/load_wes_results.R`, consumed by
+report 07's TCGA cascade from `data/gistic/`). Wiring GISTIC significance into the
+recurrent-CNA figures themselves is **not done** — it stays outstanding.
+
+Sources: [GISTIC 2.0](https://broadinstitute.github.io/gistic2/),
+[GenePattern GISTIC_2.0](https://www.genepattern.org/modules/docs/GISTIC_2.0/6.3/),
+[ASCETS](https://github.com/beroukhim-lab/ascets).
+
+### 11.4 Oncoplot — memo sort restored
+
+`sortByAnnotation = TRUE` on the existing `oncoplot` chunk is a deliberate, documented
+choice for showing enrichment, but it overrode maftools' default memo sort — the
+[cBioPortal OncoPrinter](https://www.cbioportal.org/oncoprinter) /
+[ComplexHeatmap OncoPrint](https://jokergoo.github.io/ComplexHeatmap-reference/book/oncoprint.html)
+convention readers expect as the primary landscape. A new chunk, `oncoplot-memo`, draws the
+same top-20 genes with `sortByAnnotation = FALSE`, the same `clinicalFeatures = covar`, and
+`removeNonMutated = FALSE`, ahead of the existing chunk. Both panels now render: the
+memo-sorted view first, the annotation-sorted view retitled as the enrichment view below it.
+
+### 11.5 Verification limits
+
+`code/load_wes_results.R` cannot execute in this development environment: `data.table`,
+`fs`, and `here` are all unavailable. So bug 3's fix and bug 2's production wiring rest on
+reading the code plus a test that pins `.classifycnv_file_id()` and `segment_pileup()`'s
+resolution order, not a run of `load_cnv_data()` itself. The `.Rmd` changes (§11.2, §11.4)
+were parse-checked only, via a manual chunk extractor and base `parse()`, since neither the
+cohort data nor `knitr` is present locally. These carry weaker evidence than the helper
+changes, which have passing unit tests; treat them accordingly, not as equally verified.
+
+Recommended first check on the cluster: compare the on-disk count of
+`*.cnv.annotated.tsv` files against `attr(load_cnv_data(), "n_profiled")`. A mismatch means
+the id collision behind bug 3 is live in the real data.
+
+### 11.6 Changes landed, by priority
+
+Destinations are the target layout in §3 and the chunk destination map in §4.
+
+| Priority | Change | File | Destination |
+|---|---|---|---|
+| P0 | `recurrent_arm_calls()`: LOWCOV excluded from the denominator, `n_evaluable`/`n_lowcov` added, `min_evaluable_frac` gates `top_arms` | `code/attend_classes.R` | `34_recurrent_cna` |
+| P0 | `segment_pileup()`: denominator computed from `cnv_long` before filtering | `code/attend_classes.R` | `34_recurrent_cna` |
+| P0 | `load_cnv_data()` attaches `n_profiled`; `segment_pileup()` prefers it over the observed count, floor-guarded, recording `n_samples_source` | `code/load_wes_results.R`, `code/attend_classes.R` | `34_recurrent_cna` |
+| P0 | `n_profiled` derived from distinct `.classifycnv_file_id()` ids, not `length(files)` | `code/load_wes_results.R` | `34_recurrent_cna` |
+| P1 | `order_arms_genomic()`; amplitude tiers (`gain_low`/`gain_high`/`loss_low`/`loss_high`) in `segment_pileup()` | `code/attend_classes.R` | `34_recurrent_cna` |
+| P1 | Arm barplot: genome order, `n_evaluable` axis labels, `attend_theme()` | `analysis/05_oncoplots_recurrent_cna.Rmd` | `34_recurrent_cna` |
+| P1/P2 | Genome-wide pileup: two amplitude panels, centromere marks, chrY dropped, `attend_theme()`, denominator and source stated in prose | `analysis/05_oncoplots_recurrent_cna.Rmd` | `34_recurrent_cna` |
+| P2 | Memo-sorted oncoplot added as the primary panel; annotation-sorted panel retitled and kept | `analysis/05_oncoplots_recurrent_cna.Rmd` | `33_mutation_landscape` |
