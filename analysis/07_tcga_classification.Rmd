@@ -153,12 +153,15 @@ cnv_source <- "GISTIC 2.0 thresholded peaks"
 ascets_aneu <- tryCatch(load_ascets_aneuploidy(), error = function(e) NULL)
 
 have_cnv <- !is.null(cnv_mat) && nrow(cnv_mat) >= k_cnv
+# cat(), not message(): opts_chunk sets message = FALSE, so a message() here is invisible on
+# the knitted page and a skipped CNV section then looks like nothing happened at all.
 if (!have_cnv) {
-  message("No GISTIC matrix with >= ", k_cnv, " samples — run GISTIC (see the bottom of this ",
-          "report) so data/gistic/all_thresholded.by_genes.txt exists. CNV sections are scaffolding until then.")
+  cat("No GISTIC matrix with >=", k_cnv, "samples — run GISTIC (see the bottom of this",
+      "report) so data/gistic/all_thresholded.by_genes.txt exists.",
+      "CNV sections are scaffolding until then.\n")
 } else {
-  message("Clustering input: ", cnv_source, " — ", nrow(cnv_mat), " samples x ",
-          ncol(cnv_mat) - 1, " peak genes.")
+  cat("Clustering input:", cnv_source, "—", nrow(cnv_mat), "samples x",
+      ncol(cnv_mat) - 1, "peak genes.\n")
 }
 ```
 
@@ -288,12 +291,25 @@ if (!is.null(cl)) {
   fpos <- attr(cnv_mat, "feature_pos")
   cyto <- if (!is.null(fpos)) setNames(fpos$cytoband, fpos$feature) else NULL
   feat_pos <- feature_positions(colnames(cl$matrix), cytoband = cyto)
+
+  # WHY-IS-THERE-NO-HEATMAP gate. fig1a_heatmap() returns invisible(NULL) on four different
+  # conditions, each announced only with message() — which opts_chunk (message = FALSE)
+  # swallows, so the figure just silently fails to appear. Print the preconditions instead:
+  # whichever line below reads FALSE / 0 is the reason the heatmap is missing.
+  cat("Fig-1a heatmap preconditions",
+      "\n  ComplexHeatmap installed :", requireNamespace("ComplexHeatmap", quietly = TRUE),
+      "\n  circlize installed       :", requireNamespace("circlize", quietly = TRUE),
+      "\n  matrix (samples x peaks) :", nrow(cl$matrix), "x", ncol(cl$matrix),
+      "\n  samples with a cluster   :", sum(rownames(cl$matrix) %in% names(cl$cluster)),
+      "\n  feature positions mapped :", sum(feat_pos$feature %in% colnames(cl$matrix)),
+      "\n  annotation bars          :", if (is.null(ann)) 0L else ncol(ann), "\n")
+
   fig1a_heatmap(cl$matrix, feat_pos, cl$cluster, ann_col = ann,
                 value_type = "thresholded",
                 main = paste0("GISTIC thresholded peaks — TCGA Fig. 1a (Suppl. S2); cluster ",
                               high_cluster, " = copy-number high"))
 } else {
-  message("CNV clustering skipped — run GISTIC so data/gistic/ exists (see bottom of report).")
+  cat("CNV clustering skipped — run GISTIC so data/gistic/ exists (see bottom of report).\n")
   high_cluster <- NA_integer_
 }
 ```
@@ -328,7 +344,7 @@ if (!is.null(cl) && exists("feat_pos") && exists("ann")) {
                        value_type = "thresholded",
                        main = paste0("GISTIC thresholded peaks (Pearson/Ward) — k = ",
                                      min(k_sweep), "..", max(k_sweep), " cluster bars on one Fig-1a canvas"))
-} else message("k-sweep heatmap skipped — need the Pearson/Ward clustering (run GISTIC first).")
+} else cat("k-sweep heatmap skipped — need the Pearson/Ward clustering (run GISTIC first).\n")
 ```
 
 ```{r cnv-ksweep-silhouette, fig.height=5}
