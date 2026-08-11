@@ -8,11 +8,15 @@ stopifnot(is.character(attend_mmr_cols),
           attend_mmr_cols[["MMR proficient"]] == "#999999",
           attend_mmr_cols[["MMR deficient"]] == "#E69F00")
 
-stopifnot(is.character(attend_aneu_cols),
-          attend_aneu_cols[["aneuploidy-low"]]  == "#E7D4E8",
-          attend_aneu_cols[["aneuploidy-high"]] == "#762A83",
-          attend_aneu_cols[["aneu-low"]]  == "#E7D4E8",
-          attend_aneu_cols[["aneu-high"]] == "#762A83")
+stopifnot(identical(attend_aneu_low, "#A6CEE3"),   # light blue = aneuploidy-low
+          identical(attend_aneu_high, "#E31A1C"),  # red        = aneuploidy-high
+          attend_aneu_high != attend_tp53_cols[["mut"]],  # must not clash with the adjacent
+          attend_aneu_high != attend_mmr_cols[["MMRd"]],  # Fig-1a annotation bars
+          is.character(attend_aneu_cols),
+          attend_aneu_cols[["aneuploidy-low"]]  == attend_aneu_low,
+          attend_aneu_cols[["aneuploidy-high"]] == attend_aneu_high,
+          attend_aneu_cols[["aneu-low"]]  == attend_aneu_low,
+          attend_aneu_cols[["aneu-high"]] == attend_aneu_high)
 
 stopifnot(is.character(attend_tp53_cols),
           attend_tp53_cols[["TP53-normal"]]   == "#AAAAAA",
@@ -43,7 +47,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 
 ## --- attend_aneu_cols carries the MMRd-subclass spellings (Phase 1.5) ---
-stopifnot(attend_aneu_cols[["MMRd aneuploidy-low"]]  == "#E7D4E8",
-          attend_aneu_cols[["MMRd aneuploidy-high"]] == "#762A83")
+stopifnot(attend_aneu_cols[["MMRd aneuploidy-low"]]  == attend_aneu_low,
+          attend_aneu_cols[["MMRd aneuploidy-high"]] == attend_aneu_high)
 
 cat("test_figure_system: ALL PASS\n")

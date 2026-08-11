@@ -94,9 +94,17 @@ attend_pal <- function(n = 8, names = NULL) {
 # across reports so a single manual scale covers heatmap bars and ggplots alike.
 attend_mmr_cols <- c(MMRp = "#999999", MMRd = "#E69F00",
                      `MMR proficient` = "#999999", `MMR deficient` = "#E69F00")
-attend_aneu_cols <- c(`aneuploidy-low` = "#E7D4E8", `aneuploidy-high` = "#762A83",
-                      `aneu-low` = "#E7D4E8", `aneu-high` = "#762A83",
-                      `MMRd aneuploidy-low` = "#E7D4E8", `MMRd aneuploidy-high` = "#762A83")
+# Aneuploidy — LOW light blue, HIGH red. Chosen to read the same way as the SCNA
+# heatmap body itself (blue = quiet/loss end, red = altered/gain end) so the annotation
+# bar and the matrix beneath it do not tell opposite colour stories. Deliberately NOT
+# #B2182B (that is TP53-abnormal, which sits in the adjacent Fig-1a bar) and not the
+# Okabe-Ito orange (MMRd).
+attend_aneu_low  <- "#A6CEE3"   # light blue
+attend_aneu_high <- "#E31A1C"   # red
+attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
+                      `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,
+                      `MMRd aneuploidy-low` = attend_aneu_low,
+                      `MMRd aneuploidy-high` = attend_aneu_high)
 attend_tp53_cols <- c(`TP53-normal` = "#AAAAAA", `TP53-abnormal` = "#B2182B",
                       wt = "#AAAAAA", mut = "#B2182B")
 
@@ -160,15 +168,24 @@ attend_theme <- function(base_size = 11) {
   if ("MMR" %in% names(a))  cols$MMR  <- c(MMRp = "#999999", MMRd = "#E69F00")
   # TP53 — wild-type mid grey (same reasoning as MMRp), mutant deep red
   if ("TP53" %in% names(a)) cols$TP53 <- c(wt = "#AAAAAA", mut = "#B2182B")
-  # Binary aneuploidy — low light purple (tinted, so it is not another neutral grey),
-  # high deep purple matching the continuous ramp's dark end.
+  # Binary aneuploidy — light blue = low, red = high. Read from attend_aneu_cols rather
+  # than re-spelled here, so the heatmap bar and the ggplot boxplots cannot drift apart.
   if ("Aneuploidy_hl" %in% names(a))
-    cols$Aneuploidy_hl <- c(`aneu-low` = "#E7D4E8", `aneu-high` = "#762A83")
-  # Continuous aneuploidy score — light -> deep purple sequential ramp
+    cols$Aneuploidy_hl <- c(`aneu-low`  = unname(attend_aneu_cols[["aneu-low"]]),
+                            `aneu-high` = unname(attend_aneu_cols[["aneu-high"]]))
+  # Continuous aneuploidy score — DIVERGING light blue -> white -> red, pinned at the SAME
+  # high/low split the binary bar uses (.aneu_split_threshold), so white sits exactly on the
+  # cutoff and the two aneuploidy bars agree cell by cell. Falls back to a plain two-stop
+  # ramp when the threshold is not strictly inside the observed range.
   if ("Aneuploidy" %in% names(a) && is.numeric(a$Aneuploidy)) {
     rng <- range(a$Aneuploidy, na.rm = TRUE)
-    if (all(is.finite(rng)) && diff(rng) > 0)
-      cols$Aneuploidy <- circlize::colorRamp2(rng, c("#F7F4F9", "#762A83"))
+    lo  <- unname(attend_aneu_cols[["aneu-low"]]); hi <- unname(attend_aneu_cols[["aneu-high"]])
+    if (all(is.finite(rng)) && diff(rng) > 0) {
+      thr <- .aneu_split_threshold(a$Aneuploidy)
+      cols$Aneuploidy <- if (is.finite(thr) && thr > rng[1] && thr < rng[2])
+        circlize::colorRamp2(c(rng[1], thr, rng[2]), c(lo, "#F7F7F7", hi))
+      else circlize::colorRamp2(rng, c(lo, hi))
+    }
   }
   cols
 }

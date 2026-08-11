@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 10, fig.height = 7)
 
 source(here("code", "attend_classes.R"))   # attend_cols / attend_levels
+source(here("code", "attend_plots.R"))     # attend_theme()
 source(here("code", "attend_io.R"))        # read_intermediate()
 ```
 

@@ -687,8 +687,8 @@ if (have_aneu_tmb) {
 
 The two boxplots the analysis calls for: TMB (raw mut/Mb) in aneuploidy-high vs
 aneuploidy-low tumours, faceted **by MMR group** (columns: MMRp, MMRd) and **by TMB
-definition** (rows). Boxes are filled by aneuploidy status (light purple = low, deep
-purple = high — the shared `attend_aneu_cols` palette the other reports use); the
+definition** (rows). Boxes are filled by aneuploidy status (light blue = low, red =
+high — the shared `attend_aneu_cols` palette the other reports use); the
 dashed red line is the TMB-high cut
 (`attend_thresholds$tmb` = `r attend_thresholds$tmb` mut/Mb). Points are individual
 patients (jittered), not group means.

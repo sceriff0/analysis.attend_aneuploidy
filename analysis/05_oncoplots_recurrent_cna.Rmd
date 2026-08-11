@@ -22,6 +22,7 @@ source(here("code", "load_wes_results.R"))   # load_maf_long(), GISTIC + ASCETS 
 source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
 source(here("code", "attend_classes.R"))     # add_molecular_classes(), gene panels, attend_scna
 source(here("code", "attend_scna.R"))        # peak union, panel score, LOO stability
+source(here("code", "attend_plots.R"))       # scna_mirror_plot(), panel_score_plot(), attend_theme()
 source(here("code", "attend_io.R"))          # read_intermediate()
 
 # maftools is optional — gate the heavy chunks so the report still knits without it.
