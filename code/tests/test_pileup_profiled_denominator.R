@@ -4,7 +4,9 @@
 # no calls) cannot be counted by inspecting cnv_long's rows, no matter how early the count
 # is taken relative to min_abs / direction filtering. load_cnv_data() is the only place
 # that ever sees such a sample (one file per sample, including zero-row files), so it now
-# attaches attr(out, "n_profiled") <- length(files) (6a, code/load_wes_results.R). This
+# attaches attr(out, "n_profiled") <- the count of DISTINCT derived sample ids among those
+# files (6a, code/load_wes_results.R; not a raw file count — see .classifycnv_file_id() and
+# test_classifycnv_file_id.R for why two files can de-duplicate to one sample id). This
 # file tests the consumer side (6b): segment_pileup() prefers that attribute over the
 # distinct-id count derived from cnv_long, with a floor guard and an explicit-argument
 # override, recording which source won in attr(., "n_samples_source").
