@@ -540,32 +540,52 @@ attend_cnv <- list(
 # Recurrent chromosome-arm SCNAs from an ASCETS arm-level calls table (ID + one column
 # per arm; values AMP/DEL/NEUTRAL/NC, or +1/-1/0). PURE transform, no I/O — feed it
 # load_ascets_calls(). Returns a list:
-#   long     : ID, arm, call ("gain"/"loss"/"neutral") — tidy per-sample-per-arm
-#   freq     : arm + cohort fractions (gain, loss, altered), sorted most-altered first
-#   top_arms : the `n_top` most-altered arm names (the ones worth annotating)
+#   long     : ID, arm, call ("gain"/"loss"/"neutral"/NA) — tidy per-sample-per-arm
+#   freq     : arm + cohort fractions (gain, loss, altered) + n_evaluable/n_lowcov,
+#              sorted most-altered first. Denominator is EVALUABLE arms (LOWCOV/NC/NA
+#              excluded) — matches ASCETS's own aneuploidy score and
+#              load_wes_results.R's n_arms_evaluable, both of which divide by
+#              sum(call != "LOWCOV").
+#   top_arms : the `n_top` most-altered arm names among arms evaluable in at least
+#              `min_evaluable_frac` of samples (the ones worth annotating)
 #   wide_top : ID + one "CNV_<arm>" column per top arm — the oncoplot annotation table
 # NULL in -> NULL out (knit-safe).
-recurrent_arm_calls <- function(calls, n_top = 5) {
+recurrent_arm_calls <- function(calls, n_top = 5, min_evaluable_frac = 0.5) {
   if (is.null(calls) || nrow(calls) == 0 || !"ID" %in% names(calls)) return(NULL)
   arm_cols <- setdiff(names(calls), "ID")
   if (length(arm_cols) == 0) return(NULL)
+  n_id <- nrow(calls)  # min_evaluable_frac denominator: samples in the INPUT, not distinct IDs
   norm_call <- function(x) {
-    u <- toupper(trimws(as.character(x)))
-    case_when(u %in% c("AMP", "GAIN", "1", "+1") ~ "gain",
-              u %in% c("DEL", "LOSS", "-1")       ~ "loss",
-              TRUE                                 ~ "neutral")
+    # x is already upper-cased + trimmed. "NA" the literal string and NA the real value
+    # are the same no-call. LOWCOV/NC/""/NA all map to NA_character_ — they must NOT fall
+    # into a "neutral" catch-all, or ASCETS's low-coverage flag silently becomes a real
+    # call and inflates both the gain/loss numerators and the arm denominator.
+    out <- dplyr::case_when(
+      x %in% c("AMP", "GAIN", "1", "+1", "2")        ~ "gain",
+      x %in% c("DEL", "LOSS", "-1", "-2")             ~ "loss",
+      x %in% c("NEUTRAL", "NEUT", "0")                ~ "neutral",
+      x %in% c("LOWCOV", "NC", "NA", "") | is.na(x)   ~ NA_character_,
+      TRUE                                             ~ NA_character_)
+    unrecognised <- unique(x[is.na(out) & !(x %in% c("LOWCOV", "NC", "NA", "") | is.na(x))])
+    if (length(unrecognised) > 0)
+      warning("norm_call(): unrecognised token(s), treated as no-call: ",
+               paste(unrecognised, collapse = ", "))
+    out
   }
   long <- calls |>
     pivot_longer(all_of(arm_cols), names_to = "arm", values_to = "call") |>
-    mutate(call = norm_call(call))
+    mutate(call = norm_call(toupper(trimws(as.character(call)))))
   freq <- long |>
     group_by(arm) |>
-    summarise(gain    = mean(call == "gain",    na.rm = TRUE),
-              loss    = mean(call == "loss",    na.rm = TRUE),
-              altered = mean(call != "neutral", na.rm = TRUE),
+    summarise(gain        = mean(call == "gain",    na.rm = TRUE),
+              loss        = mean(call == "loss",    na.rm = TRUE),
+              altered     = mean(call != "neutral", na.rm = TRUE),
+              n_evaluable = sum(!is.na(call)),
+              n_lowcov    = sum(is.na(call)),
               .groups = "drop") |>
     arrange(desc(altered))
-  top_arms <- head(freq$arm, n_top)
+  eligible <- freq$arm[freq$n_evaluable / n_id >= min_evaluable_frac]
+  top_arms <- head(freq$arm[freq$arm %in% eligible], n_top)
   wide_top <- long |>
     filter(arm %in% top_arms) |>
     mutate(arm = paste0("CNV_", arm)) |>
@@ -587,8 +607,17 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
                            min_abs = attend_cnv$pileup$min_abs_logratio,
                            chrom_col = "Chromosome", start_col = "Start",
                            end_col = "End", type_col = "Type",
-                           value_col = "logRatio", id_col = "ID") {
+                           value_col = "logRatio", id_col = "ID",
+                           n_samples = NULL) {
   if (is.null(cnv_long) || nrow(cnv_long) == 0 || is.null(arms)) return(NULL)
+
+  # Denominator = samples PROFILED, not samples with a surviving altered segment.
+  # Must be taken from the UNFILTERED cnv_long, before min_abs / direction drop rows —
+  # a sample whose genome is quiet (or below min_abs) still counts in the denominator.
+  # A caller may instead pass the full cohort size (e.g. covering samples whose
+  # annotation file failed to parse); never derive it from the filtered `segs` below.
+  if (is.null(n_samples))
+    n_samples <- dplyr::n_distinct(cnv_long[[id_col]])
 
   segs <- cnv_long |>
     transmute(
@@ -612,8 +641,6 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
       TRUE                              ~ NA_character_)) |>
     filter(!is.na(direction))
   if (nrow(segs) == 0) return(NULL)
-
-  n_samples <- dplyr::n_distinct(segs$ID)
 
   # chromosome lengths (q-arm end) + cumulative offsets, genome order 1..22, X, Y
   chrom_len <- arms |>
