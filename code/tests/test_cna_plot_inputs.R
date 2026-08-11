@@ -77,6 +77,12 @@ p7 <- segment_pileup(segs7, arms, bin = 1e6, n_samples = 1)
 stopifnot(abs(p7$gain_low[1]  - 1) < 1e-9)
 stopifnot(abs(p7$gain_high[1] - 0) < 1e-9)
 
+# [4b] Boundary: abs(logRatio) == high_abs lands in the HIGH tier (code uses >=, not >).
+segs4b <- tibble::tibble(ID = "S1", Chromosome = "chr1", Start = 0, End = 5e5,
+                         Type = "DUP", logRatio = 1.0)
+p4b <- segment_pileup(segs4b, arms, bin = 1e6, n_samples = 1)
+stopifnot(abs(p4b$gain_high[1] - 1) < 1e-9)
+
 # same properties on the loss side, and with a custom high_abs threshold.
 segs7b <- tibble::tibble(ID = c("S1", "S2"), Chromosome = "chr1", Start = c(0, 0),
                          End = c(5e5, 5e5), Type = "DEL", logRatio = c(-0.4, -1.5))

@@ -21,11 +21,12 @@
 # (base::basename() — identical to fs::path_file() for a plain path with no trailing
 # slash, which is all a file path from dir_ls() ever is).
 exprs <- parse(file.path("code", "load_wes_results.R"))
-is_id_fn <- vapply(exprs, function(e) {
+is_named_fn <- function(name) vapply(exprs, function(e) {
   is.call(e) && length(e) >= 2 &&
     identical(e[[1]], as.name("<-")) &&
-    identical(e[[2]], as.name(".classifycnv_file_id"))
+    identical(e[[2]], as.name(name))
 }, logical(1))
+is_id_fn <- is_named_fn(".classifycnv_file_id")
 stopifnot(sum(is_id_fn) == 1)   # exactly one definition in the file
 
 env <- new.env()
@@ -34,6 +35,18 @@ env$path_file  <- base::basename
 eval(exprs[[which(is_id_fn)]], envir = env)
 id_fn <- env$.classifycnv_file_id
 stopifnot(is.function(id_fn))
+
+# .classifycnv_n_profiled(files, cc) — the pure helper load_cnv_data() calls for
+# attr(out, "n_profiled"), extracted so this behaviour is testable without fs/data.table
+# (Task 6 fix round 2: reverting load_wes_results.R's n_distinct() back to length(files)
+# used to pass the whole suite silently, because load_cnv_data() cannot run here — this
+# test closes that hole by exercising the extracted count itself, not a source-grep).
+is_np_fn <- is_named_fn(".classifycnv_n_profiled")
+stopifnot(sum(is_np_fn) == 1)
+env$n_distinct <- dplyr::n_distinct
+eval(exprs[[which(is_np_fn)]], envir = env)
+n_profiled_fn <- env$.classifycnv_n_profiled
+stopifnot(is.function(n_profiled_fn))
 
 cc <- list(id_strip = "-1TAD104|_tumor_only")
 
@@ -66,5 +79,17 @@ ids <- vapply(
 )
 stopifnot(length(ids) == 2)
 stopifnot(dplyr::n_distinct(ids) == 1)
+
+# [5] .classifycnv_n_profiled(): the SAME 2-file/1-sample collision, exercised through the
+# extracted helper itself, not a reimplementation. Reverting load_cnv_data() to
+# length(files) would make this return 2, not 1 -- pins the regression the plan flagged.
+stopifnot(n_profiled_fn(c("S1-1TAD104.cnv.annotated.tsv",
+                          "S1_tumor_only.cnv.annotated.tsv"), cc) == 1)
+
+# [6] Distinct samples still count distinctly through the helper (3 files, 2 samples: S1
+# resequenced once, S2 once).
+stopifnot(n_profiled_fn(c("S1-1TAD104.cnv.annotated.tsv",
+                          "S1_tumor_only.cnv.annotated.tsv",
+                          "S2-1TAD104.cnv.annotated.tsv"), cc) == 2)
 
 cat("All .classifycnv_file_id() de-duplication properties verified.\n")

@@ -364,6 +364,11 @@ the observed distinct-id count. It records which source won in
 `attr(wide, "n_samples_source")`. `load_cnv_data()` attaches `n_profiled` as the count of
 distinct ids derived by `.classifycnv_file_id()`, not `length(files)`.
 
+One side effect of the fix: `recurrent_arm_calls()$wide_top` now yields `NA` for an
+uncallable arm (LOWCOV/NC/NA) where it previously yielded `"neutral"`, so the oncoplot's
+`CNV_*` annotation tracks gain an `NA` level — more correct (missing data is not evidence
+of no alteration), but a change in what those tracks can display.
+
 ### 11.2 Convention gaps closed
 
 | Convention | Fix | Source |

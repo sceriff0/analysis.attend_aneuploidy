@@ -72,6 +72,22 @@ stopifnot(abs(r5$freq$altered[r5$freq$arm == "1p"] - 1.0) < 1e-9)
 stopifnot(!("1p" %in% r5$top_arms))               # excluded: 2/10 < 0.5 min_evaluable_frac
 stopifnot("1q" %in% r5$top_arms)                  # 8/10 >= 0.5, and now the top-ranked eligible arm
 
+# [5b] min_evaluable_frac's denominator is DISTINCT ids, not nrow(calls) — load_ascets_calls()
+#     applies the same id_strip collapse used elsewhere, so a resequenced sample can appear
+#     under two rows. 4 DISTINCT samples (S1..S4); S1 is duplicated 3x as LOWCOV (4 rows for
+#     S1), S2/S3/S4 each contribute one AMP row -> 7 total rows.
+#     n_evaluable = 3 (S2, S3, S4). Row-count denominator (the bug): 3/7 = 0.429 < 0.5 ->
+#     would wrongly exclude the arm. Distinct-id denominator (the fix): 3/4 = 0.75 >= 0.5 ->
+#     correctly eligible, since only 4 real samples exist and 3 of them are evaluable.
+calls5b <- tibble::tibble(
+  ID  = c("S1", "S1", "S1", "S1", "S2", "S3", "S4"),
+  `1p` = c("LOWCOV", "LOWCOV", "LOWCOV", "LOWCOV", "AMP", "AMP", "AMP")
+)
+r5b <- recurrent_arm_calls(calls5b, n_top = 1)
+stopifnot(r5b$freq$n_evaluable[r5b$freq$arm == "1p"] == 3)
+stopifnot(r5b$freq$eligible[r5b$freq$arm == "1p"])        # 3/4 distinct ids, not 3/7 rows
+stopifnot("1p" %in% r5b$top_arms)
+
 # ---- segment_pileup() -------------------------------------------------------
 
 # [6] Pileup denominator counts samples PROFILED, not samples with a surviving altered

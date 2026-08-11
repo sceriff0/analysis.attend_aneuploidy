@@ -533,7 +533,10 @@ attend_cnv <- list(
   # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 5): an arm must be
   # EVALUABLE (call != LOWCOV/NC/NA) in at least this fraction of samples to be eligible
   # for top_arms — keeps a poorly-covered arm from ranking on a handful of confident calls.
-  arm_calls = list(min_evaluable_frac = 0.5),
+  # n_barplot: how many of the eligible, most-altered arms the report-5 barplot draws
+  # (the axis is genome-ordered afterwards, so this caps the figure, not the eligibility
+  # gate — the same `freq$eligible` gate applies before this slice, GC3/config not literal).
+  arm_calls = list(min_evaluable_frac = 0.5, n_barplot = 20),
 
   # Genome-wide recurrent-SCNA pileup (report 5, TCGA nature12113 Fig-1 style):
   # base-pair-resolution fraction of samples gained/lost along the genome, from the
@@ -551,13 +554,20 @@ attend_cnv <- list(
 # per arm; values AMP/DEL/NEUTRAL/NC, or +1/-1/0). PURE transform, no I/O — feed it
 # load_ascets_calls(). Returns a list:
 #   long     : ID, arm, call ("gain"/"loss"/"neutral"/NA) — tidy per-sample-per-arm
-#   freq     : arm + cohort fractions (gain, loss, altered) + n_evaluable/n_lowcov,
-#              sorted most-altered first. Denominator is EVALUABLE arms (LOWCOV/NC/NA
-#              excluded) — matches ASCETS's own aneuploidy score and
-#              load_wes_results.R's n_arms_evaluable, both of which divide by
-#              sum(call != "LOWCOV").
-#   top_arms : the `n_top` most-altered arm names among arms evaluable in at least
-#              `min_evaluable_frac` of samples (the ones worth annotating)
+#   freq     : arm + cohort fractions (gain, loss, altered) + n_evaluable/n_lowcov +
+#              eligible, sorted most-altered first. Denominator is EVALUABLE arms
+#              (LOWCOV/NC/NA/"" excluded by norm_call()) — this matches ASCETS's own
+#              aneuploidy score and load_wes_results.R:507's n_arms_evaluable ONLY on
+#              LOWCOV. That line is `sum(!is.na(call) & call != "LOWCOV")`, which counts
+#              NC as evaluable; here NC is a no-call exactly like LOWCOV (deliberate — see
+#              norm_call() below), so the two denominators can differ when NC calls are
+#              present. `eligible` is TRUE when an arm is evaluable in at least
+#              `min_evaluable_frac` of samples — the SAME rule `top_arms` uses below, so a
+#              caller (e.g. the report's barplot) can apply the identical gate to a
+#              wider/differently-ranked slice of `freq` without recomputing it and risking
+#              disagreement with `top_arms`.
+#   top_arms : the `n_top` most-altered arm names among `freq$eligible` arms (the ones
+#              worth annotating)
 #   wide_top : ID + one "CNV_<arm>" column per top arm — the oncoplot annotation table
 # NULL in -> NULL out (knit-safe).
 recurrent_arm_calls <- function(calls, n_top = 5,
@@ -565,7 +575,11 @@ recurrent_arm_calls <- function(calls, n_top = 5,
   if (is.null(calls) || nrow(calls) == 0 || !"ID" %in% names(calls)) return(NULL)
   arm_cols <- setdiff(names(calls), "ID")
   if (length(arm_cols) == 0) return(NULL)
-  n_id <- nrow(calls)  # min_evaluable_frac denominator: samples in the INPUT, not distinct IDs
+  # min_evaluable_frac denominator: DISTINCT samples in the input, not nrow(calls) — a
+  # resequenced sample appearing twice (load_ascets_calls() applies the same id_strip
+  # collapse used elsewhere in the pipeline, so this can happen) must not double-count,
+  # consistent with how load_cnv_data()'s n_profiled is derived (distinct ids, not rows).
+  n_id <- dplyr::n_distinct(calls$ID)
   norm_call <- function(x) {
     # x is already upper-cased + trimmed. "NA" the literal string and NA the real value
     # are the same no-call. LOWCOV/NC/""/NA all map to NA_character_ — they must NOT fall
@@ -594,9 +608,9 @@ recurrent_arm_calls <- function(calls, n_top = 5,
               n_evaluable = sum(!is.na(call)),
               n_lowcov    = sum(is.na(call)),
               .groups = "drop") |>
+    mutate(eligible = n_evaluable / n_id >= min_evaluable_frac) |>
     arrange(desc(altered))
-  eligible <- freq$arm[freq$n_evaluable / n_id >= min_evaluable_frac]
-  top_arms <- head(freq$arm[freq$arm %in% eligible], n_top)
+  top_arms <- head(freq$arm[freq$eligible], n_top)
   wide_top <- long |>
     filter(arm %in% top_arms) |>
     mutate(arm = paste0("CNV_", arm)) |>
@@ -644,11 +658,11 @@ order_arms_genomic <- function(arms) {
 # with attr "chrom_offsets" (for axis labelling) and "n_samples". NULL in -> NULL out.
 segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
                            min_abs = attend_cnv$pileup$min_abs_logratio,
-                           high_abs = attend_cnv$pileup$high_abs_logratio,
                            chrom_col = "Chromosome", start_col = "Start",
                            end_col = "End", type_col = "Type",
                            value_col = "logRatio", id_col = "ID",
-                           n_samples = NULL) {
+                           n_samples = NULL,
+                           high_abs = attend_cnv$pileup$high_abs_logratio) {
   if (is.null(cnv_long) || nrow(cnv_long) == 0 || is.null(arms)) return(NULL)
 
   # Denominator = samples PROFILED, not samples with a surviving altered segment. Three

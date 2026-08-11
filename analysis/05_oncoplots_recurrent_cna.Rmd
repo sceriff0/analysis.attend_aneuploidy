@@ -159,7 +159,8 @@ maftools::plotmafSummary(maf, addStat = "median", dashboard = TRUE)
 
 ## Oncoplot — mutation landscape (memo-sorted)
 
-The default maftools memo sort: samples are ordered so co-occurring and mutually
+Columns are patients, rows are genes, and the coloured cells are mutation types. The
+default maftools memo sort: samples are ordered so co-occurring and mutually
 exclusive alterations form the characteristic staircase, the primary mutation-landscape
 layout readers expect from an OncoPrint. The annotation-sorted panel below answers a
 different question — where alterations concentrate within a covariate — not this one.
@@ -172,8 +173,7 @@ maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
 
 ## Oncoplot — sorted by annotation (enrichment view)
 
-Columns are patients, rows are genes, and the coloured cells are mutation types. Samples
-are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
+Samples are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
 shows up as a block of colour lining up with an annotation band — TP53 concentrating in
 aneuploidy-high, or hypermutation concentrating in MMR-deficient, for example.
 
@@ -308,9 +308,14 @@ tumours. Gains extend right, losses left, and arms are shown in **genome order**
 (`order_arms_genomic()`), not sorted by frequency. Each arm's fraction is out of its own
 **evaluable** samples — calls of LOWCOV/NC/NA are excluded from that arm's denominator,
 not counted as neutral — and that count is printed on the axis label (`arm (n=…)`) so a
-reduced denominator is visible rather than hidden. The top `r attend_cnv$oncoplot_arms` of
-these are the arm annotation tracks on the oncoplots above, so the two figures are showing
-the same calls.
+reduced denominator is visible rather than hidden. The bars below show the
+`r attend_cnv$arm_calls$n_barplot` most-altered *eligible* arms out of roughly 44 in the
+genome — not every arm — where eligible means evaluable in at least
+`r 100 * attend_cnv$arm_calls$min_evaluable_frac`% of samples, the identical rule
+`top_arms` applies to the arm annotation tracks on the oncoplots above — so neither figure
+can rank a poorly-covered arm ahead of a well-covered one. An uncallable arm's `CNV_<arm>`
+value on those oncoplots is `NA`, not `"neutral"` — missing data, not evidence of no
+alteration.
 
 ```{r recurrent-cnv, fig.width=9, fig.height=6}
 arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
@@ -318,8 +323,14 @@ arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot
 if (is.null(arm_freq)) {
   message("No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.")
 } else {
+  # Same eligibility gate recurrent_arm_calls() applies to top_arms (freq$eligible), so
+  # the barplot and the oncoplot annotation tracks can never disagree about which arms
+  # are well-covered enough to rank. Applied BEFORE slice_head(), so a poorly-covered arm
+  # (e.g. an acrocentric p-arm ASCETS marks LOWCOV in most samples) cannot be promoted into
+  # the figure just because it scores 100% altered on a 2-sample denominator.
   fr <- arm_freq$freq |>
-    slice_head(n = 20) |>
+    filter(eligible) |>
+    slice_head(n = attend_cnv$arm_calls$n_barplot) |>
     mutate(arm = factor(arm, levels = rev(order_arms_genomic(arm))))
 
   # Axis labels carry each arm's evaluable-sample count, so a reader can see when a
@@ -377,6 +388,12 @@ if (is.null(pile)) {
   n_samples_source <- attr(pile, "n_samples_source")
   offs             <- attr(pile, "chrom_offsets")
 
+  # Readable phrase for the subtitle, not the internal token (argument/profiled/observed)
+  # segment_pileup() records in n_samples_source — a subtitle should read as English.
+  n_samples_desc <- c(argument = "an explicitly supplied cohort size",
+                      profiled = "the number of samples profiled",
+                      observed = "the samples present in the segment data")[[n_samples_source]]
+
   # ChrY dropped: the cohort is uterine and therefore all female, so chrY carries no
   # calls and would only draw an empty axis tail. ChrX is kept.
   pile <- pile |> filter(chrom != "chrY")
@@ -412,7 +429,7 @@ if (is.null(pile)) {
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
     labs(title = "Genome-wide recurrent SCNA pileup (TCGA Fig. 1a convention)",
          subtitle = paste0("gain (up) vs loss (down), fraction of ", n_samples,
-                           " samples (denominator source: ", n_samples_source, "); ",
+                           " samples (", n_samples_desc, "); ",
                            attend_cnv$pileup$bin / 1e6,
                            " Mb bins; dashed lines = centromeres; no significance testing applied"),
          x = "chromosome", y = "fraction of samples", fill = NULL) +
