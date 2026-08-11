@@ -157,7 +157,20 @@ which variant classes dominate, since that drives what the oncoplot colours show
 maftools::plotmafSummary(maf, addStat = "median", dashboard = TRUE)
 ```
 
-## Oncoplot — the 20 most mutated genes
+## Oncoplot — mutation landscape (memo-sorted)
+
+The default maftools memo sort: samples are ordered so co-occurring and mutually
+exclusive alterations form the characteristic staircase, the primary mutation-landscape
+layout readers expect from an OncoPrint. The annotation-sorted panel below answers a
+different question — where alterations concentrate within a covariate — not this one.
+
+```{r oncoplot-memo, eval=MAFTOOLS_OK, fig.height=9}
+covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
+                   sortByAnnotation = FALSE, removeNonMutated = FALSE)
+```
+
+## Oncoplot — sorted by annotation (enrichment view)
 
 Columns are patients, rows are genes, and the coloured cells are mutation types. Samples
 are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
@@ -400,7 +413,8 @@ if (is.null(pile)) {
     labs(title = "Genome-wide recurrent SCNA pileup (TCGA Fig. 1a convention)",
          subtitle = paste0("gain (up) vs loss (down), fraction of ", n_samples,
                            " samples (denominator source: ", n_samples_source, "); ",
-                           "1 Mb bins; dashed lines = centromeres; no significance testing applied"),
+                           attend_cnv$pileup$bin / 1e6,
+                           " Mb bins; dashed lines = centromeres; no significance testing applied"),
          x = "chromosome", y = "fraction of samples", fill = NULL) +
     attend_theme() +
     theme(panel.grid.major.x = element_blank(),
