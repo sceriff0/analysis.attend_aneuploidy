@@ -530,47 +530,111 @@ attend_cnv <- list(
     all_thresholded_glob = "*all_thresholded*.txt"
   ),
 
+  # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 5): an arm must be
+  # EVALUABLE (call != LOWCOV/NC/NA) in at least this fraction of samples to be eligible
+  # for top_arms — keeps a poorly-covered arm from ranking on a handful of confident calls.
+  # n_barplot: how many of the eligible, most-altered arms the report-5 barplot draws
+  # (the axis is genome-ordered afterwards, so this caps the figure, not the eligibility
+  # gate — the same `freq$eligible` gate applies before this slice, GC3/config not literal).
+  arm_calls = list(min_evaluable_frac = 0.5, n_barplot = 20),
+
   # Genome-wide recurrent-SCNA pileup (report 5, TCGA nature12113 Fig-1 style):
   # base-pair-resolution fraction of samples gained/lost along the genome, from the
   # ClassifyCNV altered segments. `bin` = window width (bp). Direction comes from the
   # segment Type (DUP/DEL); min_abs_logratio can additionally require a magnitude.
-  pileup = list(bin = 1e6, min_abs_logratio = 0)
+  # high_abs_logratio: the low-level/high-level amplitude boundary (Beroukhim 2010; Zack
+  # 2013; GenVisR::cnFreq separate "gain/loss" from "amplification/homozygous deletion"
+  # the same way). |log2 ratio| >= 1 is roughly a full copy gained or lost relative to the
+  # segment's baseline (log2(3/2) ~= 0.58 for a single-copy gain in a diploid tumour, so
+  # >=1 requires more than that) — the conventional cutoff used to call amplitude tiers.
+  pileup = list(bin = 1e6, min_abs_logratio = 0, high_abs_logratio = 1.0)
 )
 
 # Recurrent chromosome-arm SCNAs from an ASCETS arm-level calls table (ID + one column
 # per arm; values AMP/DEL/NEUTRAL/NC, or +1/-1/0). PURE transform, no I/O — feed it
 # load_ascets_calls(). Returns a list:
-#   long     : ID, arm, call ("gain"/"loss"/"neutral") — tidy per-sample-per-arm
-#   freq     : arm + cohort fractions (gain, loss, altered), sorted most-altered first
-#   top_arms : the `n_top` most-altered arm names (the ones worth annotating)
+#   long     : ID, arm, call ("gain"/"loss"/"neutral"/NA) — tidy per-sample-per-arm
+#   freq     : arm + cohort fractions (gain, loss, altered) + n_evaluable/n_lowcov +
+#              eligible, sorted most-altered first. Denominator is EVALUABLE arms
+#              (LOWCOV/NC/NA/"" excluded by norm_call()) — this matches ASCETS's own
+#              aneuploidy score and load_wes_results.R:507's n_arms_evaluable ONLY on
+#              LOWCOV. That line is `sum(!is.na(call) & call != "LOWCOV")`, which counts
+#              NC as evaluable; here NC is a no-call exactly like LOWCOV (deliberate — see
+#              norm_call() below), so the two denominators can differ when NC calls are
+#              present. `eligible` is TRUE when an arm is evaluable in at least
+#              `min_evaluable_frac` of samples — the SAME rule `top_arms` uses below, so a
+#              caller (e.g. the report's barplot) can apply the identical gate to a
+#              wider/differently-ranked slice of `freq` without recomputing it and risking
+#              disagreement with `top_arms`.
+#   top_arms : the `n_top` most-altered arm names among `freq$eligible` arms (the ones
+#              worth annotating)
 #   wide_top : ID + one "CNV_<arm>" column per top arm — the oncoplot annotation table
 # NULL in -> NULL out (knit-safe).
-recurrent_arm_calls <- function(calls, n_top = 5) {
+recurrent_arm_calls <- function(calls, n_top = 5,
+                                min_evaluable_frac = attend_cnv$arm_calls$min_evaluable_frac) {
   if (is.null(calls) || nrow(calls) == 0 || !"ID" %in% names(calls)) return(NULL)
   arm_cols <- setdiff(names(calls), "ID")
   if (length(arm_cols) == 0) return(NULL)
+  # min_evaluable_frac denominator: DISTINCT samples in the input, not nrow(calls) — a
+  # resequenced sample appearing twice (load_ascets_calls() applies the same id_strip
+  # collapse used elsewhere in the pipeline, so this can happen) must not double-count,
+  # consistent with how load_cnv_data()'s n_profiled is derived (distinct ids, not rows).
+  n_id <- dplyr::n_distinct(calls$ID)
   norm_call <- function(x) {
-    u <- toupper(trimws(as.character(x)))
-    case_when(u %in% c("AMP", "GAIN", "1", "+1") ~ "gain",
-              u %in% c("DEL", "LOSS", "-1")       ~ "loss",
-              TRUE                                 ~ "neutral")
+    # x is already upper-cased + trimmed. "NA" the literal string and NA the real value
+    # are the same no-call. LOWCOV/NC/""/NA all map to NA_character_ — they must NOT fall
+    # into a "neutral" catch-all, or ASCETS's low-coverage flag silently becomes a real
+    # call and inflates both the gain/loss numerators and the arm denominator.
+    out <- dplyr::case_when(
+      x %in% c("AMP", "GAIN", "1", "+1", "2")        ~ "gain",
+      x %in% c("DEL", "LOSS", "-1", "-2")             ~ "loss",
+      x %in% c("NEUTRAL", "NEUT", "0")                ~ "neutral",
+      x %in% c("LOWCOV", "NC", "NA", "") | is.na(x)   ~ NA_character_,
+      TRUE                                             ~ NA_character_)
+    unrecognised <- unique(x[is.na(out) & !(x %in% c("LOWCOV", "NC", "NA", "") | is.na(x))])
+    if (length(unrecognised) > 0)
+      warning("norm_call(): unrecognised token(s), treated as no-call: ",
+               paste(unrecognised, collapse = ", "))
+    out
   }
   long <- calls |>
     pivot_longer(all_of(arm_cols), names_to = "arm", values_to = "call") |>
-    mutate(call = norm_call(call))
+    mutate(call = norm_call(toupper(trimws(as.character(call)))))
   freq <- long |>
     group_by(arm) |>
-    summarise(gain    = mean(call == "gain",    na.rm = TRUE),
-              loss    = mean(call == "loss",    na.rm = TRUE),
-              altered = mean(call != "neutral", na.rm = TRUE),
+    summarise(gain        = mean(call == "gain",    na.rm = TRUE),
+              loss        = mean(call == "loss",    na.rm = TRUE),
+              altered     = mean(call != "neutral", na.rm = TRUE),
+              n_evaluable = sum(!is.na(call)),
+              n_lowcov    = sum(is.na(call)),
               .groups = "drop") |>
+    mutate(eligible = n_evaluable / n_id >= min_evaluable_frac) |>
     arrange(desc(altered))
-  top_arms <- head(freq$arm, n_top)
+  top_arms <- head(freq$arm[freq$eligible], n_top)
   wide_top <- long |>
     filter(arm %in% top_arms) |>
     mutate(arm = paste0("CNV_", arm)) |>
     pivot_wider(names_from = arm, values_from = call, values_fn = ~ .x[1])
   list(long = long, freq = freq, top_arms = top_arms, wide_top = wide_top)
+}
+
+# Order chromosome-arm names ALONG THE GENOME (1p, 1q, 2p, 2q, ..., 22p, 22q, Xp, Xq, Yp,
+# Yq) rather than alphabetically — field convention for recurrent-CNA figures (Beroukhim
+# et al. 2010; Zack et al. 2013; GenVisR::cnFreq) is to display recurrence along the
+# genome, and a plain string sort gets this wrong ("10p" sorts before "2p", and even before
+# "1q"). This is a PURE reordering: every input element appears exactly once in the output,
+# nothing is invented or dropped, and it does NOT touch recurrent_arm_calls()'s own
+# most-altered-first sort (freq/top_arms) — the caller decides which order to display in
+# (GC4). Tolerates a "chr" prefix and mixed case ("chr1p", "CHR1P", "1P" all parse the
+# same). Names that don't match `<chr>?<1-22|X|Y><p|q>` sort LAST, in their original
+# relative order (a stable sort on an unparseable key), rather than erroring.
+order_arms_genomic <- function(arms) {
+  chrom_rank <- c(as.character(1:22), "X", "Y")
+  parsed <- stringr::str_match(toupper(trimws(arms)), "^(?:CHR)?([0-9]+|X|Y)([PQ])$")
+  chrom_key <- match(parsed[, 2], chrom_rank)      # NA when the chromosome part is unparseable
+  arm_key   <- match(parsed[, 3], c("P", "Q"))     # NA when the p/q part is unparseable
+  key <- chrom_key * 2 + arm_key                   # NA propagates -> unparseable names sort last
+  arms[order(is.na(key), key, seq_along(arms))]
 }
 
 # Genome-wide recurrent-SCNA PILEUP (report 5). PURE transform, no I/O — feed it
@@ -581,14 +645,59 @@ recurrent_arm_calls <- function(calls, n_top = 5) {
 # `Type` (DUP/DEL) with the `logRatio` sign as a fallback; `min_abs` optionally drops
 # small-magnitude segments. Chromosome lengths + cumulative genome offsets come from
 # the arm-boundary table (q-arm end per chromosome). Returns a tibble
-#   chrom, bin_start, gpos (cumulative genome coordinate), gain, loss
+#   chrom, bin_start, gpos (cumulative genome coordinate), gain, loss,
+#   gain_low, gain_high, loss_low, loss_high
+# `gain`/`loss` keep their original meaning — fraction with ANY gain/loss segment
+# overlapping the bin (GC4, unchanged). `gain_low`/`gain_high` (and the loss pair) split
+# that same population into low- vs high-amplitude tiers by `|logRatio| >= high_abs`
+# (field convention: low-level gain/loss vs high-level amplification/homozygous deletion —
+# Beroukhim 2010; Zack 2013; GenVisR::cnFreq). Tiering is per (bin, direction, sample): a
+# sample with both a low- and a high-magnitude segment overlapping the same bin in the same
+# direction is counted ONCE, in the high tier only, so `gain_low + gain_high == gain`
+# (and likewise for loss) always. `NA` logRatio counts as low tier.
 # with attr "chrom_offsets" (for axis labelling) and "n_samples". NULL in -> NULL out.
 segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
                            min_abs = attend_cnv$pileup$min_abs_logratio,
                            chrom_col = "Chromosome", start_col = "Start",
                            end_col = "End", type_col = "Type",
-                           value_col = "logRatio", id_col = "ID") {
+                           value_col = "logRatio", id_col = "ID",
+                           n_samples = NULL,
+                           high_abs = attend_cnv$pileup$high_abs_logratio) {
   if (is.null(cnv_long) || nrow(cnv_long) == 0 || is.null(arms)) return(NULL)
+
+  # Denominator = samples PROFILED, not samples with a surviving altered segment. Three
+  # sources, tried in this order, recorded in attr(wide, "n_samples_source") so the report
+  # can state its denominator honestly:
+  #   "argument" — an explicit n_samples always wins (e.g. the full cohort size, covering
+  #                samples whose annotation file failed to parse entirely).
+  #   "profiled" — attr(cnv_long, "n_profiled"), set by load_cnv_data() from the count of
+  #                DISTINCT derived sample ids among the per-sample files it read (not raw
+  #                file count — two files can de-duplicate to one sample id, e.g. a resequence
+  #                under a different id_strip suffix). This is the ONLY source that can see a
+  #                sample that contributed ZERO rows to cnv_long (a copy-number-quiet tumour whose
+  #                ClassifyCNV file has no calls) — no inspection of cnv_long's rows can
+  #                recover that count. Used only when present, non-NA, numeric, and at
+  #                least the observed distinct-id count below (a floor guard: a stale or
+  #                wrong attribute can never SHRINK the denominator below the samples
+  #                actually in hand).
+  #   "observed" — dplyr::n_distinct() on the UNFILTERED cnv_long, before min_abs /
+  #                direction drop rows (Task 1) — a sample whose genome is
+  #                quiet-but-present (or whose segments are all below min_abs) still
+  #                counts.
+  n_observed <- dplyr::n_distinct(cnv_long[[id_col]])
+  if (!is.null(n_samples)) {
+    n_samples_source <- "argument"
+  } else {
+    profiled <- attr(cnv_long, "n_profiled")
+    if (!is.null(profiled) && length(profiled) == 1 && !is.na(profiled) &&
+        is.numeric(profiled) && profiled >= n_observed) {
+      n_samples        <- profiled
+      n_samples_source <- "profiled"
+    } else {
+      n_samples        <- n_observed
+      n_samples_source <- "observed"
+    }
+  }
 
   segs <- cnv_long |>
     transmute(
@@ -609,11 +718,12 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
       type %in% c("DEL", "LOSS")        ~ "loss",
       !is.na(v) & v > 0                 ~ "gain",
       !is.na(v) & v < 0                 ~ "loss",
-      TRUE                              ~ NA_character_)) |>
+      TRUE                              ~ NA_character_),
+      # amplitude tier per SEGMENT; NA logRatio counts as low (ambiguity resolution #5).
+      # Tier is later collapsed per (bin, direction, sample) so a sample never double-counts.
+      tier = ifelse(!is.na(v) & abs(v) >= high_abs, "high", "low")) |>
     filter(!is.na(direction))
   if (nrow(segs) == 0) return(NULL)
-
-  n_samples <- dplyr::n_distinct(segs$ID)
 
   # chromosome lengths (q-arm end) + cumulative offsets, genome order 1..22, X, Y
   chrom_len <- arms |>
@@ -635,14 +745,35 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
     mutate(bin_end = pmin(bin_start + bin, len),
            gpos    = offset + bin_start + bin / 2)
 
-  # per bin, fraction of DISTINCT samples with a gain / loss segment overlapping it
-  overlap <- bins |>
+  # segments overlapping each bin — the shared join both "gain"/"loss" (GC4, any-tier)
+  # and the amplitude-tier columns are built from, so the two can never disagree about
+  # which segments overlap which bin.
+  bin_segs <- bins |>
     select(chrom, bin_start, bin_end) |>
     inner_join(segs, by = "chrom", relationship = "many-to-many") |>
-    filter(s < bin_end, e > bin_start) |>
+    filter(s < bin_end, e > bin_start)
+
+  # per bin, fraction of DISTINCT samples with a gain / loss segment overlapping it
+  # (unchanged meaning from before amplitude tiers were added — GC4).
+  overlap <- bin_segs |>
     distinct(chrom, bin_start, direction, ID) |>
     count(chrom, bin_start, direction, name = "n_alt") |>
     mutate(frac = n_alt / n_samples)
+
+  # amplitude tier per (bin, direction, sample): a sample with both a low- and a
+  # high-magnitude segment overlapping the same bin+direction counts ONCE, in the high
+  # tier only (ambiguity resolution #4) — so tier_pick partitions the same distinct-ID
+  # population `overlap` counts, and gain_low + gain_high == gain (and likewise loss).
+  overlap_tier <- bin_segs |>
+    group_by(chrom, bin_start, direction, ID) |>
+    summarise(tier_pick = if (any(tier == "high")) "high" else "low", .groups = "drop") |>
+    count(chrom, bin_start, direction, tier_pick, name = "n_alt") |>
+    mutate(frac = n_alt / n_samples)
+
+  tier_col <- function(dir, tier_val)
+    overlap_tier |>
+      filter(direction == dir, tier_pick == tier_val) |>
+      select(chrom, bin_start, frac)
 
   wide <- bins |>
     select(chrom, bin_start, gpos) |>
@@ -650,11 +781,16 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
               by = c("chrom", "bin_start")) |>
     left_join(overlap |> filter(direction == "loss") |> select(chrom, bin_start, loss = frac),
               by = c("chrom", "bin_start")) |>
-    mutate(gain = tidyr::replace_na(gain, 0),
-           loss = tidyr::replace_na(loss, 0))
+    left_join(tier_col("gain", "low")  |> rename(gain_low  = frac), by = c("chrom", "bin_start")) |>
+    left_join(tier_col("gain", "high") |> rename(gain_high = frac), by = c("chrom", "bin_start")) |>
+    left_join(tier_col("loss", "low")  |> rename(loss_low  = frac), by = c("chrom", "bin_start")) |>
+    left_join(tier_col("loss", "high") |> rename(loss_high = frac), by = c("chrom", "bin_start")) |>
+    mutate(across(c(gain, loss, gain_low, gain_high, loss_low, loss_high),
+                  ~ tidyr::replace_na(.x, 0)))
 
-  attr(wide, "chrom_offsets") <- chrom_len
-  attr(wide, "n_samples")     <- n_samples
+  attr(wide, "chrom_offsets")    <- chrom_len
+  attr(wide, "n_samples")        <- n_samples
+  attr(wide, "n_samples_source") <- n_samples_source
   wide
 }
 

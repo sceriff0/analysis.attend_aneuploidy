@@ -24,6 +24,7 @@ source(here("code", "attend_classes.R"))     # add_molecular_classes(), gene pan
 source(here("code", "attend_scna.R"))        # peak union, panel score, LOO stability
 source(here("code", "attend_plots.R"))       # scna_mirror_plot(), panel_score_plot(), attend_theme()
 source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "attend_plots.R"))       # attend_theme()
 
 # maftools is optional — gate the heavy chunks so the report still knits without it.
 MAFTOOLS_OK <- requireNamespace("maftools", quietly = TRUE)
@@ -157,10 +158,23 @@ which variant classes dominate, since that drives what the oncoplot colours show
 maftools::plotmafSummary(maf, addStat = "median", dashboard = TRUE)
 ```
 
-## Oncoplot — the 20 most mutated genes
+## Oncoplot — mutation landscape (memo-sorted)
 
-Columns are patients, rows are genes, and the coloured cells are mutation types. Samples
-are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
+Columns are patients, rows are genes, and the coloured cells are mutation types. The
+default maftools memo sort: samples are ordered so co-occurring and mutually
+exclusive alterations form the characteristic staircase, the primary mutation-landscape
+layout readers expect from an OncoPrint. The annotation-sorted panel below answers a
+different question — where alterations concentrate within a covariate — not this one.
+
+```{r oncoplot-memo, eval=MAFTOOLS_OK, fig.height=9}
+covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
+                   sortByAnnotation = FALSE, removeNonMutated = FALSE)
+```
+
+## Oncoplot — sorted by annotation (enrichment view)
+
+Samples are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
 shows up as a block of colour lining up with an annotation band — TP53 concentrating in
 aneuploidy-high, or hypermutation concentrating in MMR-deficient, for example.
 
@@ -291,9 +305,18 @@ Three resolutions of the same question, coarsest first. None of these need `maft
 
 Cohort frequency of whole-arm gains and losses from the **ASCETS arm-level calls** — the
 recurrent events that define endometrial subtypes, such as 1q and 8q gain in serous-like
-tumours. Gains extend right, losses left, and arms are ordered most-altered at the top.
-The top `r attend_cnv$oncoplot_arms` of these are the arm annotation tracks on the
-oncoplots above, so the two figures are showing the same calls.
+tumours. Gains extend right, losses left, and arms are shown in **genome order**
+(`order_arms_genomic()`), not sorted by frequency. Each arm's fraction is out of its own
+**evaluable** samples — calls of LOWCOV/NC/NA are excluded from that arm's denominator,
+not counted as neutral — and that count is printed on the axis label (`arm (n=…)`) so a
+reduced denominator is visible rather than hidden. The bars below show the
+`r attend_cnv$arm_calls$n_barplot` most-altered *eligible* arms out of roughly 44 in the
+genome — not every arm — where eligible means evaluable in at least
+`r 100 * attend_cnv$arm_calls$min_evaluable_frac`% of samples, the identical rule
+`top_arms` applies to the arm annotation tracks on the oncoplots above — so neither figure
+can rank a poorly-covered arm ahead of a well-covered one. An uncallable arm's `CNV_<arm>`
+value on those oncoplots is `NA`, not `"neutral"` — missing data, not evidence of no
+alteration.
 
 ```{r recurrent-cnv, fig.width=9, fig.height=6}
 arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
@@ -301,62 +324,117 @@ arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot
 if (is.null(arm_freq)) {
   message("No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.")
 } else {
+  # Same eligibility gate recurrent_arm_calls() applies to top_arms (freq$eligible), so
+  # the barplot and the oncoplot annotation tracks can never disagree about which arms
+  # are well-covered enough to rank. Applied BEFORE slice_head(), so a poorly-covered arm
+  # (e.g. an acrocentric p-arm ASCETS marks LOWCOV in most samples) cannot be promoted into
+  # the figure just because it scores 100% altered on a 2-sample denominator.
   fr <- arm_freq$freq |>
-    slice_head(n = 20) |>
-    mutate(arm = factor(arm, levels = rev(arm))) |>
+    filter(eligible) |>
+    slice_head(n = attend_cnv$arm_calls$n_barplot) |>
+    mutate(arm = factor(arm, levels = rev(order_arms_genomic(arm))))
+
+  # Axis labels carry each arm's evaluable-sample count, so a reader can see when a
+  # frequency rests on a reduced denominator (matched by factor level, not row order).
+  arm_labels <- setNames(paste0(as.character(fr$arm), " (n=", fr$n_evaluable, ")"),
+                         as.character(fr$arm))
+
+  fr_long <- fr |>
     pivot_longer(c(gain, loss), names_to = "direction", values_to = "frac") |>
     mutate(frac = if_else(direction == "loss", -frac, frac))
 
-  ggplot(fr, aes(arm, frac, fill = direction)) +
+  ggplot(fr_long, aes(arm, frac, fill = direction)) +
     geom_col(width = 0.8) +
     geom_hline(yintercept = 0, colour = "grey40", linewidth = 0.3) +
     coord_flip() +
     scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
+    scale_x_discrete(labels = arm_labels) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
     labs(title = "Recurrent arm-level SCNAs across the cohort",
-         subtitle = "gain (right) vs loss (left), by fraction of samples",
-         x = NULL, y = "fraction of samples", fill = NULL) +
-    theme_minimal(base_size = 11)
+         subtitle = "gain (right) vs loss (left), by fraction of evaluable samples; arms in genome order",
+         x = NULL, y = "fraction of evaluable samples", fill = NULL) +
+    attend_theme()
 }
 ```
 
 ## Genome-wide, by chromosomal location
 
 The TCGA Fig. 1a convention: alterations plotted **by position along the genome** rather
-than summarised per arm. For each 1 Mb window, the fraction of samples with a gain (up,
-red) or a loss (down, blue). Grey vertical lines are chromosome boundaries.
+than summarised per arm, split into two amplitude panels — **low-level** and **high-level**
+(`|log2 ratio| >= ` `r attend_cnv$pileup$high_abs_logratio`, the conventional
+amplification/homozygous-deletion cutoff) — gain up/red, loss down/blue. Grey vertical
+lines are chromosome boundaries; dashed lines mark centromeres, read from the arm-boundary
+table. ChrY is dropped from the axis — the cohort is uterine and therefore all female, so
+it carries no calls and only an empty tail.
 
-Built from the ClassifyCNV altered segments (`data/cnv_annotations/`). Bin width and the
-gain/loss magnitude threshold are configured in `attend_cnv$pileup`. This is the figure
-that shows *focal* recurrence — a narrow tall spike is a focal peak, a broad plateau is an
-arm-level event and will also appear in the barplot above.
+Built from the ClassifyCNV altered segments (`data/cnv_annotations/`) in
+`r attend_cnv$pileup$bin / 1e6` Mb bins; the figure caption states the sample denominator
+and whether it came from an explicit count, the profiled-sample attribute, or the segments
+observed. **These are descriptive frequencies with no significance testing** — GISTIC
+q-values are the field's standard for recurrence significance and are not applied here.
+This is the figure that shows *focal* recurrence — a narrow tall spike is a focal peak, a
+broad plateau is an arm-level event and will also appear in the barplot above.
 
-```{r segment-pileup, fig.width=12, fig.height=5}
-pile <- segment_pileup(load_cnv_data(), load_arm_boundaries())
+```{r segment-pileup, fig.width=12, fig.height=6}
+arm_bounds <- load_arm_boundaries()
+pile <- segment_pileup(load_cnv_data(), arm_bounds)
 
 if (is.null(pile)) {
   message("No ClassifyCNV segments (data/cnv_annotations/) or arm-boundary table — ",
           "skipping the genome-wide pileup.")
 } else {
-  offs <- attr(pile, "chrom_offsets")
+  # Capture the denominator + its source before any filter()/mutate() that could drop
+  # these custom attributes.
+  n_samples        <- attr(pile, "n_samples")
+  n_samples_source <- attr(pile, "n_samples_source")
+  offs             <- attr(pile, "chrom_offsets")
+
+  # Readable phrase for the subtitle, not the internal token (argument/profiled/observed)
+  # segment_pileup() records in n_samples_source — a subtitle should read as English.
+  n_samples_desc <- c(argument = "an explicitly supplied cohort size",
+                      profiled = "the number of samples profiled",
+                      observed = "the samples present in the segment data")[[n_samples_source]]
+
+  # ChrY dropped: the cohort is uterine and therefore all female, so chrY carries no
+  # calls and would only draw an empty axis tail. ChrX is kept.
+  pile <- pile |> filter(chrom != "chrY")
+  offs <- offs  |> filter(chrom != "chrY")
+
+  # Centromere = each chromosome's p/q boundary, read from the arm-boundary table
+  # (never hard-coded) and converted to genome coordinates with the same offsets used
+  # for the chromosome-boundary lines and axis breaks.
+  centromeres <- arm_bounds |>
+    filter(str_detect(arm, "p$"), chrom != "chrY") |>
+    mutate(chrom = as.character(chrom)) |>
+    inner_join(offs |> select(chrom, offset), by = "chrom") |>
+    transmute(gpos = offset + end)
+
   pl <- pile |>
-    select(gpos, gain, loss) |>
-    pivot_longer(c(gain, loss), names_to = "direction", values_to = "frac") |>
-    mutate(frac = if_else(direction == "loss", -frac, frac))
+    select(gpos, gain_low, gain_high, loss_low, loss_high) |>
+    pivot_longer(-gpos, names_to = c("direction", "tier"), names_sep = "_",
+                values_to = "frac") |>
+    mutate(frac = if_else(direction == "loss", -frac, frac),
+           tier = factor(tier, levels = c("low", "high"),
+                        labels = c("low-level", "high-level")))
 
   ggplot(pl, aes(gpos, frac, fill = direction)) +
     geom_col(width = attend_cnv$pileup$bin) +
     geom_hline(yintercept = 0, colour = "grey40", linewidth = 0.3) +
     geom_vline(xintercept = offs$offset[-1], colour = "grey85", linewidth = 0.2) +
+    geom_vline(data = centromeres, aes(xintercept = gpos), colour = "grey60",
+              linewidth = 0.3, linetype = "dashed") +
+    facet_grid(tier ~ ., scales = "free_y") +
     scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
     scale_x_continuous(breaks = offs$mid, labels = str_remove(offs$chrom, "^chr"),
                        expand = c(0, 0)) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
     labs(title = "Genome-wide recurrent SCNA pileup (TCGA Fig. 1a convention)",
-         subtitle = paste0("gain (up) vs loss (down), fraction of ",
-                           attr(pile, "n_samples"), " samples; 1 Mb bins"),
+         subtitle = paste0("gain (up) vs loss (down), fraction of ", n_samples,
+                           " samples (", n_samples_desc, "); ",
+                           attend_cnv$pileup$bin / 1e6,
+                           " Mb bins; dashed lines = centromeres; no significance testing applied"),
          x = "chromosome", y = "fraction of samples", fill = NULL) +
-    theme_minimal(base_size = 11) +
+    attend_theme() +
     theme(panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank())
 }

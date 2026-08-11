@@ -163,6 +163,29 @@ load_maf_tmb <- function() {
     list_rbind()
 }
 
+# Derive a ClassifyCNV sample id from its file path — the SAME transform load_cnv_data()
+# applies inside its map() body, factored out so the two can never drift. Exists because
+# `cc$id_strip` (e.g. "-1TAD104|_tumor_only") strips MULTIPLE sequencing-id suffixes down
+# to one bare barcode BY DESIGN (the same sample can be resequenced under a different
+# suffix) — so `length(files)` overcounts whenever that happens, and `dir_ls(recurse=TRUE)`
+# overcounts further if the same sample's file also appears under two subfolders. Distinct
+# ids, not file count, is what "how many samples were profiled" means.
+.classifycnv_file_id <- function(p, cc) {
+  id <- str_remove(path_file(p), "\\.cnv\\.annotated\\.tsv$")
+  str_remove(id, cc$id_strip)
+}
+
+# Count of samples PROFILED among a set of ClassifyCNV file paths — i.e. distinct ids
+# derived by .classifycnv_file_id(), not length(files) (see that function's comment for
+# why the two differ: id_strip collapses a resequenced sample's two files onto one id).
+# Factored out of load_cnv_data() so it is testable on its own: this is pure string
+# manipulation plus n_distinct(), no I/O, so it runs without `fs`/`data.table`/`here` —
+# unlike load_cnv_data() itself, which this repro's test suite cannot execute locally
+# (see test_classifycnv_file_id.R). load_cnv_data() calls this for attr(out, "n_profiled").
+.classifycnv_n_profiled <- function(files, cc) {
+  dplyr::n_distinct(vapply(files, .classifycnv_file_id, character(1), cc = cc))
+}
+
 # --- CNV: ClassifyCNV-annotated segment calls (report 7) -------------------
 # variantalker output: one file per sample, one row per ALTERED segment (DUP/DEL)
 # with `logRatio` (log2 ratio) + `CNF` (= 2^logRatio). The ACMG `1A..5H` scoring
@@ -179,12 +202,14 @@ load_cnv_data <- function(cnv = attend_cnv) {
   }
   files <- dir_ls(folder, recurse = TRUE, type = "file", glob = "*.cnv.annotated.tsv")
   if (length(files) == 0) {
-    message("load_cnv_data(): no *.cnv.annotated.tsv under ", folder); return(tibble())
+    message("load_cnv_data(): no *.cnv.annotated.tsv under ", folder)
+    out <- tibble()
+    attr(out, "n_profiled") <- 0L
+    return(out)
   }
-  files |>
+  out <- files |>
     map(function(p) {
-      id <- str_remove(path_file(p), "\\.cnv\\.annotated\\.tsv$")
-      id <- str_remove(id, cc$id_strip)
+      id <- .classifycnv_file_id(p, cc)
       dt <- fread(p, sep = "\t", header = TRUE, quote = "",
                   na.strings = c(".", "", "NA")) |> as_tibble()
       keep <- intersect(c(cc$chrom_col, cc$start_col, cc$end_col,
@@ -198,6 +223,14 @@ load_cnv_data <- function(cnv = attend_cnv) {
     }) |>
     list_rbind() |>
     relocate(ID)
+  # Attach AFTER the final dplyr verb — relocate() (like every dplyr verb) drops
+  # non-standard attributes, so setting this any earlier would lose it. .classifycnv_n_profiled()
+  # counts DISTINCT derived ids (via the same .classifycnv_file_id() the map() body used
+  # above), not length(files) — two files can legitimately derive the same id (see that
+  # helper's comment), and length(files) would then overcount samples PROFILED, inflating
+  # the segment_pileup() denominator and deflating every reported frequency.
+  attr(out, "n_profiled") <- .classifycnv_n_profiled(files, cc)
+  out
 }
 
 # --- CNV: DRAGEN genome-wide segmentation (.seg) for the Fig-1a heatmap ------
