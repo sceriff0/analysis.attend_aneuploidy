@@ -12,7 +12,7 @@ with [workflowr](https://workflowr.github.io/workflowr/) and
 ```r
 renv::restore()              # once renv.lock exists
 workflowr::wflow_build()     # knit every report into docs/
-workflowr::wflow_build("analysis/02_survival_stratified.Rmd")   # knit one
+workflowr::wflow_build("analysis/30_survival.Rmd")               # knit one
 ```
 
 ## The pipeline

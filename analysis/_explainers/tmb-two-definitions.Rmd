@@ -1,0 +1,21 @@
+### The two TMB definitions
+
+ATTEND is sequenced tumour-only, so leftover germline variants inflate TMB, and because
+germline allele frequencies differ between ancestries that inflation is ancestry-dependent
+(Nassar et al., *Cancer Cell* 2022). The pipeline therefore carries two definitions and
+never silently picks one:
+
+| Reported name | Column | What it is |
+|---|---|---|
+| **TMB (normal)** | `tmb__TMB_SCORE` | the upstream tumour-only score, as delivered |
+| **TMB (ancestry corrected)** | `tmb__TMB_nassar` | the same score after the ancestry recalibration |
+
+Two further columns, `tmb__TMB_robust` and `tmb__TMB_matched`, exist on the master because
+the recalibration is fitted on top of `robust`. They are intermediates: `tmb_defs_present()`
+cannot return them, so no figure can show them. How the recalibration works is in
+[00_methods](00_methods.html).
+
+Every definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
+`tmb_class_of()`, so panels that differ only in definition differ only in who crossed the
+cut. The ancestry-corrected column stays all-`NA` until `attend_ancestry$clinical_col` is
+set, and panels that would be empty are skipped rather than drawn blank.

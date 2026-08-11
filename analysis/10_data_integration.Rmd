@@ -1,0 +1,381 @@
+---
+title: "ATTEND — 10. Data integration: building the master table"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(fs)
+options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(
+  echo = TRUE, message = FALSE, warning = FALSE,
+  fig.width = 8, fig.height = 5
+)
+
+source(here("code", "load_clinical.R"))
+source(here("code", "load_phenotypes.R"))
+source(here("code", "load_wes_results.R"))
+source(here("code", "attend_harmonise.R"))   # ID spaces, crosswalks, collapse rule
+source(here("code", "attend_classes.R"))     # pathogenic_by_patient(), TMB recompute
+source(here("code", "attend_io.R"))          # write_intermediate() (Parquet/CSV)
+```
+
+> **Question.** Which measurement belongs to which patient, and what does the joined table look like?
+> **Cohort.** Every patient reached by at least one modality; no restriction is applied here.
+> **Reads.** The `code/load_*.R` loaders, straight from HPC storage, plus `data/attend_barcodes.csv`.
+> **Out of scope.** What the join cost, and whether the joined values are sane -> [11_join_audit](11_join_audit.html).
+
+ATTEND measures the same patients several different ways — clinical records, radiology
+imaging, IHC, and WES-derived genomics (TMB, MSI, HRD, aneuploidy, and a per-variant MAF).
+Each modality was recorded with a different kind of identifier, so this report puts them
+onto one patient key and writes the result.
+
+Genomics tables are keyed by sequencing **barcode**, imaging and IHC by **image** id,
+clinical tables by **patient** id (`pid`). Two crosswalks, barcode to pid and image to pid,
+translate everything onto `pid`. That logic lives in `code/attend_harmonise.R` — one
+definition, so no two reports can drift apart.
+
+Four packages are optional and every use is guarded, so the report knits without them:
+`pointblank` for the post-join gate, `reclin2` for the fuzzy near-miss check, and `arrow`
+for Parquet intermediates. Install with
+`renv::install(c("pointblank","reclin2","arrow"))`.
+
+## The raw inputs
+
+Every table is read straight from its loader in `code/load_*.R`, which are the seam
+between HPC storage (`/hpcnfs/scratch/P_DIMA_ATTEND`) and this pipeline. Nothing is
+filtered or transformed at this point — these are the raw shapes as delivered.
+
+```{r load}
+clinical_data        <- load_clinical_data()         # ATTEND summary file (ClinData)
+imaging_data         <- load_imaging_data()          # ATTEND summary file (Imaging)
+ihc_data             <- load_ihc_data()              # FlowPath
+gianlu_clinical_data <- load_gianlu_clinical_data()  # clinical_with_mutation_status.tsv
+aneu_data            <- load_aneuploidy_scores()     # WES: as_ASCET_attend.csv
+hrd_data             <- load_hrd_scores()            # WES: hrd_scores.csv
+msi_data             <- load_msi_scores()            # WES: msi.20250831.csv
+tmb_data             <- load_tmb_scores()            # WES: tmb.20250831.csv
+maf_data             <- load_maf_data()              # WES: glob *.maf
+conversion_data      <- read.csv(here("data", "attend_barcodes.csv"))
+```
+
+Row and column counts of each raw table as loaded above, before any ID translation.
+The key column differs per table — clinical/MSI/TMB/MAF use `ID`, imaging and IHC use
+`image_id`, HRD uses `Sample`, aneuploidy uses `sequencing_id`, the conversion table
+uses `barcode` — and reconciling those is the whole job of this report.
+
+```{r load-dims}
+raw_inputs <- list(
+  clinical = clinical_data, imaging = imaging_data, ihc = ihc_data,
+  gianlu = gianlu_clinical_data, aneu = aneu_data, hrd = hrd_data,
+  msi = msi_data, tmb = tmb_data, maf = maf_data, conversion = conversion_data
+)
+
+tibble(
+  dataset = names(raw_inputs),
+  rows    = map_int(raw_inputs, nrow),
+  cols    = map_int(raw_inputs, ncol)
+)
+```
+
+## Building the two crosswalks
+
+The **barcode→pid** crosswalk is derived from `gianlu_clinical_data`, which is the only
+table carrying both a sequencing barcode (`TUMOR_BARCODE`) and a patient id. The
+**image→pid** crosswalk comes from `imaging_data`, which carries both `image_id` and a
+patient id. Everything else is translated through one of these two.
+
+```{r harmonise}
+id_cfg <- make_id_cfg()
+
+cw_barcode_pid <- build_barcode_pid(gianlu_clinical_data, id_cfg)
+cw_image_pid   <- build_image_pid(imaging_data, id_cfg)
+
+# recover = TRUE promotes an orphaned id when its normalised key (upper-cased,
+# trimmed) maps to exactly ONE patient. Ambiguous keys are refused, never guessed —
+# the ledger in Part 2 shows precisely who is reclaimed and who is refused.
+pid_vector <- make_pid_vector(cw_barcode_pid, cw_image_pid, recover = TRUE)
+
+tables <- list(
+  tmb = tmb_data, msi = msi_data, maf = maf_data, hrd = hrd_data,
+  aneu = aneu_data, gianlu = gianlu_clinical_data,
+  imaging = imaging_data, ihc = ihc_data
+)
+
+sets <- build_sets(tables, id_cfg, pid_vector)   # patients reached, per dataset
+```
+
+Size of each crosswalk. These are the limiting reagent for the whole join: a genomic
+sample can only reach a patient if its barcode appears in the barcode crosswalk, and an
+IHC slide only if its image appears in the image crosswalk. Most of the unmapped
+records counted in Part 2 are unmapped for this reason.
+
+```{r crosswalk-coverage}
+cat("barcode crosswalk:", nrow(cw_barcode_pid), "pairs,",
+    n_distinct(cw_barcode_pid$pid), "patients\n")
+cat("image   crosswalk:", nrow(cw_image_pid), "pairs,",
+    n_distinct(cw_image_pid$pid), "patients\n")
+```
+
+### Is the derived crosswalk right?
+
+The barcode→pid crosswalk above is *reverse-engineered* from the clinical table, but
+`data/attend_barcodes.csv` is the **canonical** map. The two are compared here on two
+questions: which barcodes each one knows about, and — more seriously — whether they ever
+**disagree about which patient a barcode belongs to**. A disagreement is not a coverage
+gap; it would attach one patient's genomics to another patient's clinical record, and
+every downstream result would be quietly wrong. It must be zero.
+
+```{r crosswalk-validate}
+derived_barcodes <- unique(cw_barcode_pid$barcode)
+canon_barcodes   <- unique(as.character(conversion_data$barcode))
+
+cat("barcodes in derived crosswalk:", length(derived_barcodes), "\n")
+cat("barcodes in canonical file   :", length(canon_barcodes), "\n")
+cat("in derived but NOT canonical :", length(setdiff(derived_barcodes, canon_barcodes)), "\n")
+cat("in canonical but NOT derived :", length(setdiff(canon_barcodes, derived_barcodes)), "\n")
+
+# The canonical file's patient-id column is auto-detected: the real file carries
+# barcode / project / enrolment_id / tss / internal_id / patient_status, and
+# enrolment_id is the study subject id. Override this if the detection is wrong.
+canon_pid_candidates <- c("enrolment_id", "enrollment_id", "internal_id",
+                          "pid", "PID", "PATIENT_ID", "patient_id", "Patient_ID",
+                          "patient", "Patient", "ATTEND_ID", "attend_id", "ID")
+canon_pid_col <- setdiff(intersect(canon_pid_candidates, names(conversion_data)),
+                         "barcode")[1]
+cat("using canonical patient-id column:",
+    if (is.na(canon_pid_col)) "(none found)" else canon_pid_col, "\n")
+
+if (!is.na(canon_pid_col)) {
+  canon_cw <- conversion_data |>
+    transmute(barcode   = as.character(barcode),
+              pid_canon = as.character(.data[[canon_pid_col]])) |>
+    filter(!is.na(barcode), !is.na(pid_canon)) |> distinct()
+
+  disagree <- cw_barcode_pid |>
+    inner_join(canon_cw, by = "barcode") |>
+    filter(pid != pid_canon)
+
+  cat("barcodes where derived pid DISAGREES with canonical:", nrow(disagree),
+      "  <- must be 0\n")
+  disagree
+} else {
+  message("No patient-id column detected in attend_barcodes.csv — ",
+          "set canon_pid_col manually to enable the agreement check.")
+}
+```
+
+The comparison above is character-for-character, so a canonical barcode differing only
+by case, whitespace, or a `-DNA` suffix is reported as missing when it is really the
+same sample. This fuzzy-matches the unmatched canonical barcodes against the derived set
+(Jaro–Winkler ≥ 0.9 but < 1, i.e. close but not identical) and lists the near-misses, so
+formatting drift can be told apart from genuine absence. Size-capped and guarded.
+
+```{r crosswalk-reclin2}
+only_canon <- setdiff(canon_barcodes, derived_barcodes)
+
+if (requireNamespace("reclin2", quietly = TRUE) &&
+    length(only_canon) > 0 && length(only_canon) <= 2000 && length(derived_barcodes) > 0) {
+  near <- tryCatch({
+    a <- tibble(barcode = only_canon)
+    b <- tibble(barcode = derived_barcodes)
+    pairs <- reclin2::pair(a, b)
+    reclin2::compare_pairs(pairs, on = "barcode",
+                           default_comparator = reclin2::cmp_jarowinkler(0.9),
+                           inplace = TRUE)
+    pp <- as.data.frame(pairs)
+    pp <- pp[!is.na(pp$barcode) & pp$barcode >= 0.9 & pp$barcode < 1, , drop = FALSE]
+    if (nrow(pp))
+      tibble(canonical_barcode = a$barcode[pp$.x],
+             nearest_derived   = b$barcode[pp$.y],
+             jaro_winkler      = round(pp$barcode, 3)) |>
+        arrange(desc(jaro_winkler))
+    else tibble()
+  }, error = function(e) { message("reclin2 near-miss check skipped: ", conditionMessage(e)); tibble() })
+
+  if (nrow(near)) {
+    cat("Canonical barcodes with a fuzzy near-miss (JW >= 0.9, not exact):\n")
+    print(near, n = 50)
+  } else cat("No fuzzy near-misses — the exact loss above is real, not formatting drift.\n")
+} else {
+  message("reclin2 probabilistic check skipped (package missing, nothing unmatched, ",
+          "or unmatched set too large).")
+}
+```
+
+### Two duplication failure modes
+
+These are opposite problems and only one of them is allowed.
+**One ID → many patients** must be zero: a barcode pointing at two patients duplicates
+rows on every join and corrupts counts.
+**One patient → many IDs** is legitimate (a patient can have several samples or slides),
+but it has to be quantified, because the collapse step below **averages those rows
+together** and that hides within-patient variation.
+
+```{r duplicates}
+dup_barcode <- cw_barcode_pid |> count(barcode, name = "n_pid") |> filter(n_pid > 1)
+dup_image   <- cw_image_pid   |> count(image,   name = "n_pid") |> filter(n_pid > 1)
+cat("barcodes -> >1 patient:", nrow(dup_barcode), " <- must be 0\n")
+cat("images   -> >1 patient:", nrow(dup_image),   " <- must be 0\n")
+
+cw_barcode_pid |> semi_join(dup_barcode, by = "barcode") |> arrange(barcode)
+cw_image_pid   |> semi_join(dup_image,   by = "image")   |> arrange(image)
+
+multi_barcode <- cw_barcode_pid |> count(pid, name = "n_barcode") |> filter(n_barcode > 1)
+multi_image   <- cw_image_pid   |> count(pid, name = "n_image")   |> filter(n_image > 1)
+cat("\npatients with >1 barcode:", nrow(multi_barcode),
+    "| patients with >1 image:", nrow(multi_image),
+    " <- legitimate, but averaged by the collapse below\n")
+```
+
+## Collapsing to one row per patient
+
+The master keeps exactly one row per patient. Where a patient contributed several rows,
+numeric columns are **averaged** and non-numeric columns take the first non-missing
+value (`num_or_first()` in `attend_harmonise.R`). That is harmless for a score measured
+once and lossy for anything measured repeatedly, so the table below counts, per dataset,
+how many patients were affected — that count is the size of the hidden heterogeneity.
+
+```{r collapse-report}
+collapse_report <- bind_rows(
+  Map(function(df, cfg) {
+    pid <- pid_vector(df, cfg); pid <- pid[!is.na(pid)]
+    tibble(n_rows_mapped        = length(pid),
+           n_patients           = dplyr::n_distinct(pid),
+           n_multi_row_patients = sum(table(pid) > 1))
+  }, tables, id_cfg[names(tables)]),
+  .id = "dataset"
+)
+collapse_report
+```
+
+## Assembling the master table
+
+Start from the **union** of every patient any dataset reached, `left_join` each collapsed
+dataset onto it (so an absent modality becomes `NA` rather than dropping the patient),
+prefix each dataset's columns with its name (`tmb__`, `aneu__`, …) so nothing collides,
+and add an `in_<dataset>` flag per modality.
+
+**The MAF is deliberately excluded from the averaging.** Mean-collapsing mutation rows is
+meaningless — the average of a genomic position is not a genomic position. Instead
+mutation status is derived per patient as booleans by `pathogenic_by_patient()`
+(`attend_classes.R`), which is the same helper the downstream mutation reports call, so
+they cannot drift from this table.
+
+```{r master-build}
+spine_name <- names(which.max(lengths(sets)))
+cat("Largest single dataset:", spine_name, "—", length(sets[[spine_name]]), "patients\n")
+
+master <- tibble(pid = Reduce(union, sets)) |>
+  left_join(collapse_pid(gianlu_clinical_data, id_cfg$gianlu,  "gianlu",  pid_vector), by = "pid") |>
+  left_join(collapse_pid(imaging_data,         id_cfg$imaging, "imaging", pid_vector), by = "pid") |>
+  left_join(collapse_pid(ihc_data,             id_cfg$ihc,     "ihc",     pid_vector), by = "pid") |>
+  left_join(collapse_pid(tmb_data,             id_cfg$tmb,     "tmb",     pid_vector), by = "pid") |>
+  left_join(collapse_pid(msi_data,             id_cfg$msi,     "msi",     pid_vector), by = "pid") |>
+  left_join(collapse_pid(hrd_data,             id_cfg$hrd,     "hrd",     pid_vector), by = "pid") |>
+  left_join(collapse_pid(aneu_data,            id_cfg$aneu,    "aneu",    pid_vector), by = "pid")
+
+# Mutation status from the MAF, as booleans (never averaged) — see note above.
+maf_mut <- pathogenic_by_patient(maf_data, cw_barcode_pid)  # pid, TP53_pathogenic, panel_pathogenic
+master  <- master |> left_join(maf_mut, by = "pid")
+
+for (s in names(sets)) master[[paste0("in_", s)]] <- master$pid %in% sets[[s]]
+```
+
+### The two TMB definitions
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+The recompute reads the gnomAD-annotated long MAF (`data/variant_annotations/`, loaded by
+`load_maf_tmb()`), counts the variant classes listed in `attend_tmb_recompute`, and anchors
+the result to the upstream `tmb__TMB_SCORE` scale so the definitions differ only by the
+germline filter. `apply_nassar_recalibration()` then produces `tmb__TMB_nassar` on top of
+the robust recompute. If the annotated MAFs are not synced, `load_maf_tmb()` returns empty
+and both recomputed columns are simply absent from the master.
+
+```{r master-tmb}
+# Recompute robust/matched TMB from the gnomAD-annotated long MAF, anchored to the
+# upstream tmb__TMB_SCORE scale (attend_classes.R §13). Knit-safe: if the annotated
+# MAFs are not synced, load_maf_tmb() returns empty and these columns are skipped.
+maf_tmb <- tryCatch(load_maf_tmb(), error = function(e) tibble())
+if (nrow(maf_tmb) > 0) {
+  anchor <- if (attend_cols$tmb %in% names(master))
+    master |> transmute(pid, tmb_anchor = suppressWarnings(as.numeric(.data[[attend_cols$tmb]]))) else NULL
+  tmb_vars <- tmb_variant_table(maf_tmb, cw_barcode_pid,
+                                anc_by_pid = ancestry_by_pid(master),
+                                anchor_tmb = anchor)
+  if (!is.null(tmb_vars)) master <- master |> left_join(tmb_vars, by = "pid")
+}
+
+# The ancestry recalibration itself (attend_classes.R §14), applied on top of robust.
+master <- apply_nassar_recalibration(master, ancestry_by_pid(master))
+
+# Report which of the two plotted definitions actually made it onto the table.
+present_defs <- tmb_defs_present(master)
+cat("TMB definitions available downstream:\n")
+print(tibble(definition = tmb_def_labels(present_defs), column = unname(present_defs)))
+```
+
+### Write the integration point
+
+The master is written through `write_intermediate()`, which picks Parquet when `arrow` is
+installed and CSV otherwise, so no report ever hard-codes an extension. This is the file
+every report from 11 onward reads, and nothing downstream re-reads the raw loaders.
+
+```{r master-write}
+master_path <- write_intermediate(master, "attend_master_joined")  # Parquet if arrow, else CSV
+cat("Wrote", basename(master_path), ":", nrow(master), "patients x", ncol(master), "columns\n")
+```
+
+`attend_master_joined` is the contract every later report builds on, so a broken join
+should fail **here and loudly** rather than surfacing as a strange survival curve three
+reports later. This asserts the structural invariants of the join: `pid` exists, is never
+null, and is unique — one row per patient. Guarded and warn-level, so it never halts a
+knit.
+
+```{r pointblank-gate}
+if (requireNamespace("pointblank", quietly = TRUE)) {
+  pointblank::create_agent(master, label = "ATTEND master-join QC") |>
+    pointblank::col_exists("pid") |>
+    pointblank::col_vals_not_null("pid") |>
+    pointblank::rows_distinct(columns = "pid") |>
+    pointblank::interrogate()
+} else {
+  message("pointblank not installed — renv::install('pointblank') to enable the QC gate.")
+}
+```
+
+Each raw table is additionally written to its own intermediate next to the master, so
+every input is preserved individually and downstream reports that need raw rows (rather
+than the collapsed master) can read them back through `read_intermediate()`.
+
+```{r save-each}
+datasets <- list(
+  clinical_data        = clinical_data,
+  imaging_data         = imaging_data,
+  ihc_data             = ihc_data,
+  gianlu_clinical_data = gianlu_clinical_data,
+  aneu_data            = aneu_data,
+  hrd_data             = hrd_data,
+  msi_data             = msi_data,
+  tmb_data             = tmb_data,
+  maf_data             = maf_data,
+  conversion_data      = conversion_data
+)
+# gnomAD-annotated long MAF, needed by the ancestry-aware TMB recompute.
+if (exists("maf_tmb") && nrow(maf_tmb) > 0) datasets$maf_tmb <- maf_tmb
+
+iwalk(datasets, ~ write_intermediate(.x, .y))
+```
+
+
+```{r session-info}
+sessionInfo()
+```

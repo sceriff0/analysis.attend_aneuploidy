@@ -1,0 +1,450 @@
+---
+title: "ATTEND — 0. Methods"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+> **Question.** Why is each analysis choice in this pipeline the choice it is?
+> **Cohort.** None of its own; the fitted panels below use all patients on the master.
+> **Reads.** `attend_master_joined`, plus `data/nassar/` when a reference cohort is present.
+> **Out of scope.** Results. Every figure that answers a biological question lives in a
+> numbered report; this file carries only the justification behind how those figures are made.
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here. Same dependency set as the numbered reports; this file fits the
+# Nassar recalibration, so it loads the master like any other report.
+library(tidyverse)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 5)
+
+source(here("code", "attend_classes.R"))     # attend_tmb_*, ancestry_by_pid(), nassar helpers
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
+```
+
+This file collects every **justification** in the pipeline: why a distance metric, why a
+correction, why a threshold. It is read once, not once per report. Operational recipes —
+how to run a tool on the cluster — live in `runbooks/` instead, and the derivation of any
+individual figure stays inline in the report that draws it.
+
+The master is loaded here only because two of the justifications below are quantitative:
+the ancestry correction is *fitted*, so its coefficients and effect are shown rather than
+asserted.
+
+```{r data}
+master <- tryCatch(
+  read_intermediate("attend_master_joined") |> add_molecular_classes(),
+  error = function(e) { message("master unavailable: ", conditionMessage(e)); NULL }
+)
+have_master <- !is.null(master)
+```
+
+## Copy-number clustering — why 1 − Pearson distance with Ward.D2 linkage
+
+Kandoth et al. (*Nature* 2013) Suppl. Methods S2 names no metric or linkage for the
+*copy-number* clustering, though it names 1 − Pearson / Ward for its mRNA and methylation
+clusterings. This pipeline applies that same pair to the copy-number matrix, set via
+`cnv_method`/`cnv_dist` at the top of `40_tcga_classification.Rmd` and passed to
+`cluster_arm_matrix()`. It is the only distance/linkage combination the pipeline uses.
+
+Euclidean with complete linkage is the obvious alternative. Comparing the two shows how
+sensitive the copy-number groups are to a metric choice the source paper never fixed.
+
+## How the serous-like cluster is chosen, and why it is directional
+
+Clustering copy-number profiles produces k unlabelled clusters. TCGA never had to decide
+which one was serous-like: with 373 tumours and histology in hand, cluster 4 was visibly
+94% serous. ATTEND has no such label, so the call has to be **inferred from the copy-number
+data itself** — and that inference step is **not part of TCGA's methodology**. Nothing
+about the clustering below departs from TCGA; only this labelling step is ours.
+
+The obvious rule — pick the cluster with the largest **mean |value|**, i.e. the most
+altered one — turns out to answer the wrong question. "Most altered" is not "most
+serous-like", and on *thresholded* features the two come apart: an undirected score
+rewards a deletion-dominated cluster just as much as the amplification-driven profile
+that actually characterises serous-like disease.
+
+This report therefore scores clusters **directionally**: only *concordant* events count —
+**gains at amplification peaks, losses at deletion peaks**. It is the same principle
+`attend_scna$panel` already applies to the pre-specified locus panel in [35_subgroup_cna_contrast](35_subgroup_cna_contrast.html)
+(*a deletion at MYC must not score as serous-like*).
+
+⚠️ **Both calls are computed and printed, and a `[DISAGREE]` flag is raised when they
+differ.** If they agree on ATTEND, the directional correction changed nothing here and
+the result is a confirmation. Read that flag before drawing any conclusion from the
+cluster labels.
+
+## Where this reproduction follows TCGA, and where it departs
+
+Each subsection names one step of [40_tcga_classification](40_tcga_classification.html)
+and states what it takes from Kandoth et al. Suppl. Methods S2 and what is an ATTEND
+addition. Read it once; the reports themselves carry only their own derivations.
+
+### The clustering
+
+*Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant
+peaks, hierarchical clustering. *Differs:* DRAGEN WES `.seg` vs SNP6; **1 − Pearson / Ward.D2**
+(S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the cascade
+below reads a single k = `r k_cnv`, while the k-sweep heatmap shows k = 2..8; the
+integrated-class and aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
+
+### The k-sweep
+
+TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it exposes the
+whole cut spectrum on the Fig-1a canvas so the k = 4 parity cut used by the cascade can be
+judged against its neighbours, under the Pearson/Ward metric.
+
+### The aneuploidy-enrichment cross-check
+
+This is an ATTEND **QC**, not a TCGA figure: TCGA *characterised* cluster 4
+as the highest-SCNA/aneuploidy group but did not run this label-vs-independent-score check.
+It exists to prove our burden-based CN-high label isn't circular with the aneuploidy score.
+
+### The cascade
+
+*Follows:* the per-sample priority stratification of their Fig. 2b —
+substitution/POLE → MSI → copy-number cluster; CN-high = cluster membership. *Differs:*
+**POLE omitted** (ATTEND has no POLE-ultramutated cases), so the cascade starts at MMRd;
+and MMRd is called by **MMR IHC** alone (TCGA used MSI/MLH1).
+
+### The TP53-enrichment QC
+
+This *validates* the property Kandoth et al. reported (cluster 4 ≈ 90%
+*TP53*-mutant) rather than assuming it. We do **not** gate the serous call on TP53 (that
+would be the `"and"` rule); TP53 enrichment is the independent confirmation the cluster maps
+to TCGA's serous-like group.
+
+### The per-class panels
+
+*Follows:* their finding that CN-high/serous-like carries the highest SCNA
+burden and lowest mutation rate, MSI the highest TMB (Fig. 1–2). *Differs:* per-definition
+TMB panels are an ATTEND addition (ancestry-aware recompute), absent from TCGA.
+
+## Ancestry-corrected TMB — how it works
+
+Tumour-only TMB is inflated by residual germline variants, and — because gnomAD's
+reference is Euro-skewed — the inflation is **ancestry-dependent** (Nassar et al.,
+*Cancer Cell* 2022). The ATTEND MAFs carry gnomAD v4.1 **per-sub-population** allele
+frequencies, which is what makes a correction possible without matched normals.
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+Getting from the delivered score to the reported corrected one passes through two
+intermediates, computed in [10_data_integration](10_data_integration.html) and living on
+the master, but never plotted, faceted, or labelled anywhere:
+
+- **robust** — drop variants common in **any** population (`grpmax` ≥
+  `r attend_tmb_recompute$af_threshold`). This is Nassar's germline filter, and it needs
+  no ancestry label.
+- **matched** — drop variants common in the **patient's own** sub-population, from the
+  self-reported clinical ancestry (`attend_ancestry`).
+
+The reported ancestry-corrected column is then the paper's actual method: an
+**ancestry-specific regression recalibration** `TMB = m·TMB_robust + b` (European vs
+non-European), applied on top of `robust`. Its coefficients (`attend_tmb_nassar$coef`)
+**default to identity**, so until values fit on TCGA WES are supplied this column equals
+`robust` — the published Oncopanel numbers are panel-specific and do not transfer to
+exome data.
+
+`tmb_defs_present()` cannot return the intermediates, so no report can reintroduce them
+into a figure by accident. An unfiltered recompute is also used internally to calibrate
+the exome denominator; it is not emitted, because it would simply duplicate the baseline.
+The whole recompute lives in R with no upstream re-run — see
+`attend_classes.R::tmb_variant_table()` and `apply_nassar_recalibration()`.
+
+### How the Nassar et al. recalibration actually works
+
+It helps to be precise about what Nassar et al. (*Cancer Cell* 2022) did, because our
+`nassar` column reproduces it and the distinction from the other variants is subtle.
+
+**The problem.** In tumor-only sequencing there is no matched normal, so inherited
+(germline) variants are mixed in with somatic ones. TMB should count only somatic
+mutations, so pipelines remove germline by filtering out variants that are **common in
+the population** (looked up in gnomAD). But gnomAD is **ancestry-skewed** — its v2.1
+exomes are ~57k European vs ~8k African. A variant that is common in African ancestry
+but rare in the (Euro-heavy) reference is *not recognised as germline*, survives the
+filter, and is **miscounted as a somatic mutation**. The net effect: tumor-only TMB is
+**inflated, and the inflation is larger for non-European patients** — who were then
+**over-classified as TMB-high**, a label that (in their data) did **not** predict
+immunotherapy response outside European ancestry.
+
+**Their method has two distinct steps.** Do not conflate them:
+
+1. **Germline filter (variant level).** Exclude any variant whose **maximum population
+   allele frequency across all gnomAD sub-populations** (`maxPOPAF`, i.e. `grpmax`)
+   exceeds **0.1%**. This is a *fixed, ancestry-agnostic* filter — it drops a variant if
+   it is common in *any* population. **This step is exactly our `robust` variant**
+   (`grpmax ≥ 0.001`). It removes most, but not all, of the ancestry-driven inflation.
+
+2. **Ancestry regression recalibration (sample level) — the headline contribution.**
+   This is **not another filter**. Using cohorts that had *both* tumor-only and matched
+   tumor-normal ("paired") TMB as ground truth, they fit a **linear regression of the
+   true paired TMB on the tumor-only TMB, separately for European and non-European
+   patients**:
+   $$\text{TMB}_{\text{paired}} \;=\; m_{\text{group}} \cdot \text{TMB}_{\text{tumor-only}} \;+\; b_{\text{group}}$$
+   The slope $m$ and intercept $b$ therefore encode, *per ancestry group*, how much the
+   tumor-only estimate over- (or under-) shoots the truth. To recalibrate a new sample
+   you apply its group's coefficients: $\text{TMB}_{\text{corrected}} = m_{\text{group}}
+   \cdot \text{TMB}_{\text{tumor-only}} + b_{\text{group}}$. Because $(m, b)$ differ
+   between European and non-European, the *same* tumor-only TMB is corrected by a *different*
+   amount depending on ancestry — that is precisely how the method removes the residual
+   ancestry bias that the fixed filter (step 1) leaves behind.
+
+**Two supporting details.** (a) **Ancestry was inferred *genetically*** — principal-
+component analysis of common germline SNPs called from the sequencing reads — not from
+self-reported race. (b) The coefficients were **fit and validated against matched
+tumor-normal** as the gold standard.
+
+**How our `nassar` column maps to this — and where it differs.**
+
+| Nassar step | Our implementation |
+|---|---|
+| germline filter `maxPOPAF ≤ 0.1%` | **`robust`** (`grpmax ≥ 0.001`) — identical in spirit |
+| regression `TMB = m·TMB + b`, per ancestry, on top of the filtered TMB | **`apply_nassar_recalibration()`** on top of `robust` |
+| ancestry via **genetic PCA** | **self-reported clinical** ancestry (`attend_ancestry`) — a coarser proxy; swap in EthSEQ/somalier genetic ancestry later |
+| coefficients fit on **paired tumor-normal**, panel-specific (e.g. Oncopanel v3 European `m=1.094, b=−1.94`) | **default identity `(m=1, b=0)`** — those published numbers are **panel-specific and do NOT transfer to whole-exome**, so `nassar` == `robust` until you fit WES coefficients |
+| gnomAD v2.1 + TOPMED | gnomAD **v4.1** (newer, larger, less Euro-biased) |
+
+**To make `nassar` genuinely faithful for ATTEND (whole-exome):** fit the regression on
+**TCGA WES** — compute paired-WES TMB and tumor-only-WES TMB (tumor-only simulated by
+dropping the normal and applying the same `robust` filter), label European vs
+non-European, then
+
+```r
+coefs <- fit_nassar_coefficients(tcga_ref)   # ref has paired_tmb, tumor_only_tmb, group
+attend_tmb_nassar$coef <- coefs              # paste into code/attend_classes.R
+```
+
+Until then, `nassar` deliberately equals `robust` rather than showing a spurious
+correction. (Sources: Nassar et al., *Cancer Cell* 2022,
+[full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC9559771/).)
+
+```{r ancestry-tmb, fig.height=5}
+tmb_recomp <- if (have_master) tmb_defs_present(master) else character(0)
+
+if (have_master && length(tmb_recomp) >= 2) {
+  # Per-patient TMB across recomputed definitions + reclassification vs the cutoff.
+  long <- master |>
+    select(pid, all_of(unname(tmb_recomp))) |>
+    pivot_longer(all_of(unname(tmb_recomp)), names_to = "tmb_col", values_to = "tmb") |>
+    mutate(def = factor(names(tmb_recomp)[match(tmb_col, tmb_recomp)], levels = names(tmb_recomp)),
+           tmb = suppressWarnings(as.numeric(tmb))) |>
+    filter(!is.na(tmb))
+
+  print(
+    ggplot(long, aes(def, tmb)) +
+      geom_boxplot(outlier.shape = NA, fill = "#FDBF6F", width = 0.6) +
+      geom_line(aes(group = pid), alpha = 0.15) +
+      geom_point(size = 0.7, alpha = 0.4) +
+      geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey40") +
+      labs(title = "Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions",
+           subtitle = "lines connect the same patient; dashed = TMB-high cutoff",
+           x = "TMB definition", y = "TMB (mut/Mb)") +
+      theme_minimal(base_size = 12)
+  )
+
+  # How many patients are TMB-high under each definition (the reclassification).
+  reclass <- long |> group_by(def) |>
+    summarise(n = sum(!is.na(tmb)),
+              tmb_high = sum(tmb >= attend_thresholds$tmb, na.rm = TRUE),
+              pct_high = round(100 * tmb_high / n, 1), .groups = "drop")
+  knitr::kable(reclass, caption = paste0("TMB-high (>= ", attend_thresholds$tmb,
+               " mut/Mb) count per definition — the ancestry-driven reclassification"))
+} else {
+  message("Ancestry-corrected TMB not on the master yet — rebuild report 1 with ",
+          "the gnomAD-annotated MAFs synced into data/variant_annotations/.")
+}
+```
+
+The diagnostic the whole correction exists for: **how much TMB the correction removes,
+broken down by ancestry**. Each point is one patient's `TMB (normal) − TMB (ancestry
+corrected)` in mut/Mb — the amount attributed to residual germline contamination.
+
+This is the plot that shows whether the bias is real *in this cohort*. Nassar et al.
+predict systematically **larger** removals in non-European groups, because gnomAD's
+non-European allele-frequency reference is sparser and more germline variants survive an
+undifferentiated filter. A flat distribution across sub-populations means either the
+cohort is too homogeneous to show it, or the correction is not doing anything.
+
+Sub-populations come from mapping the self-reported clinical ancestry column onto gnomAD
+codes (`attend_ancestry`); patients whose label does not map are `NA` and dropped, so
+group sizes here can be much smaller than the cohort.
+
+```{r ancestry-tmb-by-group, fig.height=5}
+anc <- if (have_master) ancestry_by_pid(master) else NULL
+if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master))) {
+  g <- master |>
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`)),
+              removed   = normal - corrected) |>
+    inner_join(anc, by = "pid") |>
+    filter(!is.na(removed))
+  if (nrow(g) > 0) {
+    ggplot(g, aes(subpop, removed)) +
+      geom_boxplot(outlier.shape = NA, fill = "#CAB2D6") +
+      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+      labs(title = "TMB removed by the ancestry correction, by ancestry",
+           subtitle = "TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed",
+           x = "gnomAD sub-population (from self-reported ancestry)",
+           y = "mut/Mb removed") +
+      theme_minimal(base_size = 12)
+  } else message("No patients with both TMB definitions and a mapped ancestry.")
+} else {
+  message("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
+          attend_ancestry$clinical_col, "') and tmb__TMB_nassar on the master ",
+          "for the by-ancestry view.")
+}
+```
+
+## Nassar recalibration coefficients
+
+`tmb__TMB_nassar = m_group · tmb__TMB_robust + b_group`, with `(m, b)` **per ancestry
+group** (European vs non-European). Which coefficients are applied is set by
+`attend_tmb_nassar$active_source`:
+
+- **`"identity"` (default)** — `m=1, b=0`, so `nassar` equals `robust`.
+- **`"oncopanel_v3"` / `"_v2"` / `"_v1"`** — the **published Nassar et al. 2022**
+  coefficients (STAR Methods, "TMB Recalibration"). ⚠️ These were fit on **OncoPanel**
+  (targeted-panel) tumor-only TMB with TCGA WES as ground truth, **not** on WES input —
+  so applied to ATTEND's exome `robust` TMB they are an **off-scale approximation** (the
+  slope maps OncoPanel→WES-truth, not WES→WES-truth). Available on request; use knowingly.
+- **`"custom"`** — your own values in `attend_tmb_nassar$coef`.
+
+The published values (per OncoPanel version): European `v3 m=1.094, b=−1.94`
+(`v2 0.994, −2.12`; `v1 0.989, −2.18`); Non-European `v3 m=0.895, b=−1.29`
+(`v2 0.840, −1.71`; `v1 0.821, −1.71`). To use them, set
+`attend_tmb_nassar$active_source <- "oncopanel_v3"` and re-knit.
+
+**To fit your own (the WES-correct path):** build a reference cohort with matched
+**paired (tumor-normal) TMB**, **tumor-only TMB** (simulated with the same robust/grpmax
+0.1% filter), and an ancestry `group` column, drop it in `data/nassar/` (any
+`*reference*.tsv/.csv`), re-knit to fit, paste the printed coefficients into
+`attend_tmb_nassar$coef`, and set `active_source = "custom"`. The panels below render the
+recalibration effect whenever the active coefficients are non-identity.
+
+```{r nassar-fit}
+nc      <- nassar_coef_table()               # active coefficients + identity flag
+ref_cfg <- attend_tmb_nassar$reference
+ref_dir <- here("data", ref_cfg$dir)
+ref_f   <- if (dir.exists(ref_dir))
+  list.files(ref_dir, pattern = utils::glob2rx(ref_cfg$glob), full.names = TRUE, recursive = TRUE) else character(0)
+
+if (length(ref_f) > 0) {
+  ref <- tryCatch(
+    if (grepl("\\.csv$", ref_f[1])) readr::read_csv(ref_f[1], show_col_types = FALSE)
+    else                            readr::read_tsv(ref_f[1], show_col_types = FALSE),
+    error = function(e) { message("nassar reference unreadable: ", conditionMessage(e)); NULL })
+  if (!is.null(ref)) {
+    fitted <- fit_nassar_coefficients(ref, paired = ref_cfg$paired,
+                                      tumor_only = ref_cfg$tumor_only, group = ref_cfg$group)
+    cat("Fitted from", basename(ref_f[1]), "— paste into attend_tmb_nassar$coef:\n")
+    cat(sprintf("  european     = list(m = %.4f, b = %.4f)\n", fitted$european$m, fitted$european$b))
+    cat(sprintf("  non_european = list(m = %.4f, b = %.4f)\n", fitted$non_european$m, fitted$non_european$b))
+  }
+} else {
+  message("No reference cohort in ", ref_dir, " — reporting the active coefficients only.")
+}
+
+if (grepl("^oncopanel", nc$source)) {
+  cat("WARNING: active_source = '", nc$source, "' — OncoPanel-derived published coefficients\n",
+      "applied to WES robust TMB. Off-scale approximation (slope maps OncoPanel->WES-truth,\n",
+      "not WES->WES-truth); prefer fitting on WES via the reference path.\n", sep = "")
+}
+knitr::kable(nc$table, digits = 4,
+             caption = paste0("Active Nassar coefficients — source: ", nc$source,
+                              " (identity = ", nc$identity, "; identity means nassar == robust)"))
+```
+
+What the correction actually does to each patient, on the two reported definitions.
+**TMB (normal)** on the x-axis, **TMB (ancestry corrected)** on the y-axis, one point per
+patient, coloured by ancestry group.
+
+How to read it: the **dashed diagonal** is no change — a point on it was unaffected. Points
+**below** it had TMB removed. The **dotted lines** are the `r attend_thresholds$tmb` mut/Mb
+TMB-high cutoff on each axis, so the off-diagonal quadrants they carve out are the patients
+whose **TMB-high/low call changed**. Those are the only patients for whom the choice of
+definition changes any downstream figure, and the table counts them per ancestry group.
+
+If the recalibration coefficients are still identity, this plot still shows the effect of
+the germline filter itself — the correction chain from the delivered score to the reported
+corrected one — which is the comparison every other report is drawing.
+
+```{r nassar-effect, fig.height=5}
+need <- c("tmb__TMB_SCORE", "tmb__TMB_nassar")
+anc  <- if (have_master) ancestry_by_pid(master) else NULL
+
+if (have_master && all(need %in% names(master)) && !is.null(anc)) {
+  grp <- anc |>
+    mutate(group = ifelse(subpop %in% attend_tmb_nassar$european_subpops,
+                          "european", "non_european")) |>
+    distinct(pid, group)
+  eff <- master |>
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`))) |>
+    inner_join(grp, by = "pid") |>
+    filter(!is.na(normal), !is.na(corrected))
+
+  if (nrow(eff) > 0) {
+    print(
+      ggplot(eff, aes(normal, corrected, colour = group)) +
+        geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey50") +
+        geom_point(alpha = 0.6) +
+        geom_hline(yintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
+        geom_vline(xintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
+        labs(title = "Effect of the ancestry correction, by ancestry group",
+             subtitle = paste0("dashed = no change; dotted = the ", attend_thresholds$tmb,
+                               " mut/Mb TMB-high cutoff on each axis",
+                               if (nc$identity) " | recalibration coefficients are identity, so this is the germline filter alone" else ""),
+             x = "TMB (normal), mut/Mb", y = "TMB (ancestry corrected), mut/Mb",
+             colour = NULL) +
+        theme_minimal(base_size = 12)
+    )
+    reclass_n <- eff |> group_by(group) |>
+      summarise(n = n(),
+                high_normal    = sum(normal    >= attend_thresholds$tmb),
+                high_corrected = sum(corrected >= attend_thresholds$tmb),
+                changed_call   = sum((normal >= attend_thresholds$tmb) !=
+                                     (corrected >= attend_thresholds$tmb)),
+                .groups = "drop")
+    knitr::kable(reclass_n, caption = paste0(
+      "TMB-high (>= ", attend_thresholds$tmb, " mut/Mb) reclassification between the two ",
+      "definitions, by ancestry group. changed_call = patients whose high/low call differs."))
+  } else message("No patients with both TMB definitions and a mapped ancestry group.")
+} else {
+  message("Need tmb__TMB_SCORE, tmb__TMB_nassar and an ancestry column on the master ",
+          "to show the correction effect.")
+}
+```
+
+
+## Where the configuration lives
+
+Every threshold and column name the reports read is declared in `code/attend_classes.R`,
+never inline in a report. The entries that govern the copy-number and TMB methods above:
+
+| Object | Governs |
+|---|---|
+| `attend_cnv` | CNV sources, the arm table, and the pileup amplitude split |
+| `attend_tcga_levels` | integrated-class labels and their display order |
+| `attend_tmb_recompute` | germline-filter threshold, gnomAD columns, counted variant classes |
+| `attend_tmb_nassar` | recalibration coefficients, the active source, the reference-cohort glob |
+| `attend_ancestry` | self-reported ancestry to gnomAD sub-population map; set `clinical_col` |
+| `attend_pole` | POLE hotspots and TMB cutoff, kept unwired (ATTEND has no POLE cases) |
+
+The arm-boundary table is `data/arm_boundaries_hg38.tsv`, derived from UCSC hg38 cytoBand
+centromeres; set `attend_cnv$build` and `attend_cnv$arm_table` to work in hg19. The cut
+height `k_cnv` is the one method parameter that stays at the top of the report that uses
+it, because changing it changes that report's figures rather than the pipeline's method.
+
+```{r session-info}
+sessionInfo()
+```

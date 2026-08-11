@@ -1,0 +1,318 @@
+---
+title: "ATTEND — 35. Aneuploidy x MMR copy-number contrast"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here, fs.
+library(tidyverse)
+library(here)
+library(fs)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 11, fig.height = 8)
+
+source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
+source(here("code", "load_wes_results.R"))   # GISTIC + ASCETS + seg loaders
+source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
+source(here("code", "attend_classes.R"))     # add_molecular_classes(), add_scna_group(), attend_scna
+source(here("code", "attend_scna.R"))        # peak union, panel score, LOO stability
+source(here("code", "attend_plots.R"))       # scna_mirror_plot(), panel_score_plot()
+source(here("code", "attend_io.R"))          # read_intermediate()
+
+master <- tryCatch(read_intermediate("attend_master_joined") |>
+                     add_molecular_classes() |> add_scna_group(),
+                   error = function(e) NULL)
+n_mmrd_high <- if (is.null(master)) NA_integer_ else
+  sum(master$scna_group == "MMRd-high", na.rm = TRUE)
+```
+
+> **Question.** Do aneuploidy-high MMR-deficient tumours carry the same recurrent copy-number peaks as aneuploidy-high MMR-proficient tumours, or do they reach aneuploidy by a different route?
+> **Cohort.** A contrast, not a stratum: MMRd-high (n = `r n_mmrd_high`) against MMRp-high, both drawn from the full cohort.
+> **Reads.** GISTIC peaks in `data/gistic/`, the `.seg` segments, and `attend_master_joined` for the grouping.
+> **Out of scope.** Cohort-wide recurrence -> [34_recurrent_cna](34_recurrent_cna.html). Mutations -> [33_mutation_landscape](33_mutation_landscape.html).
+
+```{r child='_explainers/aneuploidy-classes.Rmd'}
+```
+
+Either the MMRd-high group reaches aneuploidy the same way MMR-proficient serous-like
+tumours do, in which case it should carry the same recurrent peaks, or it gets there by a
+different route and the peak profile should differ. With n = `r n_mmrd_high` in the
+MMRd-high group, the endpoint is a single pre-specified composite score rather than a
+per-peak test.
+
+## Setup and the two ID spaces
+
+GISTIC and `.seg` sample ids are sequencing **barcodes**; the master is keyed on **pid**.
+Joining them directly gives an all-`NA` result *with no error*, so every lookup below goes
+through `group_of_barcode()`, built on the same crosswalk as everything else.
+
+The grouping variable `scna_group` composes `is_mmrd()` (IHC-based, MSI deliberately not a
+criterion) with `aneuploidy_class` at the pre-registered cut
+`r attend_thresholds$aneuploidy`, the same definition
+[33_mutation_landscape](33_mutation_landscape.html)'s frequency comparison uses.
+
+```{r scna-gate}
+have_master <- exists("master") && !is.null(master) && nrow(master) > 0
+if (have_master && !"scna_group" %in% names(master)) master <- add_scna_group(master)
+
+cw_scna <- tryCatch(build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
+                    error = function(e) NULL)
+have_cw <- !is.null(cw_scna) && nrow(cw_scna) > 0
+
+group_of_barcode <- function(ids) {
+  if (!have_master || !have_cw)
+    return(factor(rep(NA_character_, length(ids)), levels = attend_scna$group_levels))
+  barcode_scna_group(ids, master, cw_scna)
+}
+
+gx_dir   <- here("data", attend_cnv$gistic$dir)
+run_dirs <- c(all       = file.path(gx_dir, "all"),
+              mmrp_high = file.path(gx_dir, "mmrp_high"),
+              mmrp_low  = file.path(gx_dir, "mmrp_low"),
+              mmrd_low  = file.path(gx_dir, "mmrd_low"),
+              mmrd_high = file.path(gx_dir, "mmrd_high"))
+have_gistic <- dir.exists(run_dirs[["all"]])
+
+if (!have_master) {
+  cat("Master table absent — run report 10 first.\n")
+} else if (!have_gistic) {
+  cat("**GISTIC outputs absent** (`", run_dirs[["all"]], "`).\n\n",
+      "Run `MODE=groups sbatch code/run_gistic.sh`, then `MODE=loo`. ",
+      "this report is skipped, not silently empty.\n", sep = "")
+}
+```
+
+Peaks come from five runs; per-sample calls come from one. Five GISTIC2 runs feed this
+report: the pooled cohort and the four `scna_group` strata. GISTIC's background model is
+cohort-specific, so the same tumour gets a different thresholded call depending on which
+cohort it was run in, and comparing calls across runs would compare five different null
+models. The two roles are therefore kept apart:
+
+- **Peak definition** uses the union of significant peaks across all five runs
+  (`gistic_peak_union()`), so a peak private to the small MMRd-high stratum, which the
+  pooled run's genome-wide threshold would bury, is still discoverable.
+- **Per-sample calls** are read only from the pooled run's `all_lesions.conf_*.txt`. No
+  per-sample call here comes from a stratified run.
+
+The cohort this contrast conditions on. Fisher tests whether MMR status and aneuploidy class are
+associated at all — if they are strongly associated, the MMRd-high cell is small by
+construction and everything below is underpowered.
+
+```{r scna-contingency, eval=have_master}
+if (all(c("mmr_group", "aneuploidy_class") %in% names(master))) {
+  tab2 <- table(MMR = master$mmr_group, Aneuploidy = master$aneuploidy_class)
+  print(knitr::kable(tab2, caption = "MMR x aneuploidy-class contingency (patient level)"))
+  ft2 <- tryCatch(fisher.test(tab2), error = function(e) NULL)
+  if (!is.null(ft2)) cat("Fisher p =", signif(ft2$p.value, 3),
+                        ", OR =", signif(unname(ft2$estimate), 3), "\n\n")
+}
+```
+
+## The primary endpoint — a pre-specified serous-like panel score
+
+**Why a composite score rather than testing peaks one at a time.** At n ≈ 9 no individual
+peak has the power to show a difference, and testing hundreds of peaks in a group that
+small produces false positives, not findings. A single composite score over a *fixed,
+externally-specified* set of loci concentrates the evidence into one test.
+
+**Pre-specification is what makes this confirmatory.** The 12-locus panel
+(`attend_scna$panel`) is fixed *a priori* from the TCGA UCEC recurrent-peak list
+(Kandoth et al. 2013). No locus was added, removed, or re-directioned after looking at
+ATTEND's own GISTIC output. Each locus is **directional** — a deletion at *MYC* does not
+count as serous-like — matched by `match_panel_peaks()`.
+
+Loci with no matching pooled-run peak of the right direction **leave the denominator**
+rather than counting as unaltered, so the score is a fraction of *resolvable* loci.
+
+The test is a **label permutation** (B = `r attend_scna$perm_B`), which makes no
+distributional assumption — appropriate at this n. A Wilcoxon is reported alongside.
+A permutation p is bounded below by 1/(B+1), so a floor-level result is reported as
+`p < …` rather than as an exact tiny value.
+
+```{r scna-panel-score, eval=have_master && have_gistic, fig.height=5}
+pooled <- load_gistic_lesions_at(run_dirs[["all"]])
+if (is.null(pooled)) {
+  cat("Pooled GISTIC run (`", run_dirs[["all"]], "`) not readable — panel score skipped.\n", sep = "")
+} else {
+  scores <- panel_score(pooled$mat, pooled$peaks)
+  grp    <- group_of_barcode(rownames(pooled$mat))
+
+  cat("Panel resolved", attr(scores, "n_loci"), "of 12 pre-specified loci to a pooled-run ",
+      "peak of the matching direction",
+      if (attr(scores, "n_loci") > 0) paste0(" (", paste(attr(scores, "loci"), collapse = ", "), ").")
+      else ".", "\n\n")
+
+  p1 <- panel_score_plot(scores, grp,
+                         title = "Composite TCGA UCEC serous-like panel score, by subgroup")
+  if (!is.null(p1)) print(p1)
+
+  keep2 <- !is.na(grp) & grp %in% c("MMRd-high", "MMRp-high")
+  if (sum(keep2) >= 3 && dplyr::n_distinct(droplevels(grp[keep2])) == 2) {
+    g2 <- droplevels(grp[keep2])
+    pt <- perm_test_two_group(scores[keep2], g2, B = attend_scna$perm_B, seed = 1)
+    wt <- tryCatch(stats::wilcox.test(scores[keep2] ~ g2), error = function(e) NULL)
+
+    floor_p <- 1 / (pt$B + 1)
+    p_txt <- if (pt$p <= floor_p + 1e-12) {
+      sprintf("p < %s (bounded at the B = %s resolution floor)",
+              format(floor_p, scientific = TRUE, digits = 1), format(pt$B, big.mark = ","))
+    } else sprintf("p = %.4g", pt$p)
+
+    cat("**MMRd-high (n =", sum(g2 == "MMRd-high"), ") vs MMRp-high (n =", sum(g2 == "MMRp-high"),
+        ")**: observed difference in mean panel score =", signif(pt$stat, 3),
+        "; label-permutation ", p_txt, ".",
+        if (!is.null(wt)) paste0(" Wilcoxon p = ", signif(wt$p.value, 3), ".") else "",
+        "\n\nIf the 9 reach aneuploidy by a different route, the score separates from ",
+        "MMRp-high; if they phenocopy copy-number-high tumours, it does not.\n\n")
+  } else {
+    cat("Fewer than 3 samples resolved to both MMRd-high and MMRp-high — permutation test skipped.\n\n")
+  }
+}
+```
+
+### Which loci drive the score
+
+The composite above is the primary endpoint; this breaks it into its 12 parts as a
+**secondary, more granular** view. Each locus is tested one at a time and **Holm-corrected
+within the 12-locus family**.
+
+Holm is applied over **all 12 pre-specified loci**, including any that did not resolve to
+a pooled-run peak (`p = NA`) — not just the testable ones. Shrinking the family to the
+loci that happened to resolve would inflate significance on the survivors.
+
+```{r scna-locus-table, eval=have_master && have_gistic}
+if (exists("pooled") && !is.null(pooled)) {
+  mp <- match_panel_peaks(pooled$peaks, attend_scna$panel)
+  ft_all <- scna_freq_table(pooled$mat, grp)
+  rows <- lapply(seq_len(nrow(mp)), function(i) {
+    pk <- mp$peak_id[i]
+    if (is.na(pk)) return(data.frame(locus = mp$locus[i], direction = mp$direction[i],
+                                     freq_mmrd_high = NA_real_, freq_mmrp_high = NA_real_,
+                                     p = NA_real_, stringsAsFactors = FALSE))
+    a <- ft_all[ft_all$peak_id == pk & ft_all$scna_group == "MMRd-high", ]
+    b <- ft_all[ft_all$peak_id == pk & ft_all$scna_group == "MMRp-high", ]
+    p <- NA_real_
+    if (nrow(a) && nrow(b)) {
+      tt <- matrix(c(a$n_altered, a$n - a$n_altered, b$n_altered, b$n - b$n_altered), nrow = 2)
+      p <- tryCatch(stats::fisher.test(tt)$p.value, error = function(e) NA_real_)
+    }
+    data.frame(locus = mp$locus[i], direction = mp$direction[i],
+               freq_mmrd_high = if (nrow(a)) a$freq else NA_real_,
+               freq_mmrp_high = if (nrow(b)) b$freq else NA_real_,
+               p = p, stringsAsFactors = FALSE)
+  })
+  locus_tbl <- do.call(rbind, rows)
+  locus_tbl$p_holm <- family_adjust(locus_tbl$p, "A", n = nrow(locus_tbl))
+  knitr::kable(locus_tbl, digits = 3,
+               caption = "The 12 pre-specified TCGA UCEC loci, Holm-adjusted within family (secondary to the composite score)")
+}
+```
+
+## Where each subgroup's calls sit on the genome
+
+Peak-call frequency from the pooled run, amplifications above the axis and deletions
+below, split by subgroup and chromosome. The visual counterpart to the composite score:
+if MMRd-high really phenocopies MMRp-high, their two panels should have peaks in the same
+places.
+
+```{r scna-mirror, eval=have_master && have_gistic}
+if (exists("pooled") && !is.null(pooled)) {
+  grp3      <- group_of_barcode(rownames(pooled$mat))
+  freq_tbl3 <- scna_freq_table(pooled$mat, grp3)
+  p3 <- scna_mirror_plot(freq_tbl3, pooled$peaks,
+                         title = "Pooled-run peak-call frequency by subgroup (amp above / del below)")
+  if (!is.null(p3)) print(p3)
+}
+```
+
+How much the five runs' significant-peak sets overlap, as pairwise Jaccard. Low overlap
+between a stratum and the pooled run means that stratum has genuinely private peaks —
+which is the case the union-of-five design exists to catch. Peaks private to a single run
+are listed separately.
+
+```{r scna-peakset, eval=have_master && have_gistic}
+union_peaks <- gistic_peak_union(run_dirs)
+if (is.null(union_peaks)) {
+  cat("No GISTIC lesions parsed from any of the five run folders — skipped.\n")
+} else {
+  pss <- peak_set_structure(union_peaks)
+  print(knitr::kable(round(pss$jaccard, 2),
+                     caption = "Jaccard overlap of significant-peak sets between the five GISTIC runs"))
+  if (nrow(pss$private))
+    print(knitr::kable(pss$private,
+                       caption = "Peaks private to a single run (no overlapping peak in any other)"))
+}
+```
+
+## Leave-one-out stability of the MMRd-high peaks
+
+**The asymmetric rule this rests on.** A peak *present* in the MMRd-high list, supported by
+several of the 9 tumours and stable to leave-one-out, is **informative**. A peak *absent*
+from that list is **uninformative** — at n = 9 absence is indistinguishable from low power.
+Presence carries evidence; absence does not. That is why the table reports support counts
+and retention fractions for MMRd-high peaks rather than a between-group presence/absence
+verdict.
+
+The retention fraction is the proportion of the 9 leave-one-out GISTIC re-runs in which a
+peak survives. A peak retained in 9/9 does not depend on any single tumour; a peak
+retained in 3/9 is one or two tumours' worth of signal.
+
+**This is a descriptive robustness diagnostic, not a calibrated error bound** — informal
+stability selection (Meinshausen & Bühlmann 2010) adapted to n = 9. Canonical stability
+selection uses ⌊n/2⌋ subsamples and an exchangeability assumption that leave-one-out at
+this n only approximates. It is not an FDR statement.
+
+Support counts carry Wilson 95% confidence intervals, which behave sensibly at small n
+and at frequencies near 0 or 1 where a normal-approximation interval does not.
+
+```{r scna-loo, eval=have_master && have_gistic}
+if (exists("union_peaks") && !is.null(union_peaks)) {
+  mmrd_high <- load_gistic_lesions_at(run_dirs[["mmrd_high"]])
+  if (is.null(mmrd_high)) {
+    cat("MMRd-high GISTIC run (`", run_dirs[["mmrd_high"]], "`) absent — cannot list its peaks.\n", sep = "")
+  } else {
+    # Soft check: the GISTIC run's sample composition may predate a later threshold
+    # change on the master, so a mismatch is a warning, not an error.
+    gb_supp <- group_of_barcode(rownames(mmrd_high$mat))
+    if (any(!is.na(gb_supp) & gb_supp != "MMRd-high")) {
+      warning("MMRd-high GISTIC run contains ", sum(!is.na(gb_supp) & gb_supp != "MMRd-high"),
+              " sample(s) no longer classified MMRd-high under the current master — ",
+              "the GISTIC run may predate a threshold change")
+    }
+
+    supp <- scna_freq_table(mmrd_high$mat,
+                            factor(rep("MMRd-high", nrow(mmrd_high$mat)),
+                                   levels = attend_scna$group_levels))
+    supp <- supp[supp$scna_group == "MMRd-high", ]
+
+    loo_dir <- file.path(gx_dir, "loo")
+    loo_folders <- if (dir.exists(loo_dir))
+      list.dirs(loo_dir, full.names = TRUE, recursive = FALSE) else character(0)
+    loo <- if (length(loo_folders)) loo_stability(mmrd_high$peaks, loo_folders) else NULL
+
+    tbl <- merge(supp[, c("peak_id", "n_altered", "n", "freq", "ci_lo", "ci_hi")],
+                 mmrd_high$peaks[, c("peak_id", "descriptor", "chrom", "direction")],
+                 by = "peak_id")
+    if (!is.null(loo)) {
+      tbl <- merge(tbl, loo, by = "peak_id", all.x = TRUE)
+    } else {
+      tbl$n_loo <- NA_integer_; tbl$n_retained <- NA_integer_; tbl$retained_frac <- NA_real_
+    }
+    tbl <- tbl[order(-tbl$freq), ]
+    print(knitr::kable(tbl, digits = 2,
+          caption = "Every MMRd-high peak: support count with Wilson 95% CI, and leave-one-out retention fraction (descriptive, not a calibrated bound)"))
+    if (is.null(loo)) cat("\nnote: no leave-one-out GISTIC output under `", loo_dir,
+                          "` — retention columns are NA; the support counts stand alone.\n\n", sep = "")
+  }
+}
+```
+
+
+```{r session-info}
+sessionInfo()
+```

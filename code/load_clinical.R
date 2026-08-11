@@ -1,7 +1,7 @@
 # =============================================================================
 # load_clinical.R  —  CLINICAL / IMAGING DATA LOADERS
 #
-# Sourced by reports 1, 3, 4, 5 and 7. Each function returns a data frame with
+# Sourced by reports 10, 20, 31, 33, 35 and 40. Each function returns a data frame with
 # the ID column the pipeline expects (see make_id_cfg() in attend_harmonise.R):
 #   load_imaging_data()         -> ID (= pid) + image_id      [data/attend_data.xlsx]
 #   load_clinical_data()        -> ID (= pid)                 [data/attend_data.xlsx]

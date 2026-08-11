@@ -24,7 +24,7 @@
 #   MODE=groups bash code/run_gistic.sh                # pooled all/ + the 4 group runs
 #   MODE=loo    bash code/run_gistic.sh                # the LOO runs
 #
-# Prereqs: report 1 has written the master; data/seg/*.seg present;
+# Prereqs: report 10 has written the master; data/seg/*.seg present;
 #          load_gianlu_clinical_data() resolves (barcode->pid crosswalk).
 # =============================================================================
 suppressPackageStartupMessages({
@@ -53,10 +53,10 @@ if (need_pooled) {
 
 # groups/LOO need the grouping; pooled-only skips this whole block.
 if (need_groups || need_loo) {
-  # --- master + scna_group (same composition report 5 uses) -----------------
+  # --- master + scna_group (same composition report 35 uses) -----------------
   master <- tryCatch(read_intermediate("attend_master_joined"), error = function(e) NULL)
   if (is.null(master) || !nrow(master))
-    stop("master table absent — knit report 1 first (output/clean_data/attend_master_joined).")
+    stop("master table absent — knit report 10 first (output/clean_data/attend_master_joined).")
   master <- add_scna_group(add_molecular_classes(master))
 
   # --- barcode -> pid crosswalk (same derivation every other report/15 use) --

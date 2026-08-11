@@ -10,83 +10,92 @@ editor_options:
 
 The ATTEND study collects clinical records, radiology imaging, IHC, and WES-derived
 genomic features (TMB, MSI, HRD, aneuploidy, and a per-variant MAF) on the **same
-patients**. These eight reports link the modalities onto a shared patient ID, assemble a
+patients**. These reports link the modalities onto a shared patient ID, assemble a
 per-patient master table, and analyse it.
 
-**They run in order.** Report 1 builds; reports 2–8 analyse. Report 1 writes
+**Each report answers one question on one cohort**, and says so in a four-line scope
+contract at the top: the question, the cohort, what it reads, and what it deliberately
+leaves to another report. The number states the stage — `1x` build, `2x` QC, `3x`
+findings, `4x` external — and the gaps absorb future reports without renumbering.
+
+[10_data_integration](10_data_integration.html) writes
 `output/clean_data/attend_master_joined` (Parquet, or CSV without `arrow`), and every
 later report reads that one file back through `code/attend_io.R`.
 
-### Build
+**[00 — Methods](00_methods.html)** carries every justification in the pipeline: why a
+distance metric, why a correction, why a threshold. Operational recipes — how to run
+GISTIC on the cluster, what the classification alternatives are — live in `runbooks/`.
 
-1. **[Data integration — the join, and who it leaves behind](01_data_integration.html)**
-   Translates three ID spaces onto one patient key, collapses each modality to one row
-   per patient, and writes the master table. Then reports what the join cost: which
-   records never reached a patient, which patients are missing which modality, and
-   whether the joined values are sane. **Writes `attend_master_joined`.**
+### 1x — Build
 
-### Analyse
+- **[10 — Data integration](10_data_integration.html)** · all patients
+  Translates three ID spaces onto one patient key, collapses each modality to one row per
+  patient, recomputes the TMB definitions, and **writes `attend_master_joined`**.
+- **[11 — Join audit](11_join_audit.html)** · all patients
+  What the join cost: records that never reached a patient, coverage per dataset, the
+  UpSet of which patients have which modalities, and value sanity on the joined table.
 
-2. **[Survival, stratified by molecular axis](02_survival_stratified.html)**
-   Kaplan–Meier curves comparing the treatment arms *within* panels defined by
-   aneuploidy × MMR, then by TMB, HRD, and MSI. Includes the subgroup Cox model and the
-   three-way interaction test, both flagged when underpowered.
+### 2x — QC and validation
 
-3. **[Aneuploidy vs mutations, within MMR-deficient tumours](03_aneuploidy_mutations_mmrd.html)**
-   Restricted to MMRd throughout. Aneuploidy score against each panel gene **one gene at
-   a time** — the MMR panel (`PMS2, MLH1, MSH2, MSH6, MSH3`) and the Wnt genes
-   (`CTNNB1, APC`) separately — plus TP53, the MMR union, and the score-derived classes.
+- **[20 — FlowPath vs the pathologist](20_flowpath_concordance.html)** · all imaged
+  Does the automated quantification agree with the pathologist's eye, on continuous
+  measures and categorical calls.
+- **[21 — Covariate distributions by MMR status](21_covariates_by_mmr.html)** · all patients
+  ECDF and Kolmogorov–Smirnov per continuous covariate, plus the aneuploidy score itself
+  contrasted between MMR-deficient and -proficient tumours.
 
-4. **[IHC, imaging, and cell-type composition in MMR-deficient tumours](04_ihc_imaging_spatial.html)**
-   Two halves. **Part 1** validates automated FlowPath quantification against the
-   pathologist's calls, on every imaged patient. **Part 2** asks whether cell-type
-   composition tracks aneuploidy — **MMR-deficient only**, with one pre-specified primary
-   endpoint (CD45+ / all cells inside).
+### 3x — Findings
 
-5. **[Mutation landscape and recurrent copy number](05_oncoplots_recurrent_cna.html)**
-   Oncoplots with molecular and arm-level CNV annotation; the TCGA Fig. 2d per-subgroup
-   mutation-frequency comparison with FDR; recurrent copy number at arm, focal, and
-   genome-wide resolution; and the **aneuploidy × MMR contrast** — do aneuploidy-high MMRd
-   tumours (n ≈ 9) carry the same recurrent peaks as aneuploidy-high MMRp tumours?
+- **[30 — Survival](30_survival.html)** · all patients
+  Every Kaplan–Meier and Cox model in the pipeline: treatment arm within panels defined by
+  aneuploidy × MMR, then TMB, HRD, MSI, and immune content.
+- **[31 — Aneuploidy vs mutation status](31_aneuploidy_mutations.html)** · MMRd only
+  Aneuploidy score against each panel gene **one gene at a time** — the MMR panel and the
+  Wnt genes separately — plus TP53 and the MMR union.
+- **[32 — Cell-type composition vs aneuploidy](32_cell_composition.html)** · MMRd only
+  Whether the mix of cells inside the annotated region differs by aneuploidy class, under
+  three normalizations, with one pre-specified primary endpoint (CD45+ / all cells inside).
+- **[33 — Mutation landscape](33_mutation_landscape.html)** · all patients
+  Oncoplots (memo-sorted and annotation-sorted) and the TCGA Fig. 2d per-subgroup
+  mutation-frequency comparison with FDR.
+- **[34 — Recurrent copy number](34_recurrent_cna.html)** · all profiled
+  Cohort frequency of arm-level gains and losses, and the genome-wide SCNA pileup split
+  into low- and high-amplitude panels. Descriptive frequencies, no significance testing.
+- **[35 — Aneuploidy × MMR copy-number contrast](35_subgroup_cna_contrast.html)** · a contrast
+  Do aneuploidy-high MMRd tumours carry the same recurrent peaks as aneuploidy-high MMRp
+  tumours, or reach aneuploidy by a different route?
+- **[36 — Is the TMB distribution split?](36_tmb_distribution.html)** · all patients
+  Whether TMB resolves the hypermutator population as a genuine second mode, under three
+  independent bimodality criteria, with any high mode validated against MMR status.
+- **[37 — TMB by aneuploidy and MMR](37_tmb_by_aneuploidy_and_mmr.html)** · by MMR stratum
+  TMB in aneuploidy-high vs -low tumours, drawn once per MMR group so neither route to a
+  high number masks the other.
 
-6. **[Covariate distributions by MMR status](06_ecdf_covariates.html)**
-   Empirical cumulative distributions of each continuous covariate, MMR-deficient vs
-   -proficient, with a Kolmogorov–Smirnov test per covariate. Shows *where* in the range
-   the groups differ, not just whether they do.
+### 4x — External
 
-7. **[TCGA integrated classification](07_tcga_classification.html)**
-   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013) on ATTEND, clustering
-   GISTIC thresholded peaks with **1 − Pearson distance and Ward.D2 linkage**, sweeping
-   k = 2–8 on one chromosome heatmap. The copy-number-high (serous-like) cluster is
-   chosen **directionally** — gains at amplification peaks, losses at deletion peaks —
-   with the undirected call printed alongside and `[DISAGREE]` flagged when they differ.
+- **[40 — TCGA integrated classification](40_tcga_classification.html)** · all patients
+  Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
+  thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
+  one chromosome heatmap. The serous-like call is directional; the undirected call is
+  printed alongside and `[DISAGREE]` flagged when they differ.
+- **[41 — TCGA UCEC replication of the TMB split](41_tcga_tmb_replication.html)** · TCGA
+  The same bimodality battery on TCGA UCEC, which is tumour-normal paired and therefore
+  free of the germline inflation the ancestry correction targets.
 
-8. **[Is the TMB distribution split? (and does TCGA agree)](08_tmb_distribution.html)**
-   Tests whether TMB resolves the hypermutator population as a genuine second mode, using
-   three independent bimodality criteria, and validates any high mode against MMR status.
-   Reproduces the whole test in **TCGA UCEC**, which is tumour-normal paired and therefore
-   free of the germline inflation the ancestry correction targets.
+### Conventions that hold across every report
 
-### Two conventions that hold across every report
+Shared explanations are written once, as child fragments in `analysis/_explainers/`, and
+rendered into every report that needs them — so a reader of any single knitted page still
+gets the whole explanation, and there is only one copy to keep correct.
 
-**TMB always means one of exactly two things.**
+- `tmb-two-definitions` — TMB always means one of exactly two things, and why.
+- `aneuploidy-classes` — the ASCETS score and the configured high/low cut.
+- `highlight-groups` — gold marks the multi-modal subset, magenta marks sample 21S188.
+- `cohort-mmrd` — what "MMR-deficient only" means, and that MSI-high is a correlate.
+- `master-provenance` — what `attend_master_joined` is and how it was built.
 
-| Name | Column | What it is |
-|---|---|---|
-| **TMB (normal)** | `tmb__TMB_SCORE` | the upstream tumour-only score, as delivered |
-| **TMB (ancestry corrected)** | `tmb__TMB_nassar` | after the Nassar ancestry recalibration |
-
-ATTEND is sequenced tumour-only, so residual germline inflates TMB in an
-ancestry-dependent way (Nassar et al., *Cancer Cell* 2022). Every TMB figure is drawn
-under both definitions so a result that depends on the correction is visible as such.
-Two intermediates (`robust`, `matched`) exist on the master because the correction is
-fitted on top of them, but `tmb_defs_present()` cannot return them — they are never
-plotted or labelled anywhere.
-
-**Highlighted points mean the same thing everywhere.** Gold marks patients who **have
-IHC / imaging data** (the multi-modal subset); magenta marks sample **21S188**
-(*polipo*). Both are defined once in `attend_highlight` and matched by patient id or
-sequencing barcode.
+Reports show derivations and results. They carry no takeaway or interpretation sections:
+conclusions belong in the manuscript, where they can be revised as the data changes.
 
 ### Configuration lives in one place
 
@@ -94,6 +103,7 @@ sequencing barcode.
 - `code/attend_classes.R` — column names (`attend_cols`), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
 - `code/attend_plots.R` — shared palettes, `attend_theme()`, the highlight overlay.
-- `code/attend_ihc.R` — FlowPath IHC metric definitions (report 4).
+- `code/attend_ihc.R` — FlowPath IHC metric definitions (reports 20, 30, 32).
 - `code/attend_scna.R` — GISTIC peak union, panel score, permutation and LOO stability
-  (report 5).
+  (report 35).
+- `code/attend_bimodality.R` — the bimodality measures shared by reports 36 and 41.

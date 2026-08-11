@@ -1,0 +1,280 @@
+---
+title: "ATTEND — 33. Mutation landscape"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: needs bioc::maftools (+ tidyverse, here, fs, data.table). Install:
+#   renv::install("bioc::maftools"); renv::snapshot()
+library(tidyverse)
+library(here)
+library(fs)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 11, fig.height = 8)
+
+source(here("code", "load_clinical.R"))      # gianlu crosswalk source
+source(here("code", "load_wes_results.R"))   # load_maf_long(), GISTIC + ASCETS loaders
+source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
+source(here("code", "attend_classes.R"))     # add_molecular_classes(), gene panels
+source(here("code", "attend_plots.R"))       # attend_theme()
+source(here("code", "attend_io.R"))          # read_intermediate()
+
+# maftools is optional — gate the heavy chunks so the report still knits without it.
+MAFTOOLS_OK <- requireNamespace("maftools", quietly = TRUE)
+master <- read_intermediate("attend_master_joined") |> add_molecular_classes()
+```
+
+> **Question.** Which genes are altered in which patients, and do mutation frequencies differ between molecular subgroups?
+> **Cohort.** All `r nrow(master)` patients on the master; no restriction.
+> **Reads.** The per-sample MAFs in `data/variant_annotations/`, plus `attend_master_joined` for the annotation tracks.
+> **Out of scope.** Copy number -> [34_recurrent_cna](34_recurrent_cna.html). The aneuploidy x MMR peak contrast -> [35_subgroup_cna_contrast](35_subgroup_cna_contrast.html).
+
+Oncoplots follow the TCGA UCEC conventions (Kandoth et al., *Nature* 2013,
+`papers/nature12113.pdf`): patients on the horizontal axis, genes stacked vertically,
+covariates as annotation bars, and a per-subgroup frequency comparison matching their
+Fig. 2d. The rationale for each convention is in [00_methods](00_methods.html).
+
+```{r child='_explainers/master-provenance.Rmd'}
+```
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+The oncoplot annotation carries exactly those two TMB tracks, so reading the two rows
+against each other shows directly whether the germline correction moves any patient across
+the TMB-high/low boundary.
+
+```{r maftools-missing, eval=!MAFTOOLS_OK, echo=FALSE, results='asis'}
+cat('`maftools` is not installed, so the mutation plots below are skipped. Install with',
+    '`renv::install("bioc::maftools")` (Bioconductor 3.18) and re-knit.\n')
+```
+
+## Building the annotated MAF
+
+Every per-sample MAF in `data/variant_annotations/` is read into one object.
+`Tumor_Sample_Barcode` is taken from the file name and translated to `pid` through the
+same barcode crosswalk [10_data_integration](10_data_integration.html) used, then the
+per-patient covariate classes are attached
+as maftools `clinicalData` so they can be drawn as annotation tracks.
+
+Watch the mapped-sample count printed at the end: samples that fail to map carry no
+covariates and will appear with blank annotation bars.
+
+```{r build-maf, eval=MAFTOOLS_OK}
+master <- read_intermediate("attend_master_joined") |> add_molecular_classes()
+
+cw       <- build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg())
+maf_long <- load_maf_long()
+
+# TMB annotation tracks: the two definitions the pipeline plots, nothing else.
+# All-NA definitions (ancestry corrected before clinical_col is set) are dropped.
+tmb_defs05 <- tmb_defs_present(master)
+tmb_defs05 <- tmb_defs05[vapply(tmb_defs05, function(col) any(!is.na(master[[col]])), logical(1))]
+tmb_labs05 <- tmb_def_labels(tmb_defs05)
+# Track names, not internal names: maftools prints clinicalFeatures column names onto
+# the oncoplot itself, so these become visible axis labels.
+tmb_cls05  <- tmb_def_track_names(tmb_defs05)
+for (i in seq_along(tmb_defs05))
+  master[[tmb_cls05[i]]] <- tmb_class_of(master[[tmb_defs05[[i]]]])
+
+# Recurrent arm-level CNV as annotation tracks: the top `attend_cnv$oncoplot_arms`
+# most-altered chromosome arms (ASCETS calls) become gain/loss/neutral rows per patient.
+# Knit-safe: no ASCETS data -> cnv_cls05 stays empty and the oncoplot is mutation-only.
+cnv_cls05 <- character(0)
+arm_rec   <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
+if (!is.null(arm_rec) && nrow(arm_rec$wide_top) > 0) {
+  arm_by_pid <- arm_rec$wide_top |>
+    mutate(pid = cw$pid[match(ID, cw$barcode)]) |>
+    filter(!is.na(pid)) |>
+    select(pid, starts_with("CNV_"))
+  master    <- left_join(master, arm_by_pid, by = "pid")
+  cnv_cls05 <- intersect(paste0("CNV_", arm_rec$top_arms), names(master))
+}
+
+clin <- maf_long |>
+  distinct(Tumor_Sample_Barcode) |>
+  mutate(pid = cw$pid[match(Tumor_Sample_Barcode, cw$barcode)]) |>
+  left_join(master |> select(pid, aneuploidy_class, all_of(tmb_cls05),
+                             MSI_class, MMR_class, all_of(cnv_cls05)),
+            by = "pid") |>
+  select(Tumor_Sample_Barcode, aneuploidy_class, all_of(tmb_cls05),
+         MSI_class, MMR_class, all_of(cnv_cls05))
+
+# GISTIC2 focal peaks, if present, overlay gene-level amp/del directly in the mutation
+# grid — the TCGA-standard focal layer. maftools::readGistic REQUIRES all four files and
+# hard-stops if any is missing, so only take the overlay branch when all four are found.
+gx        <- find_gistic_files()
+gistic_ok <- !is.null(gx) && !any(vapply(gx, is.null, logical(1)))
+maf <- if (gistic_ok) {
+  maftools::read.maf(maf = maf_long, clinicalData = clin,
+                     gisticAllLesionsFile = gx$all_lesions,
+                     gisticAmpGenesFile   = gx$amp_genes,
+                     gisticDelGenesFile   = gx$del_genes,
+                     gisticScoresFile     = gx$scores, verbose = FALSE)
+} else {
+  maftools::read.maf(maf = maf_long, clinicalData = clin, verbose = FALSE)
+}
+cat("samples mapped to a pid:", sum(!is.na(clin$pid)), "/", nrow(clin),
+    "\nTMB tracks:", paste(tmb_labs05, collapse = " | "),
+    "\nrecurrent CNV arms annotated:", length(cnv_cls05),
+    "\nGISTIC focal overlay:", gistic_ok, "\n")
+maf
+```
+
+## Cohort mutation summary
+
+The standard maftools dashboard: variant classification and type counts, the
+transition/transversion split, per-sample mutation burden, and the most frequently
+mutated genes. This is the descriptive baseline — read it before the oncoplot to know
+which variant classes dominate, since that drives what the oncoplot colours show.
+
+```{r maf-summary, eval=MAFTOOLS_OK}
+maftools::plotmafSummary(maf, addStat = "median", dashboard = TRUE)
+```
+
+## Oncoplot — mutation landscape (memo-sorted)
+
+Columns are patients, rows are genes, and the coloured cells are mutation types. The
+default maftools memo sort: samples are ordered so co-occurring and mutually
+exclusive alterations form the characteristic staircase, the primary mutation-landscape
+layout readers expect from an OncoPrint. The annotation-sorted panel below answers a
+different question — where alterations concentrate within a covariate — not this one.
+
+```{r oncoplot-memo, eval=MAFTOOLS_OK, fig.height=9}
+covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
+                   sortByAnnotation = FALSE, removeNonMutated = FALSE)
+```
+
+## Oncoplot — sorted by annotation (enrichment view)
+
+Samples are **sorted by the annotation tracks** rather than by mutation burden, so enrichment
+shows up as a block of colour lining up with an annotation band — TP53 concentrating in
+aneuploidy-high, or hypermutation concentrating in MMR-deficient, for example.
+
+`removeNonMutated = FALSE` keeps unmutated patients in the figure, so the percentages
+down the side are out of the **whole cohort**, not out of mutated patients only.
+
+```{r oncoplot, eval=MAFTOOLS_OK, fig.height=9}
+covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
+                   sortByAnnotation = TRUE, removeNonMutated = FALSE)
+```
+
+## Oncoplot — the configured gene panels
+
+The same figure restricted to the genes this pipeline tracks by name: the **MMR panel**
+(`r paste(attend_gene_panel, collapse = ", ")`), the **Wnt / β-catenin** genes
+(`r paste(attend_gene_panel_wnt, collapse = ", ")`), and **TP53**. Genes absent from the
+MAF entirely are dropped by the intersection below rather than drawn as empty rows.
+
+```{r oncoplot-panel, eval=MAFTOOLS_OK}
+panel_genes <- unique(c(attend_genes_per_gene, "TP53"))
+panel <- intersect(panel_genes, as.character(maftools::getGeneSummary(maf)$Hugo_Symbol))
+if (length(panel) > 0) {
+  maftools::oncoplot(maf, genes = panel, clinicalFeatures = covar,
+                     sortByAnnotation = TRUE, removeNonMutated = FALSE)
+} else {
+  message("None of the configured panel genes are mutated in this cohort.")
+}
+```
+
+## Mutation frequency by subgroup — the TCGA Fig. 2d view
+
+**This is the figure the oncoplot cannot give you.** An oncoplot shows which patients are
+mutated; it does not say whether a gene is mutated at a *different rate* between
+subgroups, and it offers no multiple-testing control.
+
+Following TCGA Fig. 2d, each gene's mutation frequency is computed **within each
+subgroup** and the subgroups are shown side by side. The subgroups are the four
+`scna_group` strata — MMR status crossed with aneuploidy class — which is the split the
+rest of this report and the classification report use.
+
+**The test.** For each gene, a Fisher exact test across the subgroups, then
+Benjamini–Hochberg FDR across the genes tested. Genes reaching **FDR < 0.05** are marked
+with an asterisk, exactly as TCGA marks them. Only genes mutated in at least
+`min_mut` patients are tested — testing a gene mutated once produces noise, not a result.
+
+Frequencies are *within-group*: the denominator is that subgroup's own patient count, so
+a small subgroup shows large jumps per patient. Group sizes are printed with the table.
+
+```{r mutfreq-groups, eval=MAFTOOLS_OK, fig.width=11, fig.height=7}
+min_mut  <- 3    # a gene must be mutated in at least this many patients to be tested
+top_freq <- 25   # genes shown, ranked by overall mutation frequency
+
+master_grp <- add_scna_group(master)      # mmr_group + scna_group (MMR x aneuploidy)
+
+mut_by_pid <- maf_long |>
+  mutate(pid = cw$pid[match(Tumor_Sample_Barcode, cw$barcode)]) |>
+  filter(!is.na(pid)) |>
+  distinct(pid, Hugo_Symbol)
+
+grp_tbl <- master_grp |>
+  filter(!is.na(scna_group)) |>
+  select(pid, scna_group) |>
+  mutate(scna_group = factor(scna_group, levels = attend_scna$group_levels)) |>
+  droplevels()
+
+n_by_grp <- count(grp_tbl, scna_group, name = "n_group")
+
+if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
+  print(knitr::kable(n_by_grp, caption = "Patients per subgroup (the denominators below)"))
+
+  genes_keep <- mut_by_pid |>
+    semi_join(grp_tbl, by = "pid") |>
+    count(Hugo_Symbol, name = "n_mut") |>
+    filter(n_mut >= min_mut) |>
+    slice_max(n_mut, n = top_freq, with_ties = FALSE) |>
+    pull(Hugo_Symbol)
+
+  freq_tbl <- tidyr::crossing(pid = grp_tbl$pid, Hugo_Symbol = genes_keep) |>
+    left_join(mut_by_pid |> mutate(mutated = TRUE), by = c("pid", "Hugo_Symbol")) |>
+    mutate(mutated = replace_na(mutated, FALSE)) |>
+    left_join(grp_tbl, by = "pid") |>
+    group_by(Hugo_Symbol, scna_group) |>
+    summarise(n_mut = sum(mutated), n = n(), freq = n_mut / n, .groups = "drop")
+
+  # Fisher across subgroups per gene, then BH across genes (TCGA marks FDR < 0.05).
+  fdr_tbl <- freq_tbl |>
+    group_by(Hugo_Symbol) |>
+    summarise(p = {
+      m <- rbind(n_mut, n - n_mut)
+      tryCatch(stats::fisher.test(m, simulate.p.value = TRUE, B = 1e4)$p.value,
+               error = function(e) NA_real_)
+    }, .groups = "drop") |>
+    mutate(fdr = stats::p.adjust(p, method = "BH"),
+           star = if_else(!is.na(fdr) & fdr < 0.05, "*", ""))
+
+  plot_tbl <- freq_tbl |>
+    left_join(fdr_tbl, by = "Hugo_Symbol") |>
+    mutate(Hugo_Symbol = fct_reorder(paste0(Hugo_Symbol, star), freq, .fun = max))
+
+  print(ggplot(plot_tbl, aes(Hugo_Symbol, freq, fill = scna_group)) +
+    geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                       expand = expansion(mult = c(0, 0.05))) +
+    labs(title = "Mutation frequency by subgroup (TCGA Fig. 2d convention)",
+         subtitle = paste0("Fisher across subgroups, BH-adjusted across ",
+                           nrow(fdr_tbl), " genes; * = FDR < 0.05. ",
+                           "Frequencies are within-subgroup."),
+         x = NULL, y = "patients mutated", fill = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "top"))
+
+  print(knitr::kable(fdr_tbl |> arrange(fdr) |> mutate(across(c(p, fdr), ~ signif(.x, 3))),
+                     caption = "Per-gene Fisher test across subgroups, BH-adjusted"))
+} else {
+  message("Fewer than two non-empty scna_group strata — subgroup frequency comparison skipped.")
+}
+```
+
+
+```{r session-info}
+sessionInfo()
+```

@@ -1,7 +1,7 @@
 # =============================================================================
 # load_wes_results.R  —  WES-DERIVED GENOMIC LOADERS
 #
-# Sourced by reports 1, 3, 5, 7 and 8. All tables are keyed in BARCODE space and
+# Sourced by reports 10, 31, 33, 34, 35, 40 and 41. All tables are keyed in BARCODE space and
 # mapped to pid via the barcode crosswalk. The barcode-suffix stripping below
 # (`-1TAD104`, `_tumor_only`) normalises the sequencing IDs back to the bare
 # barcode that the gianlu crosswalk (TUMOR_BARCODE) uses.
@@ -132,7 +132,7 @@ load_maf_long <- function() {
     list_rbind()
 }
 
-# --- Long MAF for ANCESTRY-AWARE TMB (report 7) ----------------------------
+# --- Long MAF for ANCESTRY-AWARE TMB (report 10) ----------------------------
 # Keeps the columns tmb_variant_table() needs: consequence, protein change (for
 # definitional POLE hotspots), and gnomAD exome v4.1 per-sub-population + grpmax
 # allele frequencies. Tumor_Sample_Barcode is set from the file name (stripped)
@@ -186,7 +186,7 @@ load_maf_tmb <- function() {
   dplyr::n_distinct(vapply(files, .classifycnv_file_id, character(1), cc = cc))
 }
 
-# --- CNV: ClassifyCNV-annotated segment calls (report 7) -------------------
+# --- CNV: ClassifyCNV-annotated segment calls (report 34) -------------------
 # variantalker output: one file per sample, one row per ALTERED segment (DUP/DEL)
 # with `logRatio` (log2 ratio) + `CNF` (= 2^logRatio). The ACMG `1A..5H` scoring
 # columns are clinical-pathogenicity criteria, irrelevant to broad-SCNA clustering,
@@ -325,7 +325,7 @@ load_tcga_ucec <- function(ref = attend_tcga_ref) {
   ) |> dplyr::filter(!is.na(pid))
 }
 
-# --- TCGA UCEC 2013 publication cohort (report 8, TMB reference) -------------
+# --- TCGA UCEC 2013 publication cohort (report 41, TMB reference) -------------
 # Reads data/tcga_2013/ (populated by code/fetch_tcga_ucec_2013.R) and returns ONE ROW PER
 # SAMPLE — because that is the grain the Fig-1a heatmap needs: its columns are tumours
 # (sample barcodes, the key of the .seg file), while the paper's SUBTYPE call is recorded
@@ -630,11 +630,11 @@ published_peak_matrix_from_genes <- function(thr, peaks, id_col = "ID", collapse
 # Sample column set. This reads every data/seg/*.seg (auto-detecting columns, incl.
 # the marker-count column), writes the combined file to attend_cnv$seg$gistic_seg_out,
 # and returns its path. Run GISTIC on it OUTSIDE R via code/run_gistic.sh; its outputs
-# go to data/gistic/ where find_gistic_files() / report 5 pick them up. seg.mean is
+# go to data/gistic/ where find_gistic_files() / report 35 picks them up. seg.mean is
 # already log2, so NO transform is applied (set value_is_log2=FALSE upstream if not).
 # ids: optional character vector of sample ids — when non-NULL, only those samples
 # (id-stripped the same way as the combined table) are written, enabling per-group
-# GISTIC runs (report 5); returns NULL if ids matches no sample.
+# GISTIC runs (report 35); returns NULL if ids matches no sample.
 # Returns NULL (with a message) when data/seg/ is absent/empty — knit-safe.
 write_gistic_seg <- function(cnv = attend_cnv, out = NULL, ids = NULL) {
   sc     <- cnv$seg
@@ -674,7 +674,7 @@ write_gistic_seg <- function(cnv = attend_cnv, out = NULL, ids = NULL) {
     combined$Num_Markers <- ifelse(is.na(combined$Num_Markers),
                                    pmax(1L, as.integer((combined$End - combined$Start) / 1000)),
                                    combined$Num_Markers)
-  # Per-group GISTIC runs (report 5) pass ids=. An ids= vector matching NO sample
+  # Per-group GISTIC runs (report 35) pass ids=. An ids= vector matching NO sample
   # would otherwise write an empty .seg and GISTIC would run on zero samples.
   # combined$Sample is already id-stripped (built above), so normalise ids the same way.
   if (!is.null(ids)) {
@@ -699,12 +699,12 @@ write_gistic_seg <- function(cnv = attend_cnv, out = NULL, ids = NULL) {
   out
 }
 
-# --- CNV: ASCETS arm-level outputs (report 7, PREFERRED when present) -------
+# --- CNV: ASCETS arm-level outputs (report 34, PREFERRED when present) -------
 # ASCETS (Spurr et al., Genome Med 2021) converts segmented copy number (e.g.
 # DRAGEN .seg) into arm-level SCNAs + a per-sample aneuploidy score. We read the
 # `*_arm_weighted_average_segmeans.txt` matrix (the clustering features) and the
 # `*_aneuploidy_scores.txt` table. Drop the ASCETS output files into data/ascets/.
-# Returns NULL when absent so report 7 falls back to the ClassifyCNV path.
+# Returns NULL when absent so report 34 falls back to the ClassifyCNV path.
 #
 # Orientation: ASCETS writes samples as ROWS, arms as COLUMNS. .ascets_orient()
 # transposes automatically if a given version emits the matrix the other way.
@@ -838,9 +838,9 @@ load_gistic_thresholded <- function(cnv = attend_cnv) {
 # Locate GISTIC2 output files under data/gistic/ for the report-07 FOCAL overlay
 # (paper-standard gene-level recurrent CNV, TCGA nature12113 style). Returns a named
 # list(all_lesions, amp_genes, del_genes, scores) of file paths (each NULL if absent), or
-# NULL when the folder itself is missing — report 5 then draws mutation+arm only. The
+# NULL when the folder itself is missing — report 33 then draws mutation+arm only. The
 # scores.gistic file is REQUIRED by maftools::readGistic (read.maf forwards the lesion/gene
-# files to it and hard-stops without scores), so report 5 only takes the GISTIC overlay
+# files to it and hard-stops without scores), so report 33 only takes the GISTIC overlay
 # branch when all four are present. Knit-safe.
 find_gistic_files <- function(cnv = attend_cnv) {
   g      <- cnv$gistic
@@ -857,7 +857,7 @@ find_gistic_files <- function(cnv = attend_cnv) {
 }
 
 # --- GISTIC all_lesions -> peak x sample matrix -------------------------------
-# Report 07 passes all_lesions to maftools as an opaque path; report 5 needs the
+# Report 33 passes all_lesions to maftools as an opaque path; report 35 needs the
 # PEAK-LEVEL calls. Peak-level (not gene-level) is the correct testing unit: one
 # amplicon spanning 300 genes would otherwise become 300 correlated tests.
 

@@ -1,0 +1,230 @@
+---
+title: "ATTEND — 37. TMB by aneuploidy status, within MMR strata"
+author: "bolt3x"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+
+source(here("code", "attend_classes.R"))   # tmb_class_of(), is_mmrd(), attend_cols/thresholds
+source(here("code", "attend_plots.R"))     # attend_aneu_cols, attend_theme()
+source(here("code", "attend_io.R"))        # read_intermediate()
+
+master <- read_intermediate("attend_master_joined")
+# Per-(patient, definition) TMB rows, written by report 36 — read rather than rebuilt so
+# the values boxed here are the values that report tested.
+long <- tryCatch(read_intermediate("attend_tmb_long"), error = function(e) tibble())
+```
+
+> **Question.** Within each MMR stratum, does TMB differ between aneuploidy-high and aneuploidy-low tumours?
+> **Cohort.** Stratified, not restricted: every patient with an aneuploidy score and an MMR call, drawn once per MMR group.
+> **Reads.** `attend_master_joined` for aneuploidy and MMR status, plus the `attend_tmb_long` intermediate written by [36_tmb_distribution](36_tmb_distribution.html).
+> **Out of scope.** Whether TMB is bimodal at all -> [36_tmb_distribution](36_tmb_distribution.html). Aneuploidy against mutation status -> [31_aneuploidy_mutations](31_aneuploidy_mutations.html).
+
+Splitting by MMR *first* is the point. The two routes to a high number are biologically
+distinct and must not be pooled: MMR-deficient tumours are hypermutators, high TMB with
+often-modest aneuploidy, whereas the CN-high / serous-like route drives high aneuploidy
+with typically low TMB. Pooling the two would let one route's signal mask the other, so the
+aneuploidy-high-vs-low contrast is drawn once per MMR group and repeated across every TMB
+definition present.
+
+```{r child='_explainers/aneuploidy-classes.Rmd'}
+```
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+```{r child='_explainers/highlight-groups.Rmd'}
+```
+
+## Building the strata
+
+Each point is one patient. TMB (mut/Mb, raw) comes from the `tmb__*` master columns via
+the long table above. Aneuploidy status is `aneu__aneuploidy_score`, the ASCETS arm-level
+SCNA burden from `data/ascets/`, split at `attend_thresholds$aneuploidy` =
+`r attend_thresholds$aneuploidy`. MMR group is `gianlu__MMR_STATUS` collapsed to MMRd/MMRp
+by the shared `is_mmrd()`, so the split matches every other report. Patients missing an
+aneuploidy score or an MMR call are dropped.
+
+```{r aneu-tmb-build}
+aneu_col <- attend_cols$aneuploidy    # aneu__aneuploidy_score
+mmr_col  <- attend_cols$mmr_status    # gianlu__MMR_STATUS
+aneu_cut <- attend_thresholds$aneuploidy
+
+have_aneu_tmb <- nrow(long) > 0 &&
+  aneu_col %in% names(master) && mmr_col %in% names(master)
+
+if (have_aneu_tmb) {
+  # Per-patient aneuploidy class + MMR group, joined onto the per-(patient, definition)
+  # TMB rows read back from report 36.
+  meta <- master |>
+    transmute(
+      pid,
+      aneu_class = factor(
+        if_else(suppressWarnings(as.numeric(.data[[aneu_col]])) >= aneu_cut,
+                "aneuploidy-high", "aneuploidy-low"),
+        levels = c("aneuploidy-low", "aneuploidy-high")),
+      mmr_group  = dplyr::case_when(
+        is_mmrd(.data[[mmr_col]])   ~ "MMRd",
+        !is_mmrd(.data[[mmr_col]])  ~ "MMRp",
+        TRUE                        ~ NA_character_) |>
+        factor(levels = c("MMRp", "MMRd"))
+    )
+
+  ta <- long |>
+    inner_join(meta, by = "pid") |>
+    filter(!is.na(aneu_class), !is.na(mmr_group))
+
+  # Facet rows = TMB definitions actually present; drives the plot's fig.height below
+  # so each row keeps a legible height whether 1 or 4 definitions render.
+  n_aneu_defs <- max(1L, nlevels(droplevels(ta$definition)))
+
+  cat("patients per MMR group × aneuploidy status (baseline definition):\n")
+  print(ta |>
+          filter(definition == levels(definition)[1]) |>
+          count(mmr_group, aneu_class) |>
+          tidyr::pivot_wider(names_from = aneu_class, values_from = n, values_fill = 0))
+} else {
+  ta <- tibble()
+  n_aneu_defs <- 1L
+  cat("Aneuploidy score (`", aneu_col, "`) or MMR status (`", mmr_col,
+      "`) absent from the master, or no TMB values — section skipped.\n", sep = "")
+}
+```
+
+The two boxplots the analysis calls for: TMB (raw mut/Mb) in aneuploidy-high vs
+aneuploidy-low tumours, faceted **by MMR group** (columns: MMRp, MMRd) and **by TMB
+definition** (rows). Boxes are filled by aneuploidy status (light blue = low, red =
+high — the shared `attend_aneu_cols` palette the other reports use); the
+dashed red line is the TMB-high cut
+(`attend_thresholds$tmb` = `r attend_thresholds$tmb` mut/Mb). Points are individual
+patients (jittered), not group means.
+
+```{r aneu-tmb-box, fig.height=2.5 * n_aneu_defs + 1.5}
+if (nrow(ta) > 0) {
+  aneu_pal <- attend_aneu_cols
+  ggplot(ta, aes(aneu_class, tmb)) +
+    geom_boxplot(aes(fill = aneu_class), outlier.shape = NA, width = 0.6,
+                 alpha = 0.5) +
+    geom_jitter(width = 0.15, height = 0, alpha = 0.4, size = 1) +
+    geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
+               colour = "firebrick") +
+    scale_fill_manual(values = aneu_pal, name = "aneuploidy status") +
+    # Short horizontal tick labels — the fill legend already spells out the full
+    # aneuploidy status, so the x-axis needn't repeat it (frees per-panel width).
+    scale_x_discrete(labels = c("aneuploidy-low" = "low",
+                                "aneuploidy-high" = "high")) +
+    facet_grid(definition ~ mmr_group, scales = "free_y") +
+    labs(title = "TMB by aneuploidy status, split by MMR group",
+         subtitle = paste0("dashed red = TMB-high cut (", attend_thresholds$tmb,
+                           " mut/Mb); aneuploidy-high = score ≥ ", aneu_cut),
+         x = NULL, y = "TMB (mut/Mb)") +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 0),
+          legend.position = "top")
+} else {
+  message("No aneuploidy/TMB data to plot.")
+}
+```
+
+Formalising each panel at the **10 mut/Mb** cut rather than by median: within every
+(MMR group × TMB definition) cell, patients are binarised **TMB-high vs TMB-low** at
+`attend_thresholds$tmb` = `r attend_thresholds$tmb` mut/Mb via the shared
+`tmb_class_of()` (the same cut every TMB-keyed figure uses), and the table reports the
+**count and fraction of TMB-high tumours in the aneuploidy-low vs -high groups**. A
+**Fisher exact test** on the 2×2 (aneuploidy status × TMB-high/low) asks whether the
+TMB-high fraction differs by aneuploidy status. Cells with an aneuploidy group of
+fewer than 3 patients report `NA`.
+
+```{r aneu-tmb-test}
+if (nrow(ta) > 0) {
+  aneu_tmb_tab <- ta |>
+    group_by(definition, mmr_group) |>
+    group_modify(function(.x, ...) {
+      # Binarise TMB at the pipeline 10 mut/Mb cut (shared tmb_class_of()), then
+      # count TMB-high tumours within each aneuploidy group.
+      tmb_hi <- tmb_class_of(.x$tmb) == "TMB-high"
+      is_lo  <- .x$aneu_class == "aneuploidy-low"
+      is_hi  <- .x$aneu_class == "aneuploidy-high"
+      n_lo <- sum(is_lo); n_hi <- sum(is_hi)
+      hi_in_lo <- sum(is_lo & tmb_hi); hi_in_hi <- sum(is_hi & tmb_hi)
+      p <- if (n_lo >= 3 && n_hi >= 3) {
+        tab <- table(aneu = factor(.x$aneu_class,
+                                   levels = c("aneuploidy-low", "aneuploidy-high")),
+                     tmb  = factor(tmb_hi, levels = c(FALSE, TRUE)))
+        tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+      } else NA_real_
+      tibble(
+        n_aneu_low    = n_lo,
+        n_aneu_high   = n_hi,
+        tmbhigh_low   = hi_in_lo,
+        pct_low       = if (n_lo > 0) 100 * hi_in_lo / n_lo else NA_real_,
+        tmbhigh_high  = hi_in_hi,
+        pct_high      = if (n_hi > 0) 100 * hi_in_hi / n_hi else NA_real_,
+        fisher_p      = p
+      )
+    }) |>
+    ungroup()
+
+  knitr::kable(
+    aneu_tmb_tab |>
+      transmute(definition, mmr_group,
+                `n aneu-low`  = n_aneu_low,
+                `n aneu-high` = n_aneu_high,
+                `TMB-high | aneu-low`  = ifelse(is.finite(pct_low),
+                    sprintf("%d (%.0f%%)", tmbhigh_low,  pct_low),  "—"),
+                `TMB-high | aneu-high` = ifelse(is.finite(pct_high),
+                    sprintf("%d (%.0f%%)", tmbhigh_high, pct_high), "—"),
+                `Fisher p` = signif(fisher_p, 3)),
+    caption = paste0("TMB-high tumours (≥ ", attend_thresholds$tmb,
+                     " mut/Mb) as count (%) within the aneuploidy-low vs -high groups, ",
+                     "and Fisher's exact p, per MMR group and TMB definition.")
+  )
+} else {
+  cat("No aneuploidy/TMB data — test skipped.\n")
+}
+```
+
+The table above read back as one line per TMB definition, giving each MMR group's
+TMB-high fraction in the aneuploidy-low and aneuploidy-high groups with its Fisher p.
+
+```{r aneu-tmb-note, results='asis'}
+if (exists("aneu_tmb_tab") && nrow(aneu_tmb_tab) > 0) {
+  # One MMRp/MMRd line per TMB definition present, in correction order — the same set
+  # the boxplot rows and the table above show.
+  say <- function(b, grp) {
+    r <- b |> filter(mmr_group == grp)
+    if (nrow(r) == 0) return(paste0("**", grp, "**: no patients."))
+    paste0("**", grp, "**: TMB-high fraction ",
+           if (is.finite(r$pct_low))  sprintf("%.0f%%", r$pct_low)  else "NA",
+           " in aneuploidy-low vs ",
+           if (is.finite(r$pct_high)) sprintf("%.0f%%", r$pct_high) else "NA",
+           " in aneuploidy-high (Fisher p = ",
+           if (is.finite(r$fisher_p)) signif(r$fisher_p, 3) else "NA", ")")
+  }
+  for (lab in levels(ta$definition)) {
+    b <- aneu_tmb_tab |> filter(definition == lab)
+    if (nrow(b) == 0) next
+    cat("- _", lab, "_ — ", say(b, "MMRp"), "; ", say(b, "MMRd"), ".\n", sep = "")
+  }
+  cat("\n_Read against the two-routes framing at the top: within MMRp the CN-high/serous-like ",
+      "signature is a **lower** TMB-high fraction among aneuploidy-high tumours (high ",
+      "aneuploidy, low TMB), while MMRd tumours stay TMB-high largely independent of ",
+      "aneuploidy. Comparing the lines across definitions shows whether stripping ",
+      "ancestry-inflated germline (normal -> ancestry corrected) changes that within-stratum ",
+      "contrast._\n\n", sep = "")
+}
+```
+
+
+```{r session-info}
+sessionInfo()
+```

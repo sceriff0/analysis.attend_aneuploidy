@@ -388,7 +388,7 @@ fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = 
 }
 
 # ============================================================================
-# Manual patient highlight — shared by aneu_point_layers() (report 7) AND every
+# Manual patient highlight — shared by aneu_point_layers() (report 40) AND every
 # other per-patient point/box plot. Centralising the id
 # matching here means the reports cannot drift on which id spaces are tried or on
 # the highlight colours. Base-R sourceable; ggplot only touched inside highlight_points().
@@ -543,7 +543,7 @@ highlight_points <- function(df, x, y, base_colour = NULL, base_palette = NULL,
     ggplot2::scale_colour_manual(values = pal, name = legend_title, drop = FALSE, na.translate = FALSE)))
 }
 
-# Point layers for the aneuploidy-by-cluster / -by-class boxplots (report 7). Encodes two
+# Point layers for the aneuploidy-by-cluster / -by-class boxplots (report 40). Encodes two
 # things on the jittered points WITHOUT touching the boxplot's cluster/class fill:
 #   (1) SHAPE marks aneuploidy-HIGH tumours (triangle) vs low (circle), split by
 #       .aneu_split_threshold() so it agrees with the heatmap's binary aneuploidy bar;
@@ -628,7 +628,7 @@ km_by_cluster <- function(assignment, cw, master,
   invisible(list(p_logrank = pval, n = nrow(d), fit = fit))
 }
 
-# --- report 5: recurrent SCNA frequency plots --------------------------------
+# --- report 34: recurrent SCNA frequency plots --------------------------------
 
 #' Genomic midpoint of each peak, for the x axis.
 .peak_pos <- function(peaks) {
@@ -694,7 +694,7 @@ scna_delta_plot <- function(freq_tbl, peaks, title = NULL) {
                    panel.spacing.x = ggplot2::unit(0.05, "lines"))
 }
 
-#' Composite serous-like panel score by group — report 5's primary figure.
+#' Composite serous-like panel score by group — report 35's primary figure.
 panel_score_plot <- function(scores, group, title = NULL) {
   if (is.null(scores) || !length(scores)) {
     message("panel_score_plot(): no scores — skipping."); return(NULL)

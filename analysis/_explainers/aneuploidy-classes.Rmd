@@ -1,0 +1,10 @@
+### The aneuploidy classes
+
+Aneuploidy score is the ASCETS arm-level SCNA burden read from `data/ascets/`: the fraction
+of evaluable chromosome arms called altered, with arms below ASCETS' breadth-of-coverage
+threshold (`LOWCOV`) excluded from the denominator rather than counted as unaltered.
+
+Patients are split at `attend_thresholds$aneuploidy` = `r attend_thresholds$aneuploidy`
+into **aneuploidy-high** and **aneuploidy-low** by `aneuploidy_class_of()`. The cut is a
+configured constant, not a cohort quantile, so it does not move when the cohort grows.
+Patients without an ASCETS score are `NA` and are dropped from class comparisons.

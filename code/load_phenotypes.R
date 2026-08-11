@@ -1,7 +1,7 @@
 # =============================================================================
 # load_phenotypes.R  —  IHC / PHENOTYPE LOADER
 #
-# Sourced by reports 1 and 4. Reads the FlowPath per-cell IHC export (one
+# Sourced by reports 10, 20 and 32. Reads the FlowPath per-cell IHC export (one
 # CSV per patient under a directory tree) and reduces each patient to a single
 # row of cell counts, keyed by `image_id` (mapped to pid via the image crosswalk).
 # Patients whose folder doesn't hold exactly one CSV are skipped (possibly()).
@@ -63,7 +63,7 @@ load_ihc_data <- function(flowpath_dir = FLOWPATH_DIR) {
 }
 
 # --- Per-cell-type composition (inside the annotation) ----------------------
-# For report 4: counts every CELL TYPE inside the annotation, per image, plus the
+# For report 32: counts every CELL TYPE inside the annotation, per image, plus the
 # three denominators (all cells / tumour cells / CD45+ cells inside) so downstream
 # can normalise. "Cell type" = phenotype_clean (the parenthetical label in
 # `phenotype`); switch to `phenotype` for the full label. Returns long rows:

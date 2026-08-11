@@ -1,0 +1,245 @@
+---
+title: "ATTEND — 41. TCGA UCEC replication of the TMB split"
+author: "bolt3x"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+
+# renv: tidyverse, here. Optional: diptest, mclust (same guarded pair as report 36).
+# Needs data/tcga_2013/ — Rscript code/fetch_tcga_ucec_2013.R
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+
+source(here("code", "attend_classes.R"))     # dip_bimodality(), attend_thresholds
+source(here("code", "attend_bimodality.R"))  # .bimodality_coef(), .gmm_modes(), have_mclust
+source(here("code", "attend_plots.R"))       # attend_theme()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013()
+
+# The ATTEND side is not rebuilt here: report 36 wrote both tables, so the rows compared
+# against TCGA are byte-for-byte the rows report 36 tested.
+long    <- tryCatch(read_intermediate("attend_tmb_long"),    error = function(e) tibble())
+battery <- tryCatch(read_intermediate("attend_tmb_battery"), error = function(e) tibble())
+```
+
+> **Question.** Does the TMB split ATTEND shows reproduce in a paired-sequencing cohort of the same disease?
+> **Cohort.** TCGA UCEC 2013, exome-sequenced tumours, POLE-ultramutated excluded; compared against all ATTEND patients.
+> **Reads.** `data/tcga_2013/data_clinical_sample.txt` via `load_tcga_ucec_2013()`, plus the `attend_tmb_long` and `attend_tmb_battery` intermediates written by [36_tmb_distribution](36_tmb_distribution.html).
+> **Out of scope.** The ATTEND-only battery -> [36_tmb_distribution](36_tmb_distribution.html).
+
+TCGA UCEC 2013 (Kandoth et al., *Nature* 2013) is the same disease sequenced tumour with
+matched normal, so germline variants were subtracted at source and its TMB carries none of
+the tumour-only inflation the ancestry correction is trying to undo. That makes it a
+reference rather than just another cohort: if TCGA is clearly bimodal and ATTEND is not,
+the missing split is a measurement problem in tumour-only TMB; and if the ancestry-corrected
+definition looks more TCGA-like than the uncorrected one, the correction is moving ATTEND
+toward the paired-sequencing ground truth.
+
+TCGA UCEC is **primary** disease and ATTEND is **metastatic**, so any difference between
+the cohorts is confounded with disease setting and cannot be attributed to sequencing
+strategy alone. TCGA is a reference for what a paired-sequencing TMB distribution looks
+like, not a matched control.
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+## Loading the reference cohort
+
+TCGA's `TMB_NONSYNONYMOUS` (non-synonymous mutations per Mb, available on the 248 of 373
+tumours that were exome-sequenced) on the same raw mut/Mb scale as ATTEND. POLE-ultramutated
+tumours are excluded: TCGA has 17 at roughly 232 mut/Mb, an order of magnitude above even
+the MSI hypermutators, and ATTEND structurally cannot have them, so leaving them in would
+make every comparison detect that rather than the MMRd split. TCGA's MMRd group is its own
+MSI (Hyper-mutated) integrative cluster (`mmrd_rule = "tcga_exact"`), i.e. the paper's
+published classification rather than a marker call.
+
+```{r tcga-load}
+tcga_raw <- tryCatch(load_tcga_ucec_2013(), error = function(e) tibble())
+have_tcga <- nrow(tcga_raw) > 0 && "tmb" %in% names(tcga_raw) &&
+             sum(is.finite(tcga_raw$tmb)) >= 10
+
+if (!have_tcga) {
+  cat("**TCGA UCEC 2013 not available** (`data/tcga_2013/`) — run",
+      "`Rscript code/fetch_tcga_ucec_2013.R`. This report is skipped, not silently empty.\n")
+} else {
+  n_all  <- sum(is.finite(tcga_raw$tmb))
+  tcga <- tcga_raw |> filter(is.finite(tmb), !pole)      # <- POLE excluded
+  cat("TCGA tumours with a TMB value :", n_all, "\n")
+  cat("POLE-ultramutated, excluded   :", n_all - nrow(tcga), "\n")
+  cat("TCGA cohort used here         :", nrow(tcga), "\n")
+  cat("  of which MMRd (MSI cluster) :", sum(tcga$mmrd, na.rm = TRUE),
+      " | MMRp:", sum(!tcga$mmrd, na.rm = TRUE),
+      " | unclassified:", sum(is.na(tcga$mmrd)), "\n")
+}
+```
+
+Densities of the ATTEND definitions and the TCGA reference on one axis. The ATTEND
+distributions are tumour-only, TCGA's is paired — so a systematic rightward shift of the
+ATTEND curves relative to TCGA is the germline inflation, visible directly. The dashed
+line is the pipeline's `r attend_thresholds$tmb` mut/Mb TMB-high cutoff.
+
+The x-axis is trimmed at the 99th percentile so the shape near the modes stays readable;
+the extreme tail is still in every test below, just not in the picture.
+
+```{r tcga-density, fig.height=5}
+if (have_tcga && nrow(long) > 0) {
+  cmp <- bind_rows(
+    long |> transmute(cohort = paste0("ATTEND — ", as.character(definition)), tmb),
+    tibble(cohort = "TCGA UCEC (paired, POLE excluded)", tmb = tcga$tmb)
+  ) |> filter(is.finite(tmb))
+
+  xmax <- quantile(cmp$tmb, 0.99, na.rm = TRUE)
+
+  ggplot(cmp, aes(tmb, colour = cohort)) +
+    geom_density(linewidth = 0.9, na.rm = TRUE) +
+    geom_vline(xintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
+    coord_cartesian(xlim = c(0, xmax)) +
+    labs(title = "TMB distribution: ATTEND (tumour-only) vs TCGA UCEC (tumour-normal paired)",
+         subtitle = paste0("raw mut/Mb, x-axis trimmed at the 99th percentile; dashed line = ",
+                           attend_thresholds$tmb, " mut/Mb TMB-high cutoff"),
+         x = "TMB (mut/Mb)", y = "density", colour = NULL) +
+    attend_theme() +
+    theme(legend.position = "top") +
+    guides(colour = guide_legend(ncol = 1))
+}
+```
+
+The same three-criterion battery [36_tmb_distribution](36_tmb_distribution.html) runs, now
+with TCGA as an extra row, read back from the `attend_tmb_battery` intermediate. Read the
+TCGA row first: it is the benchmark. If TCGA is bimodal and an ATTEND definition is not,
+the split exists in this disease and that definition is failing to resolve it.
+
+```{r tcga-battery}
+if (have_tcga) {
+  tcga_row <- local({
+    x   <- tcga$tmb
+    dp  <- dip_bimodality(x)
+    bc  <- as.numeric(.bimodality_coef(x))
+    gmm <- .gmm_modes(x)
+    tibble(definition  = "TCGA UCEC (paired, POLE excl.)",
+           n           = length(x),
+           dip_D       = dp$dip,
+           dip_p       = dp$p,
+           dip_bimodal = isTRUE(dp$bimodal),
+           BC          = bc,
+           BC_bimodal  = is.finite(bc) && bc > 0.555,
+           gmm_G       = gmm$G,
+           gmm_bimodal = is.finite(gmm$G) && gmm$G >= 2,
+           gmm_gap_sd  = gmm$gap_sd) |>
+      mutate(votes   = dip_bimodal + BC_bimodal + gmm_bimodal,
+             verdict = if_else(votes >= 2, "bimodal", "unimodal"))
+  })
+
+  combined <- if (exists("battery") && nrow(battery) > 0)
+    bind_rows(battery |> mutate(definition = as.character(definition)), tcga_row) else tcga_row
+
+  knitr::kable(
+    combined |>
+      transmute(definition, n,
+                dip_D = round(dip_D, 4), dip_p = signif(dip_p, 3), dip_bimodal,
+                BC = round(BC, 3), BC_bimodal,
+                gmm_G, gmm_bimodal,
+                gmm_gap_sd = round(gmm_gap_sd, 2),
+                votes, verdict),
+    caption = "Bimodality battery — ATTEND definitions plus the TCGA paired-sequencing reference. verdict = bimodal when >= 2 of {dip, BC, GMM} agree."
+  )
+}
+```
+
+Does TCGA's high-TMB mode contain TCGA's MMR-deficient tumours? The same mode validation
+[36_tmb_distribution](36_tmb_distribution.html) runs on ATTEND, applied to the reference
+cohort. A strong enrichment
+here establishes that the high mode really is the hypermutator population *in this
+disease* — which is what licenses reading ATTEND's high mode the same way.
+
+```{r tcga-mode-validation, results='asis'}
+if (have_tcga && have_mclust) {
+  mc <- tryCatch(mclust::Mclust(tcga$tmb, G = 1:3, verbose = FALSE), error = function(e) NULL)
+  if (is.null(mc) || mc$G < 2) {
+    cat("_TCGA TMB resolves to a single mixture component — no high mode to validate._\n\n")
+  } else {
+    hi_comp <- which.max(as.numeric(mc$parameters$mean))
+    d <- tcga |>
+      mutate(hi_mode = factor(if_else(mc$classification == hi_comp, "high-TMB mode", "bulk"),
+                              levels = c("bulk", "high-TMB mode"))) |>
+      filter(!is.na(mmrd))
+    if (nrow(d) >= 4 && dplyr::n_distinct(d$hi_mode) == 2 && dplyr::n_distinct(d$mmrd) == 2) {
+      tab <- table(MMR = if_else(d$mmrd, "MMRd", "MMRp"), mode = d$hi_mode)
+      pv  <- tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+      cat("**TCGA — high-TMB mode vs MMR status** (", mc$G, " mixture components):\n\n", sep = "")
+      print(knitr::kable(tab))
+      cat("\nFisher p = ", signif(pv, 3), "\n\n", sep = "")
+    } else {
+      cat("_Not enough classified TCGA tumours across both mode and MMR groups._\n\n")
+    }
+  }
+} else if (have_tcga) {
+  cat("_`mclust` not installed — TCGA mode validation skipped._\n\n")
+}
+```
+
+How each cohort's TMB separates MMR-deficient from MMR-proficient tumours, side by side.
+This is the comparison the whole section is for: the **effect size** of MMR status on TMB
+in a paired cohort versus in ATTEND under each definition. If the ancestry correction is
+working, ATTEND's corrected separation should look more like TCGA's than the uncorrected
+one does.
+
+Wilcoxon rather than t-test, because TMB is heavily skewed on the raw scale.
+
+```{r tcga-mmr-contrast, fig.height=5}
+if (have_tcga) {
+  mmr_col_l <- attend_cols$mmr_status
+  att <- if (mmr_col_l %in% names(master)) {
+    master |>
+      select(pid, all_of(unname(def_cols)), all_of(mmr_col_l)) |>
+      pivot_longer(all_of(unname(def_cols)), names_to = "col", values_to = "tmb") |>
+      mutate(cohort = paste0("ATTEND — ", def_labels[match(col, def_cols)]),
+             tmb    = suppressWarnings(as.numeric(tmb)),
+             mmrd   = is_mmrd(.data[[mmr_col_l]])) |>
+      filter(is.finite(tmb), !is.na(mmrd)) |>
+      select(cohort, tmb, mmrd)
+  } else tibble()
+
+  both <- bind_rows(att,
+    tcga |> filter(!is.na(mmrd)) |>
+      transmute(cohort = "TCGA UCEC (paired)", tmb, mmrd))
+
+  if (nrow(both) > 0) {
+    both <- both |> mutate(MMR = if_else(mmrd, "MMRd", "MMRp"))
+
+    print(knitr::kable(
+      both |> group_by(cohort, MMR) |>
+        summarise(n = n(), median = round(median(tmb), 2),
+                  IQR = paste0(round(quantile(tmb, .25), 2), "-", round(quantile(tmb, .75), 2)),
+                  .groups = "drop"),
+      caption = "TMB by MMR status in each cohort / definition"))
+
+    pv <- both |> group_by(cohort) |>
+      summarise(p = tryCatch(signif(wilcox.test(tmb ~ MMR)$p.value, 3),
+                             error = function(e) NA_real_), .groups = "drop")
+    print(knitr::kable(pv, caption = "MMRd vs MMRp Wilcoxon p, per cohort / definition"))
+
+    ggplot(both, aes(MMR, tmb, fill = MMR)) +
+      geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+      geom_jitter(width = 0.15, size = 0.5, alpha = 0.35) +
+      geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
+      scale_y_log10() +
+      facet_wrap(~ cohort, nrow = 1) +
+      scale_fill_manual(values = attend_mmr_cols) +
+      labs(title = "TMB by MMR status — ATTEND definitions vs the TCGA paired reference",
+           subtitle = "log10 y-axis for display only; all tests above are on the raw scale",
+           x = NULL, y = "TMB (mut/Mb, log10)") +
+      attend_theme() + theme(legend.position = "none")
+  }
+}
+```
+
+```{r session-info}
+sessionInfo()
+```

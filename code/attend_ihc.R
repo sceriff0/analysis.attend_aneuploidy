@@ -1,10 +1,10 @@
 # =============================================================================
-# attend_ihc.R  —  FlowPath IHC derived metrics (used by report 4).
+# attend_ihc.R  —  FlowPath IHC derived metrics (used by reports 20, 30 and 32).
 #
 # The "spatial/IHC" readout is built from the per-image FlowPath cell counts
 # (load_ihc_data()) joined to the imaging pathologist annotations
 # (load_imaging_data(), which carries image_id + ID = pid). Defining the ratio
-# metrics here means report 4 (clinical<->IHC concordance) and report 4
+# metrics here means report 20 (clinical<->IHC concordance) and report 32
 # (IHC vs aneuploidy) cannot drift apart.
 # =============================================================================
 
@@ -73,7 +73,7 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
 # defensible on these composition fractions. Clamps out-of-range inputs.
 arcsin_sqrt <- function(p) asin(sqrt(pmin(pmax(p, 0), 1)))
 
-# Per-patient IMMUNE content inside the annotation, for report 4: the two
+# Per-patient IMMUNE content inside the annotation, for report 32: the two
 # leukocyte metrics (CD45+ total and CD3+CD45+ double-positive T cells) under each
 # normalisation, compared later between aneuploidy classes. Pools a patient's
 # images (sum counts, sum denominators), same as ihc_celltype_metrics(). Reads the

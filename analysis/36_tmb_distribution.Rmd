@@ -1,0 +1,368 @@
+---
+title: "ATTEND — 36. Is the TMB distribution split?"
+author: "bolt3x"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+
+# renv: tidyverse, here. Optional (requireNamespace-guarded, like the rest of the
+# pipeline): diptest (Hartigan's dip test) + mclust (Gaussian mixture). If missing:
+#   renv::install(c("diptest","mclust")); renv::snapshot()
+# The report still knits without them — those panels degrade to a scaffolding note.
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+
+source(here("code", "attend_classes.R"))     # tmb_defs_present(), dip_bimodality(), is_mmrd()
+source(here("code", "attend_bimodality.R"))  # .bimodality_coef(), .gmm_modes(), have_* flags
+source(here("code", "attend_plots.R"))       # attend_theme()
+source(here("code", "attend_io.R"))          # read_intermediate(), write_intermediate()
+
+master <- read_intermediate("attend_master_joined")
+```
+
+> **Question.** Does TMB split the cohort into two populations, or is it one continuous distribution with a long tail?
+> **Cohort.** All `r nrow(master)` patients on the master; no restriction.
+> **Reads.** `attend_master_joined`, the `tmb__*` columns only.
+> **Out of scope.** Whether the split reproduces externally -> [41_tcga_tmb_replication](41_tcga_tmb_replication.html). TMB against aneuploidy -> [37_tmb_by_aneuploidy_and_mmr](37_tmb_by_aneuploidy_and_mmr.html).
+
+A genuine second mode at high TMB *is* the hypermutator population: MMR-deficient tumours
+whose failed mismatch repair produces an order of magnitude more mutations. POLE-
+ultramutated tumours are the other hypermutator route, and ATTEND has none, so the question
+is really whether TMB by itself cleanly identifies the hypermutators.
+
+Four steps: describe each distribution, test for bimodality under three independent
+criteria, validate any second mode against MMR status, and — in
+[41_tcga_tmb_replication](41_tcga_tmb_replication.html) — reproduce the whole thing in
+TCGA UCEC, where the answer is externally known.
+
+```{r child='_explainers/master-provenance.Rmd'}
+```
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+Comparing the two definitions is a second question this report answers. Tumour-only TMB
+carries ancestry-dependent germline inflation, which is noise added to the signal, so
+removing it should deepen the valley between the modes. If the corrected definition is
+more clearly bimodal than the uncorrected one, the correction is doing something real; if
+not, it is not helping the split, and the battery below says so either way.
+
+Every distribution and every test is on the raw mut/Mb scale, with no log transform. TMB is
+heavily right-skewed, and on that scale a long tail and a genuine second mode can look
+alike, which is why three independent criteria are triangulated rather than trusting any
+one of them.
+
+## Data
+
+The `tmb__*` columns of the master, reshaped to one row per patient and definition.
+Definitions with fewer than 10 finite values are dropped: the ancestry-corrected column is
+all-`NA` until `attend_ancestry$clinical_col` is set, and a distribution test needs values.
+
+```{r data}
+master <- read_intermediate("attend_master_joined")
+
+# The two TMB definitions the pipeline plots: normal first, then ancestry corrected.
+# Same helper every other report uses, so this one cannot drift from them.
+def_cols <- tmb_defs_present(master)
+
+# Drop definitions that are absent or effectively empty (the ancestry-corrected column
+# stays all-NA until attend_ancestry$clinical_col is set) — fewer than 10 finite values
+# cannot support a distribution test.
+finite_n <- vapply(def_cols,
+                   function(cc) sum(is.finite(suppressWarnings(as.numeric(master[[cc]])))),
+                   integer(1))
+def_cols <- def_cols[finite_n >= 10]
+
+# Reader-facing labels from the one shared map, so "nassar" never reaches the page.
+def_labels <- tmb_def_labels(def_cols)
+
+# One long row per (patient, definition), raw mut/Mb, NA dropped. The factor keeps
+# correction order so every facet and axis reads normal -> ancestry corrected.
+long <- master |>
+  select(pid, all_of(unname(def_cols))) |>
+  pivot_longer(all_of(unname(def_cols)), names_to = "col", values_to = "tmb") |>
+  mutate(
+    tmb        = suppressWarnings(as.numeric(tmb)),
+    definition = factor(names(def_cols)[match(col, def_cols)],
+                        levels = names(def_cols), labels = unname(def_labels))
+  ) |>
+  filter(is.finite(tmb)) |>
+  select(pid, definition, tmb)
+
+cat("TMB definitions analysed:",
+    if (length(def_cols)) paste(def_labels, collapse = ", ") else "none present", "\n")
+cat("finite values per definition (full master):\n")
+print(finite_n)
+```
+
+Both the long table and the battery are written to intermediates, because
+[41_tcga_tmb_replication](41_tcga_tmb_replication.html) puts the TCGA reference alongside
+these exact rows and must not rebuild them by a second route.
+
+```{r save-tmb-long}
+invisible(write_intermediate(long, "attend_tmb_long"))
+```
+
+## 1. Distribution overview
+
+Per-definition summary of the raw TMB. `%high` is the fraction at or above the
+pipeline TMB-high cut (`attend_thresholds$tmb` = `r attend_thresholds$tmb` mut/Mb),
+via the shared `tmb_class_of()` — the same high/low split every TMB-keyed figure uses.
+
+```{r summary-table}
+if (nrow(long) > 0) {
+  summ <- long |>
+    group_by(definition) |>
+    summarise(
+      n       = dplyr::n(),
+      median  = median(tmb),
+      IQR     = IQR(tmb),
+      mean    = mean(tmb),
+      sd      = sd(tmb),
+      min     = min(tmb),
+      max     = max(tmb),
+      skew    = unname(.skew_kurt(tmb)["skew"]),
+      exkurt  = unname(.skew_kurt(tmb)["kurt"]),
+      `%high` = 100 * mean(tmb_class_of(tmb) == "TMB-high"),
+      .groups = "drop"
+    )
+  knitr::kable(summ, digits = 2,
+               caption = "Raw TMB (mut/Mb) by definition. High right-skew (large positive `skew`) is expected and is itself a hint of a heavy hypermutator tail.")
+} else {
+  cat("No TMB values present — nothing to summarise.\n")
+}
+```
+
+Kernel density of the raw mut/Mb values in `long`, one curve per definition, with the
+`r attend_thresholds$tmb` mut/Mb cutoff marked. A valley between two humps is the shape the
+battery below puts numbers on.
+
+```{r density, fig.height=6}
+if (nrow(long) > 0) {
+  ggplot(long, aes(tmb)) +
+    geom_histogram(aes(y = after_stat(density)), bins = 40,
+                   fill = "grey85", colour = "grey65", linewidth = 0.2) +
+    geom_density(colour = "steelblue", linewidth = 0.8, adjust = 0.9, na.rm = TRUE) +
+    geom_rug(alpha = 0.25) +
+    geom_vline(xintercept = attend_thresholds$tmb, linetype = "dashed",
+               colour = "firebrick") +
+    facet_wrap(~ definition, scales = "free") +
+    labs(title = "TMB distribution by definition (raw mut/Mb)",
+         subtitle = paste0("dashed red = TMB-high cut (", attend_thresholds$tmb,
+                           " mut/Mb). A distinct high-TMB hump = hypermutator mode."),
+         x = "TMB (mut/Mb)", y = "density") +
+    attend_theme()
+} else {
+  message("No TMB values to plot.")
+}
+```
+
+## 2. Bimodality battery
+
+Three independent criteria per definition, because on the raw scale no single test is
+decisive:
+
+- **Hartigan's dip test** (`dip_bimodality()`, reused from `attend_classes.R`) — the
+  scale-invariant departure-from-unimodality statistic; small **p** ⇒ bimodal.
+- **Sarle's bimodality coefficient (BC)** — from skewness/kurtosis; **b > 0.555** leans
+  bimodal. (Inflated by a heavy tail, so corroborative only.)
+- **Gaussian mixture (GMM)** — `mclust::Mclust(G = 1:3)`, BIC-selected component count;
+  **≥ 2** components ⇒ the data prefer more than one Gaussian.
+
+The **verdict** calls a definition *bimodal* when **≥ 2 of the 3** criteria agree —
+a deliberately conservative majority vote.
+
+```{r battery}
+if (nrow(long) > 0) {
+  battery <- long |>
+    group_by(definition) |>
+    group_modify(function(.x, ...) {
+      x   <- .x$tmb
+      dp  <- dip_bimodality(x)          # list(dip, p, n, bimodal)
+      bc  <- as.numeric(.bimodality_coef(x))
+      gmm <- .gmm_modes(x)
+      tibble(
+        n           = length(x),
+        dip_D       = dp$dip,
+        dip_p       = dp$p,
+        dip_bimodal = isTRUE(dp$bimodal),
+        BC          = bc,
+        BC_bimodal  = is.finite(bc) && bc > 0.555,
+        gmm_G       = gmm$G,
+        gmm_bimodal = is.finite(gmm$G) && gmm$G >= 2,
+        gmm_gap_sd  = gmm$gap_sd
+      )
+    }) |>
+    ungroup() |>
+    mutate(
+      votes   = dip_bimodal + BC_bimodal + gmm_bimodal,
+      verdict = if_else(votes >= 2, "bimodal", "unimodal")
+    )
+
+  knitr::kable(
+    battery |>
+      transmute(definition, n,
+                dip_D = round(dip_D, 4), dip_p = signif(dip_p, 3), dip_bimodal,
+                BC = round(BC, 3), BC_bimodal,
+                gmm_G, gmm_bimodal,
+                votes, verdict),
+    caption = "Bimodality battery per TMB definition. verdict = bimodal when ≥ 2 of {dip, BC, GMM} agree."
+  )
+} else {
+  battery <- tibble()
+  cat("No TMB values — bimodality battery skipped.\n")
+}
+```
+
+The same table read back as sentences, one line per definition, so the vote and its
+verdict are stated rather than inferred from the columns.
+
+```{r battery-note, results='asis'}
+if (exists("battery") && nrow(battery) > 0) {
+  bm <- battery |> filter(verdict == "bimodal") |> pull(definition) |> as.character()
+  if (length(bm)) {
+    cat("**Bimodal by majority vote:** ", paste(bm, collapse = ", "), ".\n\n", sep = "")
+  } else {
+    cat("**No definition reaches the ≥2-of-3 bimodality threshold** on the raw scale. ",
+        "The high-TMB signal may be a heavy tail rather than a resolved second mode — ",
+        "revisit on a log scale if a hypermutator subpopulation is expected.\n\n", sep = "")
+  }
+}
+```
+
+## 3. Mode validation — does the high-TMB mode capture MMR-deficient tumours?
+
+A statistical second mode is only interesting if it is the **biological** one. For every
+definition the mixture split into ≥ 2 components, we assign each patient to a component by
+posterior, label the **highest-mean component** as the high-TMB mode, and cross-tabulate
+that membership against **MMR status** (`gianlu__MMR_STATUS`, via the shared `is_mmrd()`).
+A Fisher test asks whether the high-TMB mode is enriched for MMR-deficient tumours — the
+expected hypermutators.
+
+```{r mode-validation, results='asis'}
+mmr_col <- attend_cols$mmr_status   # gianlu__MMR_STATUS
+
+validate_mode <- function(def_key, def_lab) {
+  col <- def_cols[[def_key]]
+  d <- master |>
+    transmute(pid,
+              tmb  = suppressWarnings(as.numeric(.data[[col]])),
+              mmrd = is_mmrd(.data[[mmr_col]])) |>
+    filter(is.finite(tmb))
+  if (nrow(d) < 6) return(NULL)
+  mc <- tryCatch(mclust::Mclust(d$tmb, G = 1:3, verbose = FALSE), error = function(e) NULL)
+  if (is.null(mc) || mc$G < 2) return(NULL)
+  hi_comp  <- which.max(as.numeric(mc$parameters$mean))         # highest-mean component
+  d$hi_mode <- factor(if_else(mc$classification == hi_comp, "high-TMB mode", "bulk"),
+                      levels = c("bulk", "high-TMB mode"))
+  d2 <- d |> filter(!is.na(mmrd))
+  if (nrow(d2) < 4 || dplyr::n_distinct(d2$hi_mode) < 2 || dplyr::n_distinct(d2$mmrd) < 2)
+    return(list(lab = def_lab, tab = table(d$hi_mode), p = NA_real_))
+  tab <- table(MMR = if_else(d2$mmrd, "MMRd", "MMRp"), mode = d2$hi_mode)
+  p   <- tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+  list(lab = def_lab, tab = tab, p = p)
+}
+
+if (!have_mclust) {
+  cat("_`mclust` not installed — mode validation skipped._\n\n")
+} else if (!mmr_col %in% names(master)) {
+  cat("_MMR status column (`", mmr_col, "`) absent from the master — mode validation skipped._\n\n", sep = "")
+} else if (!exists("battery") || nrow(battery) == 0) {
+  cat("_No definitions to validate._\n\n")
+} else {
+  qualifying <- battery |> filter(is.finite(gmm_G) & gmm_G >= 2) |> pull(definition) |> as.character()
+  key_by_lab <- setNames(names(def_cols), unname(def_labels))
+  if (!length(qualifying)) {
+    cat("_No definition produced a ≥2-component mixture — no high-TMB mode to validate._\n\n")
+  } else {
+    for (lab in qualifying) {
+      res <- validate_mode(key_by_lab[[lab]], lab)
+      if (is.null(res)) next
+      cat("### ", res$lab, "\n\n", sep = "")
+      print(knitr::kable(as.data.frame.matrix(res$tab),
+                         caption = paste0("High-TMB mode membership vs MMR status — ", res$lab)))
+      cat("\n\nFisher exact p = ",
+          if (is.finite(res$p)) signif(res$p, 3) else "NA (a margin was degenerate)",
+          if (is.finite(res$p) && res$p < 0.05) " — the high-TMB mode is significantly enriched for MMRd." else "",
+          "\n\n", sep = "")
+    }
+  }
+}
+```
+
+## 4. Cross-definition synthesis — does correction sharpen the split?
+
+Removing ancestry-dependent germline inflation should make the hypermutator mode *stand
+out more*: as
+ancestry-inflated germline counts are stripped, the bulk tightens and the valley
+deepens. Two comparators, read left-to-right along the chain:
+
+- **Dip statistic D** (scale-invariant) — higher = further from unimodal.
+- **SD-normalised mixture gap** — the distance between the extreme component means in
+  units of the definition's own SD (comparable across definitions; the raw mut/Mb gap
+  is not, because the definitions live on shifted scales).
+
+```{r synthesis, fig.height=4.5}
+have_syn <- exists("battery") && nrow(battery) > 0 &&
+  (any(is.finite(battery$dip_D)) || any(is.finite(battery$gmm_gap_sd)))
+if (have_syn) {
+  syn <- battery |>
+    select(definition, `dip statistic D` = dip_D, `mixture gap (÷SD)` = gmm_gap_sd) |>
+    pivot_longer(-definition, names_to = "metric", values_to = "value") |>
+    filter(is.finite(value))
+  if (nrow(syn) > 0) {
+    ggplot(syn, aes(definition, value, group = 1)) +
+      geom_line(colour = "grey60") +
+      geom_point(size = 3, colour = "steelblue") +
+      facet_wrap(~ metric, scales = "free_y") +
+      labs(title = "Separation strength along the germline-correction chain",
+           subtitle = "left to right = normal -> ancestry corrected; up = more clearly bimodal",
+           x = NULL, y = NULL) +
+      attend_theme() +
+      theme(axis.text.x = element_text(angle = 20, hjust = 1))
+  } else {
+    message("No finite separation metrics to plot.")
+  }
+} else {
+  message("Battery unavailable — synthesis skipped.")
+}
+```
+
+The cross-definition comparison in words: whether moving from the delivered score to the
+ancestry-corrected one deepens the valley, holds it, or closes it.
+
+```{r synthesis-note, results='asis'}
+if (exists("battery") && nrow(battery) > 0 && sum(is.finite(battery$dip_D)) >= 2) {
+  b <- battery |> filter(is.finite(dip_D))
+  first_lab <- as.character(b$definition[1]); last_lab <- as.character(b$definition[nrow(b)])
+  d_first <- b$dip_D[1]; d_last <- b$dip_D[nrow(b)]
+  cat("Dip D moves from ", signif(d_first, 3), " (", first_lab, ") to ",
+      signif(d_last, 3), " (", last_lab, "). ",
+      if (d_last > d_first)
+        "Separation **increases** after correction — consistent with the correction sharpening the hypermutator mode."
+      else if (d_last < d_first)
+        "Separation **decreases** after correction — it does not visibly sharpen the split on the raw scale (or the corrected column is too sparse to resolve it)."
+      else "Separation is unchanged after correction.",
+      "\n\n", sep = "")
+}
+```
+
+The battery is written to an intermediate for
+[41_tcga_tmb_replication](41_tcga_tmb_replication.html), which appends TCGA as one more
+row of this same table.
+
+```{r save-battery}
+if (exists("battery") && nrow(battery) > 0)
+  invisible(write_intermediate(dplyr::mutate(battery, definition = as.character(definition)),
+                               "attend_tmb_battery"))
+```
+
+```{r session-info}
+sessionInfo()
+```

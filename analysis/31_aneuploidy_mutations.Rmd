@@ -1,7 +1,7 @@
 ---
-title: "ATTEND — 3. Aneuploidy vs mutations, within MMR-deficient tumours"
+title: "ATTEND — 31. Aneuploidy vs mutation status"
 author: "sceriff0"
-date: "2026-08-09"
+date: "2026-08-11"
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
@@ -15,82 +15,71 @@ library(here)
 library(ggpubr)
 
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 9, fig.height = 7)
+                      fig.width = 10, fig.height = 6)
 
+source(here("code", "attend_classes.R"))     # gene panels, add_molecular_classes(), is_mmrd()
 source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
-source(here("code", "attend_classes.R"))     # column config + class helpers + gene panels
-source(here("code", "attend_plots.R"))       # highlight_points() + attend_highlight overlay
-source(here("code", "attend_io.R"))          # read_intermediate() (Parquet/CSV)
+source(here("code", "attend_plots.R"))       # highlight_points(), attend_theme()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
+source(here("code", "load_wes_results.R"))   # MAF loaders
+
+master <- read_intermediate("attend_master_joined") |> add_molecular_classes()
+n_mmrd <- sum(is_mmrd(master[[attend_cols$mmr_status]]), na.rm = TRUE)
 ```
 
-## What this report does
+> **Question.** Among tumours that are already mismatch-repair deficient, does aneuploidy vary with which gene is mutated?
+> **Cohort.** MMR-deficient only (n = `r n_mmrd`).
+> **Reads.** `attend_master_joined` for the aneuploidy score, and the long MAF for per-gene status.
+> **Out of scope.** Aneuploidy against TMB -> [37_tmb_by_aneuploidy_and_mmr](37_tmb_by_aneuploidy_and_mmr.html), which draws both MMR strata instead of only this one. Cohort-wide mutation frequency -> [33_mutation_landscape](33_mutation_landscape.html).
 
-**The entire report is restricted to MMR-deficient (MMRd) tumours.** Nothing below
-includes an MMR-proficient patient.
+The restriction is the point. MMR deficiency is itself a route to genomic instability, so
+in the whole cohort any mutation that tracks MMR status will also appear to track
+aneuploidy. Conditioning on MMRd removes that shortcut. The outcome variable in every
+figure is the same continuous aneuploidy score; what changes is the grouping on the x-axis.
 
-That restriction is the point. MMR deficiency is itself a route to genomic instability,
-so in the whole cohort any mutation that tracks MMR status will also appear to track
-aneuploidy. Conditioning on MMRd removes that shortcut and asks a sharper question:
-**among tumours that are already mismatch-repair deficient, does aneuploidy still vary
-with which gene is mutated?**
+```{r child='_explainers/cohort-mmrd.Rmd'}
+```
 
-The outcome variable in every figure is the same — the continuous **aneuploidy score**
-(ASCETS, fraction of chromosome arms altered). What changes is the grouping on the
-x-axis.
+```{r child='_explainers/aneuploidy-classes.Rmd'}
+```
+
+```{r child='_explainers/highlight-groups.Rmd'}
+```
 
 ### The gene panel, spelled out
 
-Genes are tested **one at a time**, each in its own panel, so a signal is attributable
-to a specific gene rather than to a union that could be driven by whichever gene is most
+Genes are tested one at a time, each in its own panel, so a signal is attributable to a
+specific gene rather than to a union that could be driven by whichever gene is most
 frequently mutated. Two groups, kept deliberately separate:
 
 | Group | Genes | Why they are grouped this way |
 |---|---|---|
-| **MMR panel** | `r paste(attend_gene_panel, collapse = ", ")` | Loss of any of these causes mismatch-repair deficiency. MSH3 pairs with MSH2 to form MutSβ. |
-| **Wnt / β-catenin** | `r paste(attend_gene_panel_wnt, collapse = ", ")` | An independent oncogenic pathway, not an MMR mechanism. |
-| **TP53** | TP53 | Handled separately — it is already a first-class column on the master. |
+| **MMR panel** | `r paste(attend_gene_panel, collapse = ", ")` | Loss of any of these causes mismatch-repair deficiency. MSH3 pairs with MSH2 to form MutSb. |
+| **Wnt / b-catenin** | `r paste(attend_gene_panel_wnt, collapse = ", ")` | An independent oncogenic pathway, not an MMR mechanism. |
+| **TP53** | TP53 | Handled separately: it is already a first-class column on the master. |
 
-The **MMR union** (`panel-altered` = at least one pathogenic variant in any MMR panel
-gene) is shown last, after the per-gene panels. `CTNNB1` and `APC` are deliberately
-**excluded from that union**: they are not MMR genes, and folding them in would change
-what "panel-altered" means everywhere else in the pipeline. There is no Wnt union — with
-two genes, the per-gene panels already show everything a union would.
+The MMR union (`panel-altered` = at least one pathogenic variant in any MMR panel gene) is
+shown last, after the per-gene panels. `CTNNB1` and `APC` are deliberately excluded from
+that union, because folding them in would change what "panel-altered" means everywhere else
+in the pipeline. There is no Wnt union: with two genes the per-gene panels already show
+everything a union would.
 
-### How to read the figures
-
-Each panel is one grouping variable. The **box** summarises the aneuploidy-score
-distribution in each group. The **points** are individual patients, coloured by their
-aneuploidy class (high vs low at `r attend_thresholds$aneuploidy`) so the split driving
-the box is visible. Two overlays sit on top: **gold** marks patients who also have IHC /
-imaging data, **magenta** marks sample 21S188 (*polipo*).
-
-P-values come from `stat_compare_means()`, which uses Wilcoxon rank-sum for two groups
-and Kruskal–Wallis for more. They are **not** corrected for multiple testing across
-panels — with one test per gene, treat them as descriptive.
+P-values come from `stat_compare_means()`, Wilcoxon rank-sum for two groups and
+Kruskal-Wallis for more, uncorrected across panels. With one test per gene, treat them as
+descriptive.
 
 ## Data
 
-Two sources, joined on `pid`.
-
-The **aneuploidy score and the score-derived classes** come from
-`output/clean_data/attend_master_joined` (report 1), binarised by
-`add_molecular_classes()` at the thresholds in `code/attend_classes.R`.
-
-The **mutation status** is recomputed here directly from the long MAF, *not* taken from
-the master's MAF columns — those are mean-collapsed, and the average of a variant row is
-meaningless. `pathogenic_by_patient()` and `mutation_status_long()` are the same helpers
-report 1 used to write `TP53_pathogenic` / `panel_pathogenic`, so the two cannot drift.
-Anchoring on the crosswalk and crossing over the full gene list guarantees every gene
-gets a column even if it never appears in the MAF, with unmutated patients set to `FALSE`
-rather than `NA`.
+Two sources, joined on `pid`. The aneuploidy score and its derived classes come from
+`attend_master_joined`. The mutation status is recomputed here directly from the long MAF
+rather than taken from the master's collapsed columns, because the average of a variant row
+is meaningless; `pathogenic_by_patient()` and `mutation_status_long()` are the same helpers
+[10_data_integration](10_data_integration.html) used, so the two cannot drift. Crossing the
+crosswalk against the full gene list guarantees every gene gets a column even when it never
+appears in the MAF, with unmutated patients `FALSE` rather than `NA`.
 
 ```{r data}
-master <- read_intermediate("attend_master_joined") |>
-  add_molecular_classes()
-
-source(here("code", "load_clinical.R"))
-source(here("code", "load_wes_results.R"))
-
 cw  <- build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg())
 maf <- read_intermediate("maf_data")
 
@@ -115,7 +104,6 @@ dat_all <- master |>
     panel_class = if_else(panel_pathogenic, "MMR-panel-altered", "MMR-panel-wt")
   )
 ```
-
 ### Restricting to MMR-deficient
 
 The single filter the whole report rests on. The counts below are the cohort every
@@ -199,6 +187,9 @@ if (nrow(dat) > 0)
                caption = "Patients per group, MMR panel genes (MMR-deficient cohort)")
 ```
 
+Aneuploidy score (`aneu__aneuploidy_score`, ASCETS arm-level burden from `data/ascets/`)
+in mutated versus wild-type patients, one panel per MMR gene, over the `dat` cohort above.
+
 ```{r mmr-gene-box, fig.height=7}
 if (nrow(dat) > 0)
   aneu_box(dat, mmr_gene_vars,
@@ -212,7 +203,7 @@ if (nrow(dat) > 0)
 The same comparison for `r paste(attend_gene_panel_wnt, collapse = " and ")`. These are
 shown apart from the MMR panel because they are a different mechanism: they are not a
 cause of mismatch-repair deficiency, so a signal here would mean something biologically
-different from a signal in section 1.
+different from a signal in the MMR panel above.
 
 ```{r wnt-gene-counts}
 wnt_gene_vars <- paste0(attend_gene_panel_wnt, "_class")
@@ -220,6 +211,8 @@ if (nrow(dat) > 0)
   knitr::kable(group_counts(dat, wnt_gene_vars),
                caption = "Patients per group, Wnt pathway genes (MMR-deficient cohort)")
 ```
+
+The same aneuploidy score against Wnt-pathway mutation status, two panels.
 
 ```{r wnt-gene-box, fig.height=4.5}
 if (nrow(dat) > 0)
@@ -242,6 +235,9 @@ if (nrow(dat) > 0)
   knitr::kable(group_counts(dat, summary_vars),
                caption = "Patients per group, TP53 and the MMR union (MMR-deficient cohort)")
 ```
+
+Aneuploidy score by TP53 status and by the MMR union, side by side, so a union signal can
+be read against the per-gene panels above that would have to explain it.
 
 ```{r tp53-union-box, fig.height=4.5}
 if (nrow(dat) > 0)
@@ -270,76 +266,6 @@ if (nrow(dat) > 0) {
 }
 ```
 
-## 5. Aneuploidy by TMB class — both TMB definitions
-
-Section 4's TMB panel uses the upstream score. Because ATTEND is sequenced tumour-only,
-residual germline variants inflate TMB in an ancestry-dependent way (Nassar et al.,
-*Cancer Cell* 2022), so the comparison is redrawn here under **both** definitions the
-pipeline carries:
-
-- **TMB (normal)** — `tmb__TMB_SCORE`, the upstream tumour-only score.
-- **TMB (ancestry corrected)** — `tmb__TMB_nassar`, after the ancestry recalibration.
-
-Both are binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff, so the only
-difference between the two facets is which patients crossed the threshold once the
-germline correction was applied. The ancestry-corrected facet is dropped rather than
-drawn empty until `attend_ancestry$clinical_col` is set.
-
-```{r tmb-definitions, fig.height=5}
-tmb_defs03 <- tmb_defs_present(dat)          # normal + ancestry corrected
-tmb_labs03 <- tmb_def_labels(tmb_defs03)
-
-if (nrow(dat) > 0 && length(tmb_defs03) >= 1) {
-  tlong <- purrr::map_dfr(seq_along(tmb_defs03), function(i) {
-    dat |> transmute(
-      pid, aneuploidy_value, aneuploidy_class,
-      def   = tmb_labs03[i],
-      group = ifelse(suppressWarnings(as.numeric(.data[[tmb_defs03[[i]]]])) >= attend_thresholds$tmb,
-                     "TMB-high", "TMB-low"))
-  }) |>
-    filter(!is.na(aneuploidy_value), !is.na(group)) |>
-    mutate(def = factor(def, levels = tmb_labs03))
-  tlong <- tlong |> group_by(def) |> filter(!all(is.na(group))) |> ungroup() |>
-    mutate(def = droplevels(def))
-
-  if (nrow(tlong) > 0) {
-    print(knitr::kable(count(tlong, def, group, name = "n") |>
-                         pivot_wider(names_from = group, values_from = n, values_fill = 0),
-                       caption = "Patients per TMB group, by definition (MMR-deficient cohort)"))
-
-    ggplot(tlong, aes(group, aneuploidy_value)) +
-      geom_boxplot(outlier.shape = NA, fill = "#A6CEE3", width = 0.6) +
-      highlight_points(tlong, "group", "aneuploidy_value", base_colour = "aneuploidy_class",
-                       base_palette = attend_aneu_cols, base_name = "aneuploidy",
-                       base_size = 0.7, base_alpha = 0.6) +
-      facet_wrap(~ def, nrow = 1) +
-      stat_compare_means(label = "p.format", size = 3) +
-      labs(title = "Aneuploidy score by TMB class, per TMB definition (MMR-deficient only)",
-           subtitle = paste0("TMB-high cutoff = ", attend_thresholds$tmb, " mut/Mb"),
-           x = NULL, y = "aneuploidy score") +
-      attend_theme() +
-      theme(axis.text.x = element_text(angle = 20, hjust = 1))
-  }
-}
-```
-
-## What to take away
-
-- Every result here is **conditional on MMR deficiency**. It says nothing about
-  MMR-proficient tumours, and it is not comparable to a whole-cohort analysis.
-- Genes are tested **individually**. A per-gene panel is interpretable; the union at the
-  end is not, on its own, because it cannot say which gene carried the signal.
-- **CTNNB1 and APC are not in the MMR union.** They are a separate pathway and are
-  reported separately throughout.
-- Check the counts table before the p-value. Several genes are mutated in very few MMRd
-  patients, and those panels are unstable.
-- P-values are uncorrected across panels.
-
-To change the panel membership, the pathogenicity definition, or the cutoffs, edit
-`attend_gene_panel` / `attend_gene_panel_wnt`, `attend_pathogenic_classes`, and
-`attend_thresholds` in `code/attend_classes.R`. If a real pathogenicity annotation
-(ClinVar / OncoKB) becomes available, point `pathogenic_by_patient()` at that column
-instead of relying on `Variant_Classification`.
 
 ```{r session-info}
 sessionInfo()

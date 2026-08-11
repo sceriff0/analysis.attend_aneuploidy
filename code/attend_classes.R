@@ -3,10 +3,10 @@
 # Shared configuration + class-derivation helpers for the ATTEND analyses.
 #
 # Sourced by:
-#   analysis/01_data_integration.Rmd       (mutation status for the master)
-#   analysis/02_survival_stratified.Rmd
-#   analysis/03_aneuploidy_mutations_mmrd.Rmd
-#   analysis/04_ihc_imaging_spatial.Rmd
+#   analysis/10_data_integration.Rmd       (mutation status for the master)
+#   analysis/30_survival.Rmd
+#   analysis/31_aneuploidy_mutations.Rmd
+#   analysis/32_cell_composition.Rmd
 #
 # >>> SET YOUR COLUMN NAMES IN `attend_cols` BELOW. <<<
 # Everything downstream reads from here, so you only edit names in one place.
@@ -79,7 +79,7 @@ attend_levels <- list(
 
 # --- Manual patient highlight (aneuploidy-by-cluster / -by-class plots) ------------
 # A place to flag SPECIFIC patients of interest with a SPECIFIC colour on the aneuploidy
-# boxplots (report 7). Each entry is a named subset: `ids` (patient `pid`s OR sequencing
+# boxplots (report 40). Each entry is a named subset: `ids` (patient `pid`s OR sequencing
 # barcodes — the plotter matches either) drawn on TOP of the boxplot in `color`, larger, so
 # the subset stands out from the cluster/class fill. Empty by default -> no-op / knit-safe.
 # aneuploidy-HIGH tumours are ALREADY marked by point SHAPE (triangle); this is an
@@ -436,7 +436,7 @@ km_panel_counts <- function(df, facets,
 }
 
 # =============================================================================
-# --- 8. Copy-number / CNV configuration (report 7) -------------------------
+# --- 8. Copy-number / CNV configuration (report 40) -------------------------
 # Reproduces the TCGA endometrial integrated classification (Kandoth et al.,
 # Nature 2013; papers/nature12113.pdf). The CN-low vs CN-high split comes from
 # clustering copy-number profiles; the high-aneuploidy cluster = "copy-number
@@ -502,7 +502,7 @@ attend_cnv <- list(
     id_strip      = "-1TAD104|_tumor_only",
     # GISTIC2 input: the per-sample .seg files are concatenated into ONE seg file here
     # by write_gistic_seg(); feed that to gistic2 (see code/run_gistic.sh). GISTIC runs
-    # OUTSIDE R; its outputs land in data/gistic/ and report 5 picks them up.
+    # OUTSIDE R; its outputs land in data/gistic/ and reports 33 and 35 pick them up.
     gistic_seg_out = "output/gistic_input/attend_all_segments.seg"
   ),
 
@@ -513,7 +513,7 @@ attend_cnv <- list(
 
   # GISTIC2 focal peaks — the paper-standard FOCAL (gene-level) recurrent-CNV layer,
   # overlaid amp/del in the oncoplot grid (TCGA nature12113 style). Run GISTIC2 on the
-  # DRAGEN .seg OUTSIDE R and drop its output in data/gistic/; report 5 then attaches
+  # DRAGEN .seg OUTSIDE R and drop its output in data/gistic/; report 33 then attaches
   # it to read.maf automatically. Absent -> the oncoplot is mutation+arm only (knit-safe).
   gistic = list(
     dir               = "gistic",                # data/gistic/
@@ -530,7 +530,7 @@ attend_cnv <- list(
     all_thresholded_glob = "*all_thresholded*.txt"
   ),
 
-  # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 5): an arm must be
+  # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 34): an arm must be
   # EVALUABLE (call != LOWCOV/NC/NA) in at least this fraction of samples to be eligible
   # for top_arms — keeps a poorly-covered arm from ranking on a handful of confident calls.
   # n_barplot: how many of the eligible, most-altered arms the report-5 barplot draws
@@ -538,7 +538,7 @@ attend_cnv <- list(
   # gate — the same `freq$eligible` gate applies before this slice, GC3/config not literal).
   arm_calls = list(min_evaluable_frac = 0.5, n_barplot = 20),
 
-  # Genome-wide recurrent-SCNA pileup (report 5, TCGA nature12113 Fig-1 style):
+  # Genome-wide recurrent-SCNA pileup (report 34, TCGA nature12113 Fig-1 style):
   # base-pair-resolution fraction of samples gained/lost along the genome, from the
   # ClassifyCNV altered segments. `bin` = window width (bp). Direction comes from the
   # segment Type (DUP/DEL); min_abs_logratio can additionally require a magnitude.
@@ -637,7 +637,7 @@ order_arms_genomic <- function(arms) {
   arms[order(is.na(key), key, seq_along(arms))]
 }
 
-# Genome-wide recurrent-SCNA PILEUP (report 5). PURE transform, no I/O — feed it
+# Genome-wide recurrent-SCNA PILEUP (report 34). PURE transform, no I/O — feed it
 # load_cnv_data() (ClassifyCNV altered segments) and load_arm_boundaries(). Tiles the
 # genome into `bin`-wide windows and, per window, returns the fraction of samples with
 # a gain / loss segment overlapping it — the base-pair companion to the arm-level
@@ -808,7 +808,7 @@ attend_pole <- list(
   tmb_cutoff  = 100                      # mut/Mb; ultra-high backstop
 )
 
-# --- 10. Integrated-class labels (report 7) --------------------------------
+# --- 10. Integrated-class labels (report 40) --------------------------------
 # POLE is intentionally omitted: ATTEND has no POLE-ultramutated cases and the
 # cascade starts at MSI. (pole_ultramutated()/attend_pole are kept below, unwired,
 # in case a POLE branch is wanted again.)
@@ -825,7 +825,7 @@ attend_tcga_levels <- list(
 # samples. TCGA's LITERAL definition is SCNA cluster-4 membership (Kandoth et al. Fig. 2b:
 # "serous-like ... copy-number cluster 4") — TP53 is a *property* of that cluster (~90%
 # mutant), NOT a criterion. So the FAITHFUL reproduction is "cluster_only"; TP53 is then
-# validated separately (report 7 "TP53 enrichment" QC), not required. Set here:
+# validated separately (report 40 "TP53 enrichment" QC), not required. Set here:
 #   "cluster_only" serous = high-aneuploidy CNV cluster                       (DEFAULT; faithful TCGA repro)
 #   "and"          serous = high-aneuploidy CNV cluster AND TP53-pathogenic   (higher-precision variant)
 #   "or"           serous = high-aneuploidy CNV cluster OR  TP53-pathogenic   (workflow §1.1 union rule)
@@ -1205,13 +1205,13 @@ pole_ultramutated <- function(maf_long = NULL, crosswalk = NULL, tmb_tbl = NULL,
 # Serous-like (CN-high) among the MMR-proficient samples is set by `serous_rule`
 # (attend_tcga_serous_rule): "cluster_only" (high-aneuploidy cluster membership alone =
 # faithful TCGA repro; DEFAULT — TP53 is a *correlate* of the cluster, ~90% mutant,
-# validated by report 7's TP53-enrichment QC, NOT a criterion), "and" (also require
+# validated by report 40's TP53-enrichment QC, NOT a criterion), "and" (also require
 # TP53-mut — higher-precision variant), "or" (the spec's union), or "tp53_only". Under the
 # default "cluster_only", a high-cluster TP53-wild-type tumour is still called serous-like;
 # only the opt-in "and" rule would demote it to CN-low. If TP53 status is absent,
 # "and"/"tp53_only" degrade to "cluster_only" (knit-safe).
 # Single source of truth for MMR-deficiency (MMRd) status, used by add_tcga_class() (the
-# TCGA top tier), mmrd_aneuploidy_split() (report 7), and the report-09 heatmap MMR
+# TCGA top tier), mmrd_aneuploidy_split() (report 40), and the report-09 heatmap MMR
 # bar — so "MMRd" means the SAME thing in every report. Criterion: MMR-protein loss by IHC
 # (MMR_class == deficient) ONLY. MSI-high (NGS) is deliberately NOT a criterion — it is a
 # correlate. `mmr_class` is a character vector of MMR_class values; returns logical, NA
@@ -1262,7 +1262,7 @@ add_tcga_class <- function(df,
 }
 
 # =============================================================================
-# --- 13. Ancestry-aware TMB recompute (report 7) ---------------------------
+# --- 13. Ancestry-aware TMB recompute (report 10) ---------------------------
 # Tumor-only TMB is inflated by residual germline variants, and the inflation is
 # ANCESTRY-DEPENDENT because population reference panels (gnomAD) are Euro-skewed
 # (Nassar et al., Cancer Cell 2022). The ATTEND Funcotator MAFs carry gnomAD
@@ -1305,7 +1305,7 @@ attend_tmb_recompute <- list(
 #   normal             tmb__TMB_SCORE   the upstream tumour-only score, as delivered
 #   ancestry corrected tmb__TMB_nassar  that score after the ancestry recalibration
 #
-# `tmb__TMB_robust` and `tmb__TMB_matched` are still COMPUTED in report 1 and still
+# `tmb__TMB_robust` and `tmb__TMB_matched` are still COMPUTED in report 10 and still
 # live on the master, because the ancestry correction is fitted on top of the robust
 # recompute (attend_tmb_nassar$source_col). They are INTERMEDIATES: never plotted,
 # never faceted over, never labelled. tmb_defs_present() cannot return them, so a
@@ -1470,7 +1470,7 @@ tmb_variant_table <- function(maf_tmb, crosswalk, anc_by_pid = NULL,
 }
 
 # =============================================================================
-# --- 14. Nassar ancestry regression recalibration (report 7) ---------------
+# --- 14. Nassar ancestry regression recalibration (report 00_methods) ---------------
 # The headline method of Nassar et al. (Cancer Cell 2022) is NOT a germline
 # filter — it is an ancestry-specific AFFINE recalibration of the TMB value:
 #   TMB_corrected = m_group * TMB_tumor-only + b_group,
@@ -1518,7 +1518,7 @@ attend_tmb_nassar <- list(
     oncopanel_v3 = list(european = list(m = 1.094, b = -1.94), non_european = list(m = 0.895, b = -1.29))
   ),
 
-  # Optional reference cohort to FIT coefficients from (report 7 "own coefficients"
+  # Optional reference cohort to FIT coefficients from (report 00_methods "own coefficients"
   # section). Drop a table with paired (tumor-normal) + tumor-only TMB + an ancestry
   # `group` column ("european"/"non_european") into data/nassar/. Absent -> the report
   # just reports the active coefficients and explains how to fit. Knit-safe.
@@ -1544,7 +1544,7 @@ nassar_active_coef <- function(cfg = attend_tmb_nassar) {
 }
 
 # Tidy the ACTIVE Nassar coefficients into a table + an `identity` flag and the source
-# name (report 7). `identity` TRUE => tmb__TMB_nassar == robust; that gates the
+# name (report 00_methods). `identity` TRUE => tmb__TMB_nassar == robust; that gates the
 # recalibration-effect panels (they only render once non-identity coefficients apply).
 nassar_coef_table <- function(cfg = attend_tmb_nassar) {
   co <- nassar_active_coef(cfg)
@@ -1612,7 +1612,7 @@ fit_nassar_coefficients <- function(ref, paired = "paired_tmb",
 # --- 15. MMRd aneuploidy subclassification --------------------------------
 # NOTE: currently UNUSED by any report. mmrd_aneuploidy_split() lost its caller when
 # the MMRd-subclass and cross-cohort reports were removed; dip_bimodality() below is
-# still used by report 8. Kept because both are tested and cheap to re-wire.
+# still used by report 36. Kept because both are tested and cheap to re-wire.
 # The CUSTOM MMRd split (MMRd_subclassification_workflow §1.2): the custom feature is
 # the aneuploidy score, and we divide the MMR-deficient group into aneuploidy-HIGH vs
 # aneuploidy-LOW. MMRd membership = MSI-high (NGS) OR MMR-protein loss (IHC) — the same
@@ -1685,7 +1685,7 @@ dip_bimodality <- function(x) {
   list(dip = unname(dt$statistic), p = dt$p.value, n = length(x), bimodal = dt$p.value < 0.05)
 }
 
-# --- 16. TCGA UCEC reference cohort (report 8, TMB comparison) ---------------
+# --- 16. TCGA UCEC reference cohort (report 41, TMB comparison) ---------------
 # Cohort B for the MMRd aneuploidy contrast: TCGA UCEC (PRIMARY tumours) vs ATTEND
 # (METASTATIC). Reads a cBioPortal PanCancer-Atlas clinical export dropped into
 # data/tcga/ (study `ucec_tcga_pan_can_atlas_2018`; download via code/fetch_tcga_ucec.R
@@ -1708,7 +1708,7 @@ attend_tcga_ref <- list(
   msi_subtype_pattern = "MSI"                       # SUBTYPE marking MMRd/MSI tumours
 )
 
-# --- TCGA UCEC 2013 PUBLICATION cohort (report 8, TMB comparison) ------------
+# --- TCGA UCEC 2013 PUBLICATION cohort (report 41, TMB comparison) ------------
 # The ORIGINAL Nature 2013 study (cBioPortal `ucec_tcga_pub`), NOT the 2018 PanCancer-Atlas
 # restatement above. Two things make it the right source for reproducing Fig. 1a:
 #   SUBTYPE        the paper's four integrated groups, spelled out in full
@@ -1781,7 +1781,7 @@ attend_tcga_ref_2013 <- list(
   # "all tumor amplifications" + "all tumor deletions" sheets, converted to TSV. 79 peaks
   # (43 amp / 36 del) over 5,046 genes. This is an EXTERNAL, PRE-REGISTERED feature set:
   # it was not fitted to ATTEND, so using it removes the cohort-fitted peak instability that
-  # forces report 5 into leave-one-out stability testing, and it lets both cohorts be
+  # forces report 35 into leave-one-out stability testing, and it lets both cohorts be
   # clustered on identical features. The paper never published its GISTIC PARAMETERS
   # (Suppl. Methods says only "GISTIC 2.0"), so the peaks themselves are the only faithful
   # route to its feature space.
@@ -1816,9 +1816,9 @@ attend_tcga_gistic <- list(
 )
 
 # =============================================================================
-# §15  RECURRENT SCNA BY ANEUPLOIDY x MMR  (report 5)
+# §15  RECURRENT SCNA BY ANEUPLOIDY x MMR  (report 35)
 #
-# The 2x2 that report 5 tests. MMRd-high is the small cell (n=9 as of 2026-07-20),
+# The 2x2 that report 35 tests. MMRd-high is the small cell (n=9 as of 2026-07-20),
 # which is why the primary endpoint is an AGGREGATED panel score rather than a
 # per-peak test — see the spec's power table. Panel loci are DIRECTIONAL: a deletion
 # at MYC must not score as serous-like.
@@ -1851,7 +1851,7 @@ attend_scna <- list(
 #'
 #' Composes existing derived columns rather than re-deriving either one: MMR status
 #' comes from is_mmrd() (IHC only, MSI deliberately excluded) and aneuploidy_class
-#' from add_molecular_classes(). Re-deriving would let report 5 drift from 09/11/12.
+#' from add_molecular_classes(). Re-deriving would let report 35 drift from 09/11/12.
 #'
 #' NA MMR status propagates to NA in both output columns.
 add_scna_group <- function(df,

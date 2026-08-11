@@ -1,7 +1,7 @@
 # =============================================================================
-# attend_scna.R — statistics for report 5 (recurrent SCNAs by aneuploidy x MMR)
+# attend_scna.R — statistics for report 35 (recurrent SCNAs by aneuploidy x MMR)
 #
-# Sourced by analysis/05_oncoplots_recurrent_cna.Rmd. Depends on
+# Sourced by analysis/35_subgroup_cna_contrast.Rmd. Depends on
 # attend_classes.R (attend_scna, attend_cnv) being sourced first.
 #
 # Design constraint: MMRd-high is n=9. Between-group PER-PEAK inference is not
@@ -67,7 +67,7 @@ seg_barcodes <- function(cnv = attend_cnv) {
 }
 
 #' scna_group factor for a vector of BARCODES, via the barcode->pid crosswalk.
-#' THE single source of truth report 5's group_of_barcode() delegates to, so the
+#' THE single source of truth report 35's group_of_barcode() delegates to, so the
 #' .seg writers and the report cannot assign a barcode to different groups.
 barcode_scna_group <- function(barcodes, master, cw,
                                pid_col = attend_cols$pid,

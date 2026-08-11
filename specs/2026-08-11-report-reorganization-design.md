@@ -1,7 +1,7 @@
 # Report reorganization — design
 
 **Date:** 2026-08-11
-**Status:** approved, not yet implemented
+**Status:** implemented 2026-08-11 — see §12 for where the build departed from this design
 **Scope:** `analysis/*.Rmd` structure and prose. No change to `code/*.R` behaviour.
 
 ---
@@ -430,3 +430,78 @@ Destinations are the target layout in §3 and the chunk destination map in §4.
 | P1 | Arm barplot: genome order, `n_evaluable` axis labels, `attend_theme()` | `analysis/05_oncoplots_recurrent_cna.Rmd` | `34_recurrent_cna` |
 | P1/P2 | Genome-wide pileup: two amplitude panels, centromere marks, chrY dropped, `attend_theme()`, denominator and source stated in prose | `analysis/05_oncoplots_recurrent_cna.Rmd` | `34_recurrent_cna` |
 | P2 | Memo-sorted oncoplot added as the primary panel; annotation-sorted panel retitled and kept | `analysis/05_oncoplots_recurrent_cna.Rmd` | `33_mutation_landscape` |
+
+
+---
+
+## 12. Implementation notes (2026-08-11)
+
+All six phases landed. 15 reports plus `00_methods.Rmd`, as §3 planned; every one of the
+133 content chunks reached its §4 destination. Four places where the build had to decide
+something this design left open or under-specified:
+
+### 12.1 The scope contract sits *after* the setup chunk, not before it
+
+§3.1 wants the contract to quote a live `` `r nrow(dat)` ``; §7 wants it inside the first
+20 lines. knitr evaluates inline R in **document order**, so an object quoted in the
+contract must already exist. The reports therefore open YAML → `setup` (`include=FALSE`,
+which loads the master *and applies the report's cohort restriction*) → contract, and
+`test_rmd_style.R` locates the contract against the first 20 **prose** lines, skipping the
+YAML block and fenced chunks.
+
+This is a better outcome than the literal reading: it forces each report to establish its
+cohort once, at the top, in one place — which is D1 enforced by evaluation order rather
+than by convention.
+
+### 12.2 The 400-line cap became a named per-file exemption list
+
+§10 authorised adjusting the cap. Raising it globally would licence every report to grow,
+so `test_rmd_style.R` keeps `MAX_LINES = 400` and carries an `OVER_CAP` list with one
+ceiling and one reason per file. An exemption that is no longer needed fails the test as
+**stale**, so these cannot outlive their argument.
+
+| File | Lines | Cap | Why |
+|---|---|---|---|
+| `00_methods.Rmd` | 450 | 500 | It is the single destination for every justification (D5). Capping it pushes prose back into the reports it was extracted from. |
+| `32_cell_composition.Rmd` | 502 | 550 | §4 maps 04:358–773 here as one report. It carries four question-groups (composition, immune content, continuous covariates, imaging calls) and is the natural next split if the report set is extended past 15. |
+| `40_tcga_classification.Rmd` | 596 | 650 | Named in §10 as the file expected to exceed the cap even after the methods extraction. It does: clustering, k-sweep, enrichment, and the cascade. |
+
+### 12.3 One `code/` addition, contrary to §9
+
+§9 says this reorganization adds only `code/tests/test_rmd_style.R` to `code/`, and defers
+extracting analysis logic "until the boundaries settle". Splitting `08` into `36` and `41`
+is what settles them, and it made the deferral untenable: `41`'s TCGA row runs the *same*
+three-criterion battery as `36`, so the private bimodality library (`.skew_kurt()`,
+`.bimodality_coef()`, `.gmm_modes()`) would have had to be **copied into both reports** —
+exactly the drift D3 exists to prevent.
+
+It is now `code/attend_bimodality.R`, bodies verbatim, no behaviour change. Two further
+`code/` changes were made and are comment-only: the ~70 stale `report N` / `0N_*.Rmd`
+references left by the renumbering, and the `stop()` message in `attend_io.R` that named
+`01_data_integration.Rmd`. `code/tests/test_rmd_parse.R` was also added — a base-R chunk
+extractor plus `parse()`, so a chunk cut in half during the split fails locally, where
+neither knitr nor the cohort data is available.
+
+### 12.4 Two chunks that did not move as mapped
+
+- **`04 survival-join` was deleted, not relocated.** §4 assigns it to `20`, but its only
+  outputs (`ihc_clin`, `imaging_clin`) fed `survival-by-ihc`, which D4 moves to `30`.
+  Keeping it in `20` would have left dead code, contradicting D1. `30` builds what it needs
+  from `ihc_patient_metrics()` instead — the dependency §10 anticipated, and it proved
+  unremarkable, so the §10 fallback (leaving the KM in `20`) was not needed.
+- **`04 survival-aneu-immune` kept its MMRd restriction.** It was computed on `ct`, the
+  MMRd-restricted cell-type table, so it was implicitly MMR-deficient-only — a fact the
+  chunk's own prose did not state. Widening it to every imaged patient on the way to `30`
+  would have changed the result rather than relocated it, so `30` re-applies `is_mmrd()`
+  and the derivation note says so.
+
+### 12.5 Not enforced by the test
+
+§5.2's density rules (at most 2 bold spans per paragraph, one em-dash per sentence) are
+**not** machine-checked, because §7's enumerated test list does not include them. They were
+applied editorially to every paragraph rewritten during the split, including the
+11-bold-span blockquote at the old `07:53–75` that §1.3 names. Prose carried over untouched
+may still violate them.
+
+`05:443`'s hardcoded "n ≈ 9" (§1.3) is fixed: `35_subgroup_cna_contrast` computes
+`n_mmrd_high` in setup and quotes it inline, in both the scope contract and the intro.

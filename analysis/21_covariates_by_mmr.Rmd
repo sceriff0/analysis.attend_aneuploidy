@@ -1,7 +1,7 @@
 ---
-title: "ATTEND — 6. Covariate distributions by MMR status"
+title: "ATTEND — 21. Covariate distributions by MMR status"
 author: "sceriff0"
-date: "2026-08-09"
+date: "2026-08-11"
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
@@ -14,46 +14,44 @@ library(here)
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 10, fig.height = 7)
 
-source(here("code", "attend_classes.R"))   # attend_cols / attend_levels
-source(here("code", "attend_plots.R"))     # attend_theme()
+source(here("code", "attend_classes.R"))   # attend_cols / attend_levels / attend_thresholds
+source(here("code", "attend_plots.R"))     # attend_theme(), attend_mmr_cols
 source(here("code", "attend_io.R"))        # read_intermediate()
+
+master <- read_intermediate("attend_master_joined")
 ```
 
-## What this report does
+> **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
+> **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
+> **Reads.** `attend_master_joined` only.
+> **Out of scope.** Anything conditioned on aneuploidy class -> the 3x reports. Survival -> [30_survival](30_survival.html).
 
-Compares the **whole distribution** of each continuous molecular covariate between
-MMR-deficient and MMR-proficient tumours, rather than comparing group averages.
+Whole distributions, not group averages. The expected differences here are tail phenomena:
+MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than
+a uniform shift, which an ECDF shows plainly and a median hides.
+
+```{r child='_explainers/master-provenance.Rmd'}
+```
+
+```{r child='_explainers/tmb-two-definitions.Rmd'}
+```
+
+```{r child='_explainers/aneuploidy-classes.Rmd'}
+```
 
 ### Why an ECDF rather than a boxplot
 
 An empirical cumulative distribution function plots, for every value on the x-axis, the
-fraction of patients at or below it. Reading one:
-
-- The curve always rises from 0 to 1, left to right.
-- **Where the two curves separate** tells you *where in the range* the groups differ — a
-  gap only at the right-hand end means the groups differ in their high tail, not overall.
-- **A curve further right** means systematically higher values in that group.
-- The **largest vertical gap** between the curves is the KS statistic `D` tested below.
-
-This matters here because the expected differences are tail phenomena. MMR-deficient
-tumours are expected to carry higher TMB and MSI, but through a *hypermutated subset*
-rather than a uniform shift — a difference an ECDF shows plainly and a boxplot's median
-can hide.
-
-### The two TMB definitions
-
-As everywhere in this pipeline, TMB appears exactly twice: **TMB (normal)**
-(`tmb__TMB_SCORE`, the upstream tumour-only score) and **TMB (ancestry corrected)**
-(`tmb__TMB_nassar`, after the ancestry recalibration). They get their own ECDF panels, so
-whether the germline correction changes the MMR-deficient tail is directly visible.
+fraction of patients at or below it. The curve rises from 0 to 1 left to right; where the
+two curves separate says *where in the range* the groups differ, a curve further right
+means systematically higher values, and the largest vertical gap between them is the KS
+statistic `D` tested below.
 
 ## Data
 
-Everything is read from `output/clean_data/attend_master_joined` (report 1). Covariates
-are mapped to readable labels here; only those actually present on the master are kept,
-so a covariate that failed to join is dropped rather than drawn empty.
-
-MMR status is `attend_cols$mmr_status`, collapsed to two groups: deficient
+Covariates are mapped to readable labels here, and only those actually present on the
+master are kept, so a covariate that failed to join is dropped rather than drawn empty.
+MMR status is `attend_cols$mmr_status`, collapsed to deficient
 (`r attend_levels$mmr_deficient`) versus everything else non-missing.
 
 ```{r data}
@@ -154,14 +152,50 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
 }
 ```
 
-## What to take away
+## Aneuploidy score by MMR status
 
-- **Where the curves separate matters as much as whether they separate.** A gap confined
-  to the right-hand tail is a hypermutated-subset story, not a shift in the typical
-  patient.
-- **TMB appears under both definitions.** If the MMR-deficient tail moves between the two
-  panels, that is the germline correction acting, not new biology.
-- **The KS test is uncorrected and the two TMB rows are the same patients twice.**
+The ECDF above shows the whole aneuploidy distribution; this is the same comparison as a
+two-group contrast with a test attached, because aneuploidy is this pipeline's subject and
+the ECDF alone gives no effect size or p-value. Aneuploidy score is
+`aneu__aneuploidy_score` (ASCETS arm-level SCNA burden from `data/ascets/`, LOWCOV arms
+excluded from each sample's denominator); the dashed line is the
+`r attend_thresholds$aneuploidy` class cutoff, drawn so the boxes can be read against the
+split every 3x report uses. Wilcoxon rank-sum on the two groups, uncorrected.
+
+```{r aneu-by-mmr, fig.width=6, fig.height=5}
+aneu_col <- attend_cols$aneuploidy
+
+if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
+  am <- master |>
+    transmute(
+      MMR = case_when(
+        .data[[mmr_col]] == attend_levels$mmr_deficient ~ "MMR deficient",
+        !is.na(.data[[mmr_col]])                        ~ "MMR proficient",
+        TRUE                                            ~ NA_character_),
+      aneuploidy = suppressWarnings(as.numeric(.data[[aneu_col]]))) |>
+    filter(!is.na(MMR), !is.na(aneuploidy))
+
+  p_lab <- tryCatch({
+    grp <- split(am$aneuploidy, am$MMR)
+    if (length(grp) == 2)
+      sprintf("Wilcoxon p = %s | n = %d deficient, %d proficient",
+              format.pval(wilcox.test(grp[[1]], grp[[2]])$p.value, digits = 2, eps = 1e-4),
+              length(grp[["MMR deficient"]]), length(grp[["MMR proficient"]]))
+    else NULL
+  }, error = function(e) NULL)
+
+  ggplot(am, aes(MMR, aneuploidy, fill = MMR)) +
+    geom_boxplot(outlier.shape = NA, width = 0.6, alpha = 0.6) +
+    geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+    geom_hline(yintercept = attend_thresholds$aneuploidy, linetype = 2, colour = "grey40") +
+    scale_fill_manual(values = attend_mmr_cols) +
+    labs(title = "Aneuploidy score by MMR status",
+         subtitle = p_lab, x = NULL, y = "aneuploidy score") +
+    attend_theme() + theme(legend.position = "none")
+} else {
+  message("Need ", aneu_col, " and ", mmr_col, " on the master for the aneuploidy contrast.")
+}
+```
 
 ```{r session-info}
 sessionInfo()

@@ -1,7 +1,7 @@
 ---
-title: "ATTEND — 2. Survival, stratified by molecular axis"
+title: "ATTEND — 30. Survival"
 author: "sceriff0"
-date: "2026-08-09"
+date: "2026-08-11"
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
@@ -20,34 +20,38 @@ library(gtsummary)
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 7)
 
-source(here("code", "attend_classes.R"))   # column config + km_facet() / surv_table()
-source(here("code", "attend_io.R"))        # read_intermediate() (Parquet/CSV)
+source(here("code", "attend_classes.R"))     # column config + km_facet() / surv_table()
+source(here("code", "attend_io.R"))          # read_intermediate() (Parquet/CSV)
+source(here("code", "attend_ihc.R"))         # ihc_patient_metrics(), for the immune split
+source(here("code", "load_phenotypes.R"))    # load_ihc_data()
+source(here("code", "load_clinical.R"))      # load_imaging_data()
+
+master <- read_intermediate("attend_master_joined") |> add_molecular_classes()
 ```
 
-## What this report does
+> **Question.** Does the treatment comparison behave differently in different molecular subgroups?
+> **Cohort.** All `r nrow(master)` patients on the master; the immune-content panels are restricted to the imaged subset.
+> **Reads.** `attend_master_joined`, plus the FlowPath/imaging join for `immune_class`.
+> **Out of scope.** Everything that is not a survival model. Composition itself -> [32_cell_composition](32_cell_composition.html); concordance -> [20_flowpath_concordance](20_flowpath_concordance.html).
 
-One question, asked repeatedly: **does the treatment comparison behave differently in
-different molecular subgroups?**
+Every figure below has the same structure. The two coloured curves are always the same
+comparison, `attend_cols$km_group` (the treatment arm); what changes between figures is how
+the cohort is split into panels — by aneuploidy and MMR status first, then TMB, HRD, MSI,
+and immune content. Each panel carries its own log-rank p-value, comparing the two arms
+*within* that panel only. A gap that is similar in every panel means the molecular axis
+does not modify the treatment effect; a gap that opens in one panel and closes in another
+might, and the interaction test after the headline figure puts a number on it.
 
-Every figure below has the same structure. The two **coloured curves** are always the
-same comparison — `attend_cols$km_group`, the treatment arm. What changes between
-figures is how the cohort is **split into panels**: by aneuploidy and MMR status
-(the headline figure), then by TMB, HRD, and MSI. Each panel carries its own log-rank
-p-value, comparing the two arms *within* that panel only.
+```{r child='_explainers/master-provenance.Rmd'}
+```
 
-Reading them: if the gap between the two curves is similar in every panel, the
-molecular axis does not modify the treatment effect. If the gap opens in one panel and
-closes in another, it might — and the interaction test after the headline figure is
-what puts a number on that.
+```{r child='_explainers/aneuploidy-classes.Rmd'}
+```
 
-**Where the data comes from.** Everything is read from
-`output/clean_data/attend_master_joined`, the one-row-per-patient table built in report
-1. Continuous scores are binarised into classes by `add_molecular_classes()` at the
-thresholds configured in `code/attend_classes.R`: aneuploidy at
-`r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
-`r attend_thresholds$hrd`. Survival time and event columns are named in `attend_cols`.
-Every chunk is guarded by `have_cols()`, so the report knits to a legible skeleton
-before those column names are set.
+Continuous scores are binarised by `add_molecular_classes()` at the configured thresholds:
+aneuploidy at `r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
+`r attend_thresholds$hrd`. Every chunk is guarded by `have_cols()`, so the report knits to a
+legible skeleton before those column names are set.
 
 ## Data
 
@@ -132,6 +136,10 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols
                  caption = "MMRd + aneuploidy-high — Cox PH: PFS ~ treatment arm (HR, 95% CI). n/events via logrank_cox_effect().")
 } else message("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
 ```
+
+A three-way Cox model on the master, `treatment arm x aneuploidy class x MMR status`, so
+the subgroup Cox above can be read against a single formal test of whether the arms differ
+by subgroup rather than against a series of per-panel log-ranks.
 
 ```{r interaction-3way}
 d_int <- master |>
@@ -240,20 +248,64 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
 }
 ```
 
-## What to take away
+## Split by immune content
 
-- The coloured curves are **always the treatment arm**. The panels are the molecular
-  split. Every p-value is a within-panel comparison of the two arms.
-- A per-panel p-value is **not** a test of the molecular axis. Whether aneuploidy or MMR
-  *modifies* the treatment effect is the interaction test, and at this cohort size that
-  test is underpowered — it is reported flagged, and reads as suggestive only.
-- Panels flagged `small_n` (n < 10 or events < 5) can separate dramatically on very few
-  patients. Check the counts table before believing a gap.
-- TMB appears twice, once per definition. A result that only survives under one of the
-  two definitions is a result about the germline correction, not about the tumour.
+Survival by immune content on the imaged cohort, which is why this section carries a
+different denominator from every other section above. Immune content is the CD45+ fraction
+inside the annotated region, read per patient from the FlowPath tree by
+`ihc_patient_metrics()` (the same helper
+[20_flowpath_concordance](20_flowpath_concordance.html) validates) and binarised at its
+**median** — a data-driven split, not a pre-registered threshold, so it is descriptive.
+Panels are MMR status; curves are immune-high vs immune-low.
 
-To change which variable is coloured and which are panels, edit the `group =` and
-`facets =` arguments; `km_facet()` accepts one or two facet variables.
+```{r ihc-immune-build}
+ihc_pt <- tryCatch(ihc_patient_metrics(load_ihc_data(), load_imaging_data()),
+                   error = function(e) NULL)
+have_ihc <- !is.null(ihc_pt) && nrow(ihc_pt) > 0 && "cd45_over_inside" %in% names(ihc_pt)
+
+if (have_ihc) {
+  ihc_surv <- ihc_pt |>
+    left_join(master |> select(pid, any_of(c(attend_cols$surv_time, attend_cols$surv_event,
+                                             attend_cols$mmr_status, attend_cols$aneuploidy,
+                                             "aneuploidy_class"))), by = "pid") |>
+    mutate(immune_class = if_else(cd45_over_inside >= median(cd45_over_inside, na.rm = TRUE),
+                                  "immune-high", "immune-low"))
+  cat("imaged patients with an immune split:", sum(!is.na(ihc_surv$immune_class)), "\n")
+} else {
+  ihc_surv <- tibble()
+  cat("No FlowPath IHC data — the immune-content panels are skipped.\n")
+}
+```
+
+Treatment arm within each MMR stratum, split by immune content.
+
+```{r survival-by-ihc}
+if (have_ihc && have_cols(ihc_surv, attend_cols$surv_time, attend_cols$surv_event,
+                          attend_cols$mmr_status, "immune_class")) {
+  km_facet(ihc_surv, group = "immune_class", facets = attend_cols$mmr_status)
+} else message("survival columns not set in attend_cols — skipping KM by IHC feature.")
+```
+
+Aneuploidy class crossed with immune content. This panel keeps the **MMR-deficient**
+restriction it carried in its previous home: it was computed on the MMRd cell-type table,
+so widening it to every imaged patient would change the result rather than relocate it.
+Immune content is the same median split as above, recomputed inside the MMRd subset so the
+median is that subset's own.
+
+```{r survival-aneu-immune}
+mmrd_imaged <- if (have_ihc && attend_cols$mmr_status %in% names(ihc_surv))
+  ihc_surv |> filter(is_mmrd(.data[[attend_cols$mmr_status]])) else tibble()
+
+if (nrow(mmrd_imaged) > 0) {
+  imm <- mmrd_imaged |>
+    mutate(immune_class = if_else(cd45_over_inside >= median(cd45_over_inside, na.rm = TRUE),
+                                  "immune-high", "immune-low"))
+  if (have_cols(imm, attend_cols$surv_time, attend_cols$surv_event,
+                "immune_class", "aneuploidy_class")) {
+    km_facet(imm, group = "immune_class", facets = "aneuploidy_class")
+  } else message("survival columns not set in attend_cols — skipping KM.")
+} else message("No MMR-deficient imaged patients — aneuploidy x immune KM skipped.")
+```
 
 ```{r session-info}
 sessionInfo()

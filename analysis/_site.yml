@@ -5,6 +5,8 @@ navbar:
   left:
   - text: Home
     href: index.html
+  - text: Methods
+    href: 00_methods.html
   - text: About
     href: about.html
   - text: License

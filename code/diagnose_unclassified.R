@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
-# Diagnose the "unclassified" bucket in report 7 (TCGA classification).
+# Diagnose the "unclassified" bucket in report 40 (TCGA classification).
 # Run from the ATTEND repo root, WHERE THE DATA EXISTS (HPC, or after syncing
 # data/gistic/ + output/clean_data/ + the gianlu clinical file down locally):
 #   Rscript code/diagnose_unclassified.R
-# It reproduces report 7's objects up through the cascade and prints where
+# It reproduces report 40's objects up through the cascade and prints where
 # patients are lost between the master, the GISTIC matrix, and the crosswalk.
 
 suppressPackageStartupMessages({

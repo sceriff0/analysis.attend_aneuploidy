@@ -1,4 +1,4 @@
-# Two denominator bugs in the recurrent-CNA figures (report 05):
+# Two denominator bugs in the recurrent-CNA figures (report 34):
 #  (1) recurrent_arm_calls() folded ASCETS's LOWCOV (below breadth-of-coverage) into a
 #      "neutral" catch-all, inflating the arm denominator with arms that were never
 #      actually evaluated. ASCETS's own aneuploidy score, and this repo's

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # =============================================================================
-# fetch_tcga_ucec_2013.R — the TCGA UCEC *2013 Nature paper* cohort (report 8)
+# fetch_tcga_ucec_2013.R — the TCGA UCEC *2013 Nature paper* cohort (report 41)
 #
 # Sibling of fetch_tcga_ucec.R, which pulls the PanCancer-Atlas (2018) restatement.
 # THIS script pulls the ORIGINAL publication study — cBioPortal `ucec_tcga_pub`,
@@ -30,7 +30,7 @@
 # Idempotent; pass --force to re-download. Deps: jsonlite + tidyverse (same as the
 # 2018 fetcher). The optional `curl` package turns the segment pull into ONE POST
 # (~5 s); without it the script falls back to a per-sample GET loop (~2 min).
-# Then knit analysis/08_tmb_distribution.Rmd.
+# Then knit analysis/41_tcga_tmb_replication.Rmd.
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -184,5 +184,5 @@ if (file.exists(srcC) && file.exists(srcW)) {
           "aneuploidy = ",       sum(is.finite(cl$aneuploidy)))
   message("load_tcga_2013_seg(): ", nrow(sg), " segments x ",
           dplyr::n_distinct(sg$ID), " samples")
-  message("Ready — knit analysis/08_tmb_distribution.Rmd")
+  message("Ready — knit analysis/41_tcga_tmb_replication.Rmd")
 }
