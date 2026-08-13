@@ -1,6 +1,6 @@
 # Runbook — classification options beyond the current GISTIC reproduction
 
-**Status:** backlog, not implemented. **Relates to:** `analysis/08_tcga_classification.Rmd`.
+**Status:** backlog, not implemented. **Relates to:** `analysis/08-tcga-classification.Rmd`.
 
 Where the copy-number classification could go beyond reproducing Kandoth et al. Suppl.
 Methods S2, given the tools this project already runs (DRAGEN, ASCETS, variantalker).

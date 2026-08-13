@@ -72,7 +72,7 @@ that actually characterises serous-like disease.
 
 This report therefore scores clusters **directionally**: only *concordant* events count —
 **gains at amplification peaks, losses at deletion peaks**. It is the same principle
-attend_scna$panel already applies to the pre-specified locus panel in [06_mutation_and_cna](06_mutation_and_cna.html)
+attend_scna$panel already applies to the pre-specified locus panel in [06-mutation-and-cna](06-mutation-and-cna.html)
 (*a deletion at MYC must not score as serous-like*).
 
 ⚠️ **Both calls are computed and printed, and a [DISAGREE] flag is raised when they
@@ -82,7 +82,7 @@ cluster labels.
 
 ## Where this reproduction follows TCGA, and where it departs
 
-Each subsection names one step of [08_tcga_classification](08_tcga_classification.html)
+Each subsection names one step of [08-tcga-classification](08-tcga-classification.html)
 and states what it takes from Kandoth et al. Suppl. Methods S2 and what is an ATTEND
 addition. Read it once; the reports themselves carry only their own derivations.
 
@@ -147,7 +147,7 @@ never silently picks one:
 Two further columns, tmb__TMB_robust and tmb__TMB_matched, exist on the master because
 the recalibration is fitted on top of robust. They are intermediates: tmb_defs_present()
 cannot return them, so no figure can show them. How the recalibration works is in
-[00_methods](00_methods.html).
+[00-methods](00-methods.html).
 
 Every definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
 tmb_class_of(), so panels that differ only in definition differ only in who crossed the
@@ -155,7 +155,7 @@ cut. The ancestry-corrected column stays all-NA until attend_ancestry$clinical_c
 set, and panels that would be empty are skipped rather than drawn blank.
 
 Getting from the delivered score to the reported corrected one passes through two
-intermediates, computed in [01_data_integration](01_data_integration.html) and living on
+intermediates, computed in [01-data-integration](01-data-integration.html) and living on
 the master, but never plotted, faceted, or labelled anywhere:
 
 - **robust** — drop variants common in **any** population (grpmax ≥
@@ -498,7 +498,7 @@ are excluded rather than assumed proficient.
 
 ## Where the data comes from
 Everything below is read from attend_master_joined, the one-row-per-patient table written
-by [01_data_integration](01_data_integration.html) and loaded here through
+by [01-data-integration](01-data-integration.html) and loaded here through
 read_intermediate() — never by a hard-coded .csv or .parquet path.
 
 That report translates each modality's native identifier onto pid, collapses to one row

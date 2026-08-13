@@ -30,7 +30,7 @@
 # Idempotent; pass --force to re-download. Deps: jsonlite + tidyverse (same as the
 # 2018 fetcher). The optional `curl` package turns the segment pull into ONE POST
 # (~5 s); without it the script falls back to a per-sample GET loop (~2 min).
-# Then knit analysis/07_tmb.Rmd (Part 3).
+# Then knit analysis/07-tmb.Rmd (Part 3).
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -184,5 +184,5 @@ if (file.exists(srcC) && file.exists(srcW)) {
           "aneuploidy = ",       sum(is.finite(cl$aneuploidy)))
   message("load_tcga_2013_seg(): ", nrow(sg), " segments x ",
           dplyr::n_distinct(sg$ID), " samples")
-  message("Ready — knit analysis/07_tmb.Rmd (Part 3)")
+  message("Ready — knit analysis/07-tmb.Rmd (Part 3)")
 }

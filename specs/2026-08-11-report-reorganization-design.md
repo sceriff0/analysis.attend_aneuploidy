@@ -16,7 +16,7 @@ with a `# Part N` header.
 
 | Report | Lines | Contains |
 |---|---|---|
-| `01_data_integration` | 785 | the join + master write (Part 1); the unmapped/coverage audit (Part 2); value sanity (Part 3) |
+| `01-data-integration` | 785 | the join + master write (Part 1); the unmapped/coverage audit (Part 2); value sanity (Part 3) |
 | `04_ihc_imaging_spatial` | 806 | FlowPath-vs-pathologist concordance on all imaged patients (Part 1); cell-type composition vs aneuploidy in MMRd only (Part 2) |
 | `05_oncoplots_recurrent_cna` | 657 | oncoplots + subgroup mutation frequency (Part 1); recurrent CNA (Part 2); a pre-specified permutation-tested subgroup contrast (Part 3) |
 | `07_tcga_classification` | 1020 | the TCGA cascade (46–618); a Nassar TMB methods essay (619–921); a GISTIC SLURM runbook (922–1005) |
@@ -26,7 +26,7 @@ Topic-occurrence counts (grep hits per report) show the smear:
 
 ```
                                     TMB ANEU MMR SURV TP53 GIST ASCE  IHC TCGA ONCO
-01_data_integration                  37   11    0    1    1    0    0   11    0    0
+01-data-integration                  37   11    0    1    1    0    0   11    0    0
 02_survival_stratified               22   31   42   26    0    0    1    0    0    0
 03_aneuploidy_mutations_mmrd         21   40   52    0   12    0    1    1    0    0
 04_ihc_imaging_spatial                9  107   69   16   15    0    0   77    0    0
@@ -54,7 +54,7 @@ Topic-occurrence counts (grep hits per report) show the smear:
 | Genre | Example | Belongs |
 |---|---|---|
 | Derivation note — what is shown, from which raw file/columns, which interpretation-changing operations | `08:634–641` | inline, above the chunk |
-| Justification — why Pearson/Ward, why the directional serous call, how Nassar works | `07:53–75`, `07:619–921` | `00_methods.Rmd` |
+| Justification — why Pearson/Ward, why the directional serous call, how Nassar works | `07:53–75`, `07:619–921` | `00-methods.Rmd` |
 | Operations — how to run GISTIC under SLURM | `07:922–1005` | `runbooks/` |
 
 `07` is 1020 lines because it contains all three. In-chunk comment density ranges from
@@ -79,7 +79,7 @@ The "two TMB definitions" block appears in six of eight reports, and again in
 | D2 | **Banded numbering** `1x` build / `2x` QC / `3x` findings / `4x` external. | The number states the stage; gaps absorb future reports without renumbering. `ec_analysis/analysis/` already uses this scheme. |
 | D3 | Shared explainers become **child fragments** in `analysis/_explainers/`, included via `child=`. | Written once; the text still renders into every report, so a single knitted HTML remains self-contained. Prose stays in Markdown rather than R strings. |
 | D4 | **All survival consolidates into `30_survival`**, including the two KM chunks currently in `04`. | One question, one report. Cost: `30_survival` gains a dependency on the IHC join for `immune_class`. Accepted. |
-| D5 | Justification prose moves to `00_methods.Rmd`; operations prose moves to `runbooks/`. | Both are read once, not per-knit. |
+| D5 | Justification prose moves to `00-methods.Rmd`; operations prose moves to `runbooks/`. | Both are read once, not per-knit. |
 | D6 | **No takeaway/interpretation sections.** The tier is removed from the standard and the eight existing sections are deleted. | Reports show derivations and results; conclusions belong in the manuscript, and editorialised summaries drift as data changes. |
 | D7 | `runbooks/` and `specs/` live at **repo root**, never under `docs/`. | workflowr owns `docs/` as its build output; `wflow_publish()` overwrites it. |
 
@@ -100,7 +100,7 @@ Only forward-looking interpretation is removed.
 
 ```
 analysis/
-  00_methods.Rmd                     every justification, once. Knits the Nassar fit.
+  00-methods.Rmd                     every justification, once. Knits the Nassar fit.
   _explainers/                       child fragments (not built by wflow_build)
 
   ── 1x  BUILD ────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ specs/
   2026-08-11-report-reorganization-design.md   (this file)
 ```
 
-15 knitted analysis reports + `00_methods`, versus 8 today.
+15 knitted analysis reports + `00-methods`, versus 8 today.
 
 ### 3.1 Scope contract
 
@@ -172,7 +172,7 @@ regenerated in each new report rather than moved. Nothing is dropped.
 | `37_tmb_by_aneuploidy_and_mmr` | 08: `aneu-tmb-build`, `aneu-tmb-box`, `aneu-tmb-test`, `aneu-tmb-note` (642–810) **+ 03 `tmb-definitions` (288–343), merged** |
 | `40_tcga_classification` | 07: `cnv-load` … `cascade-panels-tmb` (148–618) |
 | `41_tcga_tmb_replication` | 08: `tcga-load` … `tcga-mmr-contrast` (435–620) |
-| `00_methods` | 07: `ancestry-tmb`, `ancestry-tmb-by-group`, `nassar-fit`, `nassar-effect` (722–921) + all justification prose extracted from 03/05/07 |
+| `00-methods` | 07: `ancestry-tmb`, `ancestry-tmb-by-group`, `nassar-fit`, `nassar-effect` (722–921) + all justification prose extracted from 03/05/07 |
 | `runbooks/gistic.md` | 07: 922–1005 (prose + bash, no R chunks) |
 | *deleted* | the 8 `## What to take away` / `## Interpretation` / `## Notes` sections (141 lines), less the caveats promoted per D6 |
 
@@ -197,14 +197,14 @@ draws both MMR groups. The merge removes a duplicated analysis rather than reloc
 Tier 2 follows the `clean-rmd` rule already adopted by this project: trace to the *raw*
 input (`data/ascets/`, `data/gistic/`), not to the nearest intermediate object.
 
-**Banned inline:** justification (-> `00_methods.Rmd`), operations (-> `runbooks/`),
+**Banned inline:** justification (-> `00-methods.Rmd`), operations (-> `runbooks/`),
 explainers repeated across reports (-> `_explainers/`), takeaway sections (D6).
 
 ### 5.2 Density rules
 
 1. **At most 2 bold spans per paragraph.** `07:53–75` has 11.
 2. **No blockquotes in `analysis/[1-4]*.Rmd`.** Every current one is justification.
-   Blockquotes remain legal in `00_methods.Rmd` and in the scope contract.
+   Blockquotes remain legal in `00-methods.Rmd` and in the scope contract.
 3. **Every quoted number is inline R.** Not `n ≈ 9` but `` `r sum(grp == "MMRd-high")` ``.
 4. **One clause per em-dash, at most one em-dash per sentence.**
 
@@ -281,8 +281,8 @@ Each phase leaves the site knittable.
 | Phase | Work | Verify |
 |---|---|---|
 | audit | Recurrent-CNA audit (§11): three denominator bugs, genome ordering, amplitude tiers, centromere marks, chrY drop, memo-sorted oncoplot. Implemented on `cna-audit-fixes`, lands before phase 0. | `test_recurrent_cna_denominators.R`, `test_cna_plot_inputs.R`, `test_pileup_profiled_denominator.R`, `test_classifycnv_file_id.R` all pass |
-| 0 | Create `_explainers/`, `00_methods.Rmd` (empty shell), `runbooks/`, `code/tests/test_rmd_style.R` (expected to fail). | test runs, reports still knit |
-| 1 | Extract `07:619–1005` into `00_methods.Rmd` + `runbooks/`. No renumbering. | `07` drops to ~620 lines; knits |
+| 0 | Create `_explainers/`, `00-methods.Rmd` (empty shell), `runbooks/`, `code/tests/test_rmd_style.R` (expected to fail). | test runs, reports still knit |
+| 1 | Extract `07:619–1005` into `00-methods.Rmd` + `runbooks/`. No renumbering. | `07` drops to ~620 lines; knits |
 | 2 | Write the five explainer fragments; replace the six in-report copies with `child=` chunks. | knit diff shows identical rendered text |
 | 3 | Split the compounds: `01`->`10`,`11`; `04`->`20`,`32`; `05`->`33`,`34`,`35`; `08`->`36`,`37`,`41`; `07`->`40`. | all chunks accounted for against §4 |
 | 4 | Renumber `02`->`30`, `03`->`31`, `06`->`21`. Update `_site.yml`, `index.Rmd`, `CLAUDE.md`. | no dead links |
@@ -437,7 +437,7 @@ Destinations are the target layout in §3 and the chunk destination map in §4.
 
 ## 12. Implementation notes (2026-08-11)
 
-All six phases landed. 15 reports plus `00_methods.Rmd`, as §3 planned; every one of the
+All six phases landed. 15 reports plus `00-methods.Rmd`, as §3 planned; every one of the
 133 content chunks reached its §4 destination. Four places where the build had to decide
 something this design left open or under-specified:
 
@@ -463,7 +463,7 @@ ceiling and one reason per file. An exemption that is no longer needed fails the
 
 | File | Lines | Cap | Why |
 |---|---|---|---|
-| `00_methods.Rmd` | 450 | 500 | It is the single destination for every justification (D5). Capping it pushes prose back into the reports it was extracted from. |
+| `00-methods.Rmd` | 450 | 500 | It is the single destination for every justification (D5). Capping it pushes prose back into the reports it was extracted from. |
 | `32_cell_composition.Rmd` | 502 | 550 | §4 maps 04:358–773 here as one report. It carries four question-groups (composition, immune content, continuous covariates, imaging calls) and is the natural next split if the report set is extended past 15. |
 | `40_tcga_classification.Rmd` | 596 | 650 | Named in §10 as the file expected to exceed the cap even after the methods extraction. It does: clustering, k-sweep, enrichment, and the cascade. |
 
@@ -479,7 +479,7 @@ exactly the drift D3 exists to prevent.
 It is now `code/attend_bimodality.R`, bodies verbatim, no behaviour change. Two further
 `code/` changes were made and are comment-only: the ~70 stale `report N` / `0N_*.Rmd`
 references left by the renumbering, and the `stop()` message in `attend_io.R` that named
-`01_data_integration.Rmd`. `code/tests/test_rmd_parse.R` was also added — a base-R chunk
+`01-data-integration.Rmd`. `code/tests/test_rmd_parse.R` was also added — a base-R chunk
 extractor plus `parse()`, so a chunk cut in half during the split fails locally, where
 neither knitr nor the cohort data is available.
 
@@ -523,11 +523,11 @@ across the pages: `tmb-two-definitions` on 8 reports, `master-provenance` on 5,
 `aneuploidy-classes` on 8. Reading the site front to back, it read as duplication, because
 it was.
 
-The fragments moved into `00_methods.Rmd` and reports now **link** to them.
+The fragments moved into `00-methods.Rmd` and reports now **link** to them.
 `analysis/_explainers/` is deleted, and `test_rmd_style.R` rule [7] fails the build if a
 report reintroduces a `child='_explainers/...'` include. The cost is real and accepted: a
 single knitted page is no longer self-contained, so sending one HTML to a collaborator now
-means sending `00_methods.html` too.
+means sending `00-methods.html` too.
 
 ### 13.2 D1 relaxed — nine documents, not fifteen
 
@@ -587,15 +587,15 @@ Reports are now numbered **consecutively in reading order**:
 
 | Now | Was |
 |---|---|
-| `00_methods` | `00_methods` |
-| `01_data_integration` | `10_data_integration` (+ `11_join_audit`) |
-| `02_flowpath_concordance` | `20_flowpath_concordance` |
-| `03_covariates_by_mmr` | `21_covariates_by_mmr` |
-| `04_survival` | `30_survival` |
-| `05_aneuploidy_mmrd` | `31_aneuploidy_mutations` + `32_cell_composition` |
-| `06_mutation_and_cna` | `33` + `34` + `35` |
-| `07_tmb` | `36` + `37` + `41` |
-| `08_tcga_classification` | `40_tcga_classification` |
+| `00-methods` | `00-methods` |
+| `01-data-integration` | `10_data_integration` (+ `11_join_audit`) |
+| `02-flowpath-concordance` | `20_flowpath_concordance` |
+| `03-covariates-by-mmr` | `21_covariates_by_mmr` |
+| `04-survival` | `30_survival` |
+| `05-aneuploidy-mmrd` | `31_aneuploidy_mutations` + `32_cell_composition` |
+| `06-mutation-and-cna` | `33` + `34` + `35` |
+| `07-tmb` | `36` + `37` + `41` |
+| `08-tcga-classification` | `40_tcga_classification` |
 
 The cost D2 was avoiding is real and accepted: inserting a report between two others now
 means renumbering everything after it. At nine documents that is a `git mv` and one pass of

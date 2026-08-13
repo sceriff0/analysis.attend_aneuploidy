@@ -44,7 +44,7 @@ contract — Question / Cohort / Reads / Out of scope.
 | 07 | Tumour mutational burden — bimodality, by aneuploidy x MMR, TCGA replication | all |
 | 08 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
 
-Shared definitions live once in `analysis/00_methods.Rmd` and are **linked** from the
+Shared definitions live once in `analysis/00-methods.Rmd` and are **linked** from the
 reports, not rendered into each one. Operational recipes live in `runbooks/`. Reports carry
 no takeaway sections — conclusions belong in the manuscript.
 

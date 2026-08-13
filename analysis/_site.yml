@@ -6,7 +6,7 @@ navbar:
   - text: Home
     href: index.html
   - text: Methods
-    href: 00_methods.html
+    href: 00-methods.html
   - text: About
     href: about.html
   - text: License
@@ -14,7 +14,7 @@ navbar:
   right:
   - icon: fa-github
     text: Source code
-    href: https://github.com/bolt3x/ATTEND
+    href: https://github.com/sceriff0/attend_aneuploidy
 output:
   workflowr::wflow_html:
     toc: true

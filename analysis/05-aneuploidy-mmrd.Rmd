@@ -36,14 +36,14 @@ n_mmrd <- length(mmrd_pids)
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
 > **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
 > **Reads.** The master (built on demand by get_master()), the long MAF, and the FlowPath annotation tree.
-> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [07_tmb](07_tmb.html).
+> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [07-tmb](07-tmb.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
 in the whole cohort any variable that tracks MMR status will also appear to track
 aneuploidy. Conditioning on MMRd removes that shortcut. The outcome in every figure is the
 same continuous aneuploidy score; what changes is the grouping on the x-axis — mutation
 status in Part 1, cell-type composition in Part 2. The cohort definition, the aneuploidy
-cut and the highlight colours are in [00_methods](00_methods.html).
+cut and the highlight colours are in [00-methods](00-methods.html).
 
 ## Part 1 — aneuploidy by mutation status
 
@@ -80,7 +80,7 @@ Two sources, joined on pid. The aneuploidy score and its derived classes come fr
 attend_master_joined. The mutation status is recomputed here directly from the long MAF
 rather than taken from the master's collapsed columns, because the average of a variant row
 is meaningless; pathogenic_by_patient() and mutation_status_long() are the same helpers
-[01_data_integration](01_data_integration.html) used, so the two cannot drift. Crossing the
+[01-data-integration](01-data-integration.html) used, so the two cannot drift. Crossing the
 crosswalk against the full gene list guarantees every gene gets a column even when it never
 appears in the MAF, with unmutated patients FALSE rather than NA.
 

@@ -1,6 +1,6 @@
 # ATTEND — bimodality measures for the TMB distribution reports
 #
-# Extracted from the former report 08 when it split into 07_tmb_distribution and
+# Extracted from the former report 08 when it split into 07-tmb_distribution and
 # 41_tcga_tmb_replication: both run the same three-criterion battery (dip test, Sarle's
 # coefficient, BIC-selected mixture), 41 on the TCGA reference row, so keeping the
 # definitions in one report would have meant copying them into the other.

@@ -37,7 +37,7 @@ master <- get_master() |> add_molecular_classes()
 > **Question.** Does the treatment comparison behave differently in different molecular subgroups?
 > **Cohort.** All `r nrow(master)` patients on the master; the immune-content panels are restricted to the imaged subset.
 > **Reads.** attend_master_joined, plus the FlowPath/imaging join for immune_class.
-> **Out of scope.** Everything that is not a survival model. Composition itself -> [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html); concordance -> [02_flowpath_concordance](02_flowpath_concordance.html).
+> **Out of scope.** Everything that is not a survival model. Composition itself -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html); concordance -> [02-flowpath-concordance](02-flowpath-concordance.html).
 
 Every figure below has the same structure. The two coloured curves are always the same
 comparison, attend_cols$km_group (the treatment arm); what changes between figures is how
@@ -250,7 +250,7 @@ Survival by immune content on the imaged cohort, which is why this section carri
 different denominator from every other section above. Immune content is the CD45+ fraction
 inside the annotated region, read per patient from the FlowPath tree by
 ihc_patient_metrics() (the same helper
-[02_flowpath_concordance](02_flowpath_concordance.html) validates) and binarised at its
+[02-flowpath-concordance](02-flowpath-concordance.html) validates) and binarised at its
 **median** — a data-driven split, not a pre-registered threshold, so it is descriptive.
 Panels are MMR status; curves are immune-high vs immune-low.
 

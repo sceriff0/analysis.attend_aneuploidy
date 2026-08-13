@@ -34,7 +34,7 @@ imaging_data <- load_imaging_data()    # pathologist annotations, keyed by image
 > **Question.** Does FlowPath's automated quantification agree with the pathologist's eye?
 > **Cohort.** All patients with IHC data (`r dplyr::n_distinct(ihc_data$image_id)` images); no molecular restriction.
 > **Reads.** The FlowPath export and the imaging annotation sheet, via load_ihc_data() and load_imaging_data().
-> **Out of scope.** What composition means biologically -> [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html). Survival by immune content -> [04_survival](04_survival.html).
+> **Out of scope.** What composition means biologically -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html). Survival by immune content -> [04-survival](04-survival.html).
 
 FlowPath counts individual cells on each IHC slide and turns them into positivity and
 composition fractions; a pathologist independently scored the same slides by eye. This is
@@ -46,7 +46,7 @@ a molecular subgroup would only make it noisier.
 The FlowPath export is keyed by image_id, the imaging annotation sheet carries both
 image_id and the patient id, and the master is keyed by pid. Everything is put onto
 pid through the image crosswalk built in code/attend_harmonise.R — the same one
-[01_data_integration](01_data_integration.html) used, so this report's cohort cannot drift
+[01-data-integration](01-data-integration.html) used, so this report's cohort cannot drift
 from the master's. The two counts below are the ceiling for everything that follows: rows
 that fail to map are invisible to every figure in this report.
 
@@ -244,7 +244,7 @@ if ("Tumor_cells_PDL1" %in% names(ihc_img)) {
 Everything above is per **image**. A patient can contribute several images, so the
 metrics are collapsed to one row per patient (mean across that patient's images) before
 being used against patient-level variables. ihc_patient_metrics() is the entry point
-[04_survival](04_survival.html) and [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html) call to
+[04-survival](04-survival.html) and [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) call to
 get the same per-patient values.
 
 ```{r ihc-patient}

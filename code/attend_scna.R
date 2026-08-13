@@ -1,7 +1,7 @@
 # =============================================================================
 # attend_scna.R — statistics for report 06 (recurrent SCNAs by aneuploidy x MMR)
 #
-# Sourced by analysis/06_mutation_and_cna.Rmd (Part 3). Depends on
+# Sourced by analysis/06-mutation-and-cna.Rmd (Part 3). Depends on
 # attend_classes.R (attend_scna, attend_cnv) being sourced first.
 #
 # Design constraint: MMRd-high is n=9. Between-group PER-PEAK inference is not

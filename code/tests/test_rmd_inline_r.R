@@ -1,7 +1,7 @@
 # Every inline `r ...` in a report must reference something that report can actually see.
 #
 # This exists because of a real failure: lifting justification prose out of report 08 into
-# 00_methods.Rmd carried an inline `r k_cnv` with it, and k_cnv is defined in report 08's
+# 00-methods.Rmd carried an inline `r k_cnv` with it, and k_cnv is defined in report 08's
 # setup chunk. Nothing caught it — the file parsed, the chunk bodies parsed, the style rules
 # passed — and it only surfaced as "object 'k_cnv' not found" partway through a cluster
 # build, after the master had already been rebuilt.
@@ -13,7 +13,7 @@
 # no report sources it.
 
 analysis_dir <- file.path("analysis")
-reports <- sort(list.files(analysis_dir, pattern = "^0[0-9]_.*\\.Rmd$", full.names = TRUE))
+reports <- sort(list.files(analysis_dir, pattern = "^0[0-9][-_].*\\.Rmd$", full.names = TRUE))
 stopifnot(length(reports) > 0)
 
 # Base/utility names that appear in inline expressions and are never assigned.

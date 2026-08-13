@@ -29,7 +29,7 @@ master <- get_master()
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
 > **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
 > **Reads.** attend_master_joined only.
-> **Out of scope.** Anything conditioned on aneuploidy class -> reports [05](05_aneuploidy_mmrd.html) to [07](07_tmb.html). Survival -> [04_survival](04_survival.html).
+> **Out of scope.** Anything conditioned on aneuploidy class -> reports [05](05-aneuploidy-mmrd.html) to [07](07-tmb.html). Survival -> [04-survival](04-survival.html).
 
 Whole distributions, not group averages. The expected differences here are tail phenomena:
 MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than

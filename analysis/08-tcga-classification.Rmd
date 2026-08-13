@@ -31,12 +31,12 @@ source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
 source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(), load_tmb_scores()
 
 # cnv_method, cnv_dist, k_cnv and k_sweep are configuration and live in attend_classes.R
-# with every other method parameter, so 00_methods.Rmd can name the cut it justifies.
+# with every other method parameter, so 00-methods.Rmd can name the cut it justifies.
 ```
 > **Question.** Which copy-number cluster is enriched for aneuploidy, i.e. which one is the copy-number-high / serous-like group?
 > **Cohort.** All patients with GISTIC output; the cascade itself is drawn on the full master.
 > **Reads.** GISTIC thresholded peaks in data/gistic/ (produced per runbooks/gistic.md), ASCETS scores in data/ascets/, and attend_master_joined.
-> **Out of scope.** Why 1 - Pearson / Ward.D2, and how the serous-like call is made directional -> [00_methods](00_methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
+> **Out of scope.** Why 1 - Pearson / Ward.D2, and how the serous-like call is made directional -> [00-methods](00-methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
 
 
 Reproduces the TCGA integrated genomic classification of endometrial carcinoma (Kandoth et
@@ -44,7 +44,7 @@ al., *Nature* 2013, papers/nature12113.pdf) on the ATTEND cohort, and asks which
 copy-number cluster is enriched for aneuploidy — the hallmark of the **copy-number-high /
 serous-like** group. Turning an unlabelled cluster into a serous-like call is inferred from
 the copy-number data and is not part of TCGA's methodology; how, and why it is directional,
-is in [00_methods](00_methods.html).
+is in [00-methods](00-methods.html).
 
 ## The cascade
 

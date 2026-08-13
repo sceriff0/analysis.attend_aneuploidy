@@ -3,9 +3,9 @@
 # Shared configuration + class-derivation helpers for the ATTEND analyses.
 #
 # Sourced by:
-#   analysis/01_data_integration.Rmd       (mutation status for the master)
-#   analysis/04_survival.Rmd
-#   analysis/05_aneuploidy_mmrd.Rmd
+#   analysis/01-data-integration.Rmd       (mutation status for the master)
+#   analysis/04-survival.Rmd
+#   analysis/05-aneuploidy-mmrd.Rmd
 #
 # >>> SET YOUR COLUMN NAMES IN `attend_cols` BELOW. <<<
 # Everything downstream reads from here, so you only edit names in one place.
@@ -455,7 +455,7 @@ km_panel_counts <- function(df, facets,
 #
 # These four live here, not at the top of the report that uses them, for the reason every
 # other threshold does (gotcha #2): a method parameter referenced from prose in one file
-# and defined in another resolves to nothing. 00_methods.Rmd discusses the cut; report 08
+# and defined in another resolves to nothing. 00-methods.Rmd discusses the cut; report 08
 # applies it; both source this file, so both can name it.
 #
 # 1 - Pearson correlation distance with Ward.D2 linkage. TCGA Suppl. Methods S2 leaves the
@@ -1491,7 +1491,7 @@ tmb_variant_table <- function(maf_tmb, crosswalk, anc_by_pid = NULL,
 }
 
 # =============================================================================
-# --- 14. Nassar ancestry regression recalibration (report 00_methods) ---------------
+# --- 14. Nassar ancestry regression recalibration (report 00-methods) ---------------
 # The headline method of Nassar et al. (Cancer Cell 2022) is NOT a germline
 # filter — it is an ancestry-specific AFFINE recalibration of the TMB value:
 #   TMB_corrected = m_group * TMB_tumor-only + b_group,
@@ -1539,7 +1539,7 @@ attend_tmb_nassar <- list(
     oncopanel_v3 = list(european = list(m = 1.094, b = -1.94), non_european = list(m = 0.895, b = -1.29))
   ),
 
-  # Optional reference cohort to FIT coefficients from (report 00_methods "own coefficients"
+  # Optional reference cohort to FIT coefficients from (report 00-methods "own coefficients"
   # section). Drop a table with paired (tumor-normal) + tumor-only TMB + an ancestry
   # `group` column ("european"/"non_european") into data/nassar/. Absent -> the report
   # just reports the active coefficients and explains how to fit. Knit-safe.
@@ -1565,7 +1565,7 @@ nassar_active_coef <- function(cfg = attend_tmb_nassar) {
 }
 
 # Tidy the ACTIVE Nassar coefficients into a table + an `identity` flag and the source
-# name (report 00_methods). `identity` TRUE => tmb__TMB_nassar == robust; that gates the
+# name (report 00-methods). `identity` TRUE => tmb__TMB_nassar == robust; that gates the
 # recalibration-effect panels (they only render once non-identity coefficients apply).
 nassar_coef_table <- function(cfg = attend_tmb_nassar) {
   co <- nassar_active_coef(cfg)

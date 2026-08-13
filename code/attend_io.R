@@ -39,7 +39,7 @@ read_intermediate <- function(name, dir = .attend_clean_dir()) {
     readr::read_csv(csv, show_col_types = FALSE)
   } else {
     stop("No intermediate '", name, "' in ", dir, " (looked for .parquet and .csv). ",
-         "Run 01_data_integration.Rmd first.")
+         "Run 01-data-integration.Rmd first.")
   }
 }
 

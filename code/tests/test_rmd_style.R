@@ -9,7 +9,7 @@
 #   [1] every analysis/0N_*.Rmd opens with a scope contract in its first 20 lines
 #   [2] every chunk with visible output has a prose line directly above it
 #   [3] no analysis/*.Rmd exceeds MAX_LINES
-#   [4] no blockquote outside the scope contract (00_methods excepted)
+#   [4] no blockquote outside the scope contract (00-methods excepted)
 #   [5] no takeaway/interpretation/notes sections anywhere
 #   [6] the "two TMB definitions" table lives in exactly one file, an explainer
 
@@ -24,13 +24,13 @@ MAX_LINES <- 800L
 BOILERPLATE <- c("setup", "session-info")
 
 analysis_dir <- file.path("analysis")
-reports <- sort(list.files(analysis_dir, pattern = "^0[0-9]_.*\\.Rmd$", full.names = TRUE))
+reports <- sort(list.files(analysis_dir, pattern = "^0[0-9][-_].*\\.Rmd$", full.names = TRUE))
 stopifnot(length(reports) > 0)
 
-# Rules [1]-[4] apply to every numbered report. The scope contract covers 00_methods too;
+# Rules [1]-[4] apply to every numbered report. The scope contract covers 00-methods too;
 # the blockquote ban does not, because every justification blockquote is *supposed* to end
 # up there.
-numbered <- reports[!grepl("^00_", basename(reports))]
+numbered <- reports[!grepl("^00[-_]", basename(reports))]
 
 fail <- character(0)
 note <- function(...) fail <<- c(fail, paste0(...))
@@ -160,7 +160,7 @@ for (f in numbered) {
   stray <- setdiff(quoted, contract_span(lines))
   if (length(stray)) {
     note(basename(f), ": blockquote outside the scope contract at line(s) ",
-         paste(stray, collapse = ", "), " — justification belongs in 00_methods.Rmd")
+         paste(stray, collapse = ", "), " — justification belongs in 00-methods.Rmd")
   }
 }
 
@@ -178,9 +178,9 @@ for (f in list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE)) {
 
 # ---- [6] the two-TMB-definitions table is written once ---------------------
 
-# The explainer fragments were folded into 00_methods.Rmd when the reports merged: with
+# The explainer fragments were folded into 00-methods.Rmd when the reports merged: with
 # nine reports the same block was rendering on up to eight pages, so reports now LINK to
-# 00_methods instead of inlining. The table must therefore appear exactly once, there.
+# 00-methods instead of inlining. The table must therefore appear exactly once, there.
 all_rmd <- list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE, recursive = TRUE)
 carriers <- Filter(function(f) {
   lines <- readLines(f, warn = FALSE)
@@ -188,9 +188,9 @@ carriers <- Filter(function(f) {
 }, all_rmd)
 if (length(carriers) != 1L) {
   note("the two-TMB-definitions table appears in ", length(carriers), " file(s) (",
-       paste(basename(carriers), collapse = ", "), "); it belongs in 00_methods.Rmd only")
-} else if (basename(carriers) != "00_methods.Rmd") {
-  note("the two-TMB-definitions table lives in ", basename(carriers), ", not 00_methods.Rmd")
+       paste(basename(carriers), collapse = ", "), "); it belongs in 00-methods.Rmd only")
+} else if (basename(carriers) != "00-methods.Rmd") {
+  note("the two-TMB-definitions table lives in ", basename(carriers), ", not 00-methods.Rmd")
 }
 
 # ---- [7] no report re-inlines a shared explainer ---------------------------
@@ -200,7 +200,7 @@ for (f in numbered) {
   hits <- grep("child\\s*=\\s*'_explainers/", lines)
   if (length(hits)) {
     note(basename(f), ": inlines an explainer at line(s) ", paste(hits, collapse = ", "),
-         " — link to 00_methods instead, or the same text renders on every page")
+         " — link to 00-methods instead, or the same text renders on every page")
   }
 }
 

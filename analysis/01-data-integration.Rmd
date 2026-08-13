@@ -50,7 +50,7 @@ sets           <- cwx$sets
 > **Question.** Which measurement belongs to which patient, what did the join cost, and are the joined values usable?
 > **Cohort.** Every patient reached by at least one modality; no restriction.
 > **Reads.** The code/load_*.R loaders, straight from HPC storage, plus data/attend_barcodes.csv.
-> **Out of scope.** Any biological comparison. The TMB definitions, the aneuploidy cut and the highlight groups are defined once in [00_methods](00_methods.html).
+> **Out of scope.** Any biological comparison. The TMB definitions, the aneuploidy cut and the highlight groups are defined once in [00-methods](00-methods.html).
 
 ATTEND measures the same patients several different ways, each recorded with a different
 kind of identifier. This report puts them onto one patient key, writes the result, and then

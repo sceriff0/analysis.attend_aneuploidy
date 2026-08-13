@@ -37,7 +37,7 @@ def_labels <- levels(long$definition)
 > **Question.** Does TMB split the cohort into two populations, does that split track aneuploidy within each MMR stratum, and does it reproduce in a paired-sequencing cohort?
 > **Cohort.** All `r nrow(master)` patients; Part 2 is stratified by MMR, Part 3 compares against TCGA UCEC.
 > **Reads.** The master (built on demand), plus data/tcga_2013/ for Part 3.
-> **Out of scope.** How the ancestry correction works, and why there are exactly two definitions -> [00_methods](00_methods.html).
+> **Out of scope.** How the ancestry correction works, and why there are exactly two definitions -> [00-methods](00-methods.html).
 
 A genuine second mode at high TMB *is* the hypermutator population: MMR-deficient tumours
 whose failed mismatch repair produces an order of magnitude more mutations. ATTEND has no
@@ -57,7 +57,7 @@ is really whether TMB by itself cleanly identifies the hypermutators.
 
 Four steps: describe each distribution, test for bimodality under three independent
 criteria, validate any second mode against MMR status, and — in
-[07_tmb](07_tmb.html) — reproduce the whole thing in
+[07-tmb](07-tmb.html) — reproduce the whole thing in
 TCGA UCEC, where the answer is externally known.
 
 Comparing the two definitions is a second question this report answers. Tumour-only TMB
@@ -301,7 +301,7 @@ if (exists("battery") && nrow(battery) > 0 && sum(is.finite(battery$dip_D)) >= 2
 ```
 
 The battery is written to an intermediate for
-[07_tmb](07_tmb.html), which appends TCGA as one more
+[07-tmb](07-tmb.html), which appends TCGA as one more
 row of this same table.
 
 
