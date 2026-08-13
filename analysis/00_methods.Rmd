@@ -87,9 +87,9 @@ addition. Read it once; the reports themselves carry only their own derivations.
 *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
 hierarchical clustering. *Differs:* DRAGEN WES `.seg` rather than SNP6; 1 − Pearson /
 Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
-cascade reads a single cut, `k_cnv` = `r k_cnv` (`attend_classes.R`), while the k-sweep
-heatmap shows k = `r min(k_sweep)`..`r max(k_sweep)` around it; and the integrated-class and
-aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
+cascade reads a single cut (`k_cnv` in `attend_classes.R`), while the k-sweep heatmap
+shows a range of cuts around it; and the integrated-class and aneuploidy-score annotation
+bars are ATTEND additions, not Fig. 1a elements.
 
 ### The k-sweep
 
