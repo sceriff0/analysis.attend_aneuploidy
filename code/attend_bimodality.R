@@ -59,3 +59,82 @@ have_diptest <- requireNamespace("diptest", quietly = TRUE)
 have_mclust  <- requireNamespace("mclust",  quietly = TRUE)
 if (!have_diptest) message("`diptest` not installed — dip-test columns render as NA.")
 if (!have_mclust)  message("`mclust` not installed — mixture columns render as NA.")
+
+# --- shared derivations for reports 36, 37 and 41 -----------------------------
+#
+# These were briefly written to disk by report 36 and read back by 37 and 41. That worked,
+# but it imposed a BUILD ORDER on the reports for no reason: a shared derivation belongs in
+# a function, not in an intermediate file. Both are pure — no I/O, no side effects — so the
+# three reports can be built in any order and still get identical values.
+
+#' One row per (patient, TMB definition), on the raw mut/Mb scale.
+#'
+#' Definitions come from tmb_defs_present(), so this cannot drift from the rest of the
+#' pipeline. Definitions with fewer than `min_finite` finite values are dropped: the
+#' ancestry-corrected column is all-NA until attend_ancestry$clinical_col is set, and a
+#' distribution test needs values. The `definition` factor keeps correction order, so every
+#' facet and axis reads normal -> ancestry corrected.
+#'
+#' @param master the joined master table
+#' @param min_finite minimum finite values for a definition to be kept
+#' @return tibble(pid, definition, tmb), with attr "finite_n" = finite count per definition
+tmb_long <- function(master, min_finite = 10L) {
+  def_cols <- tmb_defs_present(master)
+  finite_n <- vapply(def_cols,
+                     function(cc) sum(is.finite(suppressWarnings(as.numeric(master[[cc]])))),
+                     integer(1))
+  def_cols   <- def_cols[finite_n >= min_finite]
+  def_labels <- tmb_def_labels(def_cols)
+
+  out <- if (length(def_cols) == 0) {
+    tibble::tibble(pid = character(0), definition = factor(), tmb = numeric(0))
+  } else {
+    master |>
+      dplyr::select(pid, dplyr::all_of(unname(def_cols))) |>
+      tidyr::pivot_longer(dplyr::all_of(unname(def_cols)),
+                          names_to = "col", values_to = "tmb") |>
+      dplyr::mutate(
+        tmb        = suppressWarnings(as.numeric(tmb)),
+        definition = factor(names(def_cols)[match(col, def_cols)],
+                            levels = names(def_cols), labels = unname(def_labels))) |>
+      dplyr::filter(is.finite(tmb)) |>
+      dplyr::select(pid, definition, tmb)
+  }
+  attr(out, "finite_n") <- finite_n
+  out
+}
+
+#' The three-criterion bimodality battery, one row per group.
+#'
+#' dip test (Hartigan), Sarle's bimodality coefficient, and a BIC-selected Gaussian
+#' mixture. `verdict` is a majority vote: no single criterion is trustworthy on a
+#' right-skewed distribution, which is the whole reason there are three.
+#'
+#' Report 41 calls this on the TCGA reference with `by = NULL` to get a single row it can
+#' bind onto the ATTEND rows, which is why the grouping column is a parameter.
+#'
+#' @param d a data frame with a numeric `tmb` column
+#' @param by name of the grouping column, or NULL for one row over all of `d`
+tmb_battery <- function(d, by = "definition") {
+  one <- function(x) {
+    dp  <- dip_bimodality(x)
+    bc  <- as.numeric(.bimodality_coef(x))
+    gmm <- .gmm_modes(x)
+    tibble::tibble(
+      n           = length(x),
+      dip_D       = dp$dip,
+      dip_p       = dp$p,
+      dip_bimodal = isTRUE(dp$bimodal),
+      BC          = bc,
+      BC_bimodal  = is.finite(bc) && bc > 0.555,
+      gmm_G       = gmm$G,
+      gmm_bimodal = is.finite(gmm$G) && gmm$G >= 2,
+      gmm_gap_sd  = gmm$gap_sd)
+  }
+  res <- if (is.null(by)) one(d$tmb) else
+    d |> dplyr::group_by(.data[[by]]) |>
+      dplyr::group_modify(function(.x, ...) one(.x$tmb)) |> dplyr::ungroup()
+
+  res |> dplyr::mutate(votes   = dip_bimodal + BC_bimodal + gmm_bimodal,
+                       verdict = dplyr::if_else(votes >= 2, "bimodal", "unimodal"))
+}

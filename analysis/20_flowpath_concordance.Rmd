@@ -30,15 +30,12 @@ imaging_data <- load_imaging_data()    # pathologist annotations, keyed by image
 > **Question.** Does FlowPath's automated quantification agree with the pathologist's eye?
 > **Cohort.** All patients with IHC data (`r dplyr::n_distinct(ihc_data$image_id)` images); no molecular restriction.
 > **Reads.** The FlowPath export and the imaging annotation sheet, via `load_ihc_data()` and `load_imaging_data()`.
-> **Out of scope.** What composition means biologically -> [32_cell_composition](32_cell_composition.html). Survival by immune content -> [30_survival](30_survival.html).
+> **Out of scope.** What composition means biologically -> [31_aneuploidy_mmrd](31_aneuploidy_mmrd.html). Survival by immune content -> [30_survival](30_survival.html).
 
 FlowPath counts individual cells on each IHC slide and turns them into positivity and
 composition fractions; a pathologist independently scored the same slides by eye. This is
 a measurement-validation question, so it runs on every imaged patient — restricting it to
 a molecular subgroup would only make it noisier.
-
-```{r child='_explainers/highlight-groups.Rmd'}
-```
 
 ## Loading and mapping to patients
 
@@ -243,7 +240,7 @@ if ("Tumor_cells_PDL1" %in% names(ihc_img)) {
 Everything above is per **image**. A patient can contribute several images, so the
 metrics are collapsed to one row per patient (mean across that patient's images) before
 being used against patient-level variables. `ihc_patient_metrics()` is the entry point
-[30_survival](30_survival.html) and [32_cell_composition](32_cell_composition.html) call to
+[30_survival](30_survival.html) and [31_aneuploidy_mmrd](31_aneuploidy_mmrd.html) call to
 get the same per-patient values.
 
 ```{r ihc-patient}

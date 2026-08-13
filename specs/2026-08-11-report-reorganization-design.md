@@ -1,7 +1,8 @@
 # Report reorganization — design
 
 **Date:** 2026-08-11
-**Status:** implemented 2026-08-11 — see §12 for where the build departed from this design
+**Status:** implemented 2026-08-11, then **partly superseded 2026-08-13** — see §13.
+The layout in §3 and the fragments in §6 no longer describe the repo.
 **Scope:** `analysis/*.Rmd` structure and prose. No change to `code/*.R` behaviour.
 
 ---
@@ -505,3 +506,69 @@ may still violate them.
 
 `05:443`'s hardcoded "n ≈ 9" (§1.3) is fixed: `35_subgroup_cna_contrast` computes
 `n_mmrd_high` in setup and quotes it inline, in both the scope contract and the intro.
+
+
+---
+
+## 13. Superseded 2026-08-13 — merged to nine, and the build order removed
+
+Two of this design's decisions did not survive contact with the built site. Recorded here
+because the sections above still describe them as if they held.
+
+### 13.1 D3 reversed — explainers are linked, not inlined
+
+D3 rendered the five shared fragments into every report so a single knitted HTML stayed
+self-contained. Measured on the built site, that put **~390 lines of identical prose**
+across the pages: `tmb-two-definitions` on 8 reports, `master-provenance` on 5,
+`aneuploidy-classes` on 8. Reading the site front to back, it read as duplication, because
+it was.
+
+The fragments moved into `00_methods.Rmd` and reports now **link** to them.
+`analysis/_explainers/` is deleted, and `test_rmd_style.R` rule [7] fails the build if a
+report reintroduces a `child='_explainers/...'` include. The cost is real and accepted: a
+single knitted page is no longer self-contained, so sending one HTML to a collaborator now
+means sending `00_methods.html` too.
+
+### 13.2 D1 relaxed — nine documents, not fifteen
+
+§3's fifteen reports were distinct in content — the topic profiles barely overlapped, and
+no analysis appeared twice — but five of them were thin (34 had 5 chunks; 41, 21, 37 and 35
+had 8–10). That is fragmentation, and it made the site tedious to read.
+
+Merged along cohort and question:
+
+| Now | Was | Why the merge is not a Part-1/Part-2 relapse |
+|---|---|---|
+| `10_data_integration` | 10 + 11 | One question — what does the join produce and what did it cost |
+| `31_aneuploidy_mmrd` | 31 + 32 | Same cohort (MMRd), same outcome (aneuploidy score); only the x-axis differs |
+| `33_mutation_and_cna` | 33 + 34 + 35 | One question at three resolutions: genes, arms, genome |
+| `36_tmb` | 36 + 37 + 41 | One battery, run on ATTEND, per MMR stratum, and on TCGA |
+
+D1's real content survives: each report is still one question on one cohort, still opens
+with the scope contract, and the `Out of scope` line still does the enforcing. What is
+relaxed is the *one-file-per-figure-group* reading of it.
+
+The 400-line cap and its `OVER_CAP` exemption list (§12.2) are gone with it. With
+deliberately multi-part reports a tight cap fights the structure instead of protecting it,
+so `MAX_LINES` is now an 800-line runaway guard and nothing is exempt.
+
+### 13.3 The build order is gone, which was the real complaint
+
+§12.3's `code/attend_bimodality.R` extraction removed one coupling; the deeper one remained
+— **only report 10 could produce the master**, so it had to be knitted first or every other
+report rendered as scaffolding. That is not a property of the data, it is a property of
+having put the join inside a report.
+
+The join is now `code/build_master.R`: `load_raw_inputs()` → `build_crosswalks()` →
+`build_master()`, plus **`get_master()`**, which reads the master when it exists and builds
+it when it does not. Every report calls `get_master()`. Report 10 still owns the narration
+and the audit; it no longer owns the only copy of the arithmetic.
+
+`tmb_long()` and `tmb_battery()` moved into `attend_bimodality.R` for the same reason, so
+report 36's Part 3 computes the TCGA row with literally the same call as Part 1 rather than
+reading an intermediate Part 1 had to write.
+
+**The rule this establishes: share a function, never an intermediate file.** An intermediate
+that one report writes and another reads is a build order wearing a disguise. The one
+legitimate intermediate is the master itself, and `get_master()` is what makes even that
+one order-free.

@@ -10,51 +10,44 @@ with [workflowr](https://workflowr.github.io/workflowr/) and
 ## Quick start
 
 ```r
-renv::restore()                                    # once renv.lock exists
-workflowr::wflow_build("analysis/10_data_integration.Rmd")  # FIRST: writes the master
-workflowr::wflow_build()                           # then knit the rest into docs/
-workflowr::wflow_build("analysis/30_survival.Rmd") # knit one
+renv::restore()              # once renv.lock exists
+workflowr::wflow_build()     # knit every report into docs/ — no build order to remember
+```
 
-Rscript code/tests/test_rmd_style.R                # report structure (base R, no deps)
-Rscript code/tests/test_rmd_parse.R                # every chunk parses
+There is **no build order**. The join lives in `code/build_master.R`; every report calls
+`get_master()`, which reads the master table when present and builds it when not. Any
+report can be knitted first. To rebuild the master by hand:
+
+```bash
+Rscript code/build_master.R
+```
+
+```bash
+Rscript code/tests/test_rmd_style.R   # report structure (base R, no deps)
+Rscript code/tests/test_rmd_parse.R   # every chunk parses
 ```
 
 ## The pipeline
 
-Reports run **in order**, and the number states the stage: `1x` build, `2x` QC, `3x`
-findings, `4x` external. Report 10 builds the per-patient master table
-(`output/clean_data/attend_master_joined`); every later report reads it back.
-
-Each report answers **one question on one cohort** and opens with a four-line scope
-contract — Question / Cohort / Reads / Out of scope.
+Nine documents. The number states the stage: `1x` build, `2x` QC, `3x` findings,
+`4x` external. Each opens with a four-line scope contract — Question / Cohort / Reads /
+Out of scope.
 
 | # | Report | Cohort |
 |---|---|---|
-| 00 | Methods — every justification in the pipeline, once | — |
-| 10 | Data integration — the join, the collapse, the TMB recompute | all |
-| 11 | Join audit — unmapped records, coverage, value sanity | all |
+| 00 | Methods — every justification and shared definition, once | — |
+| 10 | Data integration — the join, and what it cost | all |
 | 20 | FlowPath vs the pathologist | all imaged |
 | 21 | Covariate distributions by MMR status | all |
 | 30 | Survival — every KM and Cox in the pipeline | all |
-| 31 | Aneuploidy vs mutation status, one gene at a time | **MMR-deficient only** |
-| 32 | Cell-type composition vs aneuploidy | **MMR-deficient only** |
-| 33 | Mutation landscape — oncoplots + subgroup frequency | all |
-| 34 | Recurrent copy number — arm level + genome-wide | all profiled |
-| 35 | Aneuploidy x MMR copy-number contrast | MMRd-high vs MMRp-high |
-| 36 | Is the TMB distribution split? | all |
-| 37 | TMB by aneuploidy, once per MMR stratum | by MMR stratum |
+| 31 | Aneuploidy in MMR-deficient tumours — mutations, then composition | **MMR-deficient only** |
+| 33 | Mutation landscape and copy number — oncoplots, recurrent CNA, subgroup contrast | all |
+| 36 | Tumour mutational burden — bimodality, by aneuploidy x MMR, TCGA replication | all |
 | 40 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
-| 41 | TCGA UCEC replication of the TMB split | TCGA |
 
-Three reports write intermediates others read, so build order matters on a cold start:
-**10** writes the master, and **36** writes `attend_tmb_long` / `attend_tmb_battery`,
-which **37** and **41** read back. Alphabetical order satisfies this, except that `00`
-sorts first and reads the master — so build `10` before the rest.
-
-Shared explanations live once in `analysis/_explainers/` and are rendered into every
-report that needs them via `child=`. Justification lives in `analysis/00_methods.Rmd`;
-operational recipes live in `runbooks/`. Reports carry no takeaway sections — conclusions
-belong in the manuscript.
+Shared definitions live once in `analysis/00_methods.Rmd` and are **linked** from the
+reports, not rendered into each one. Operational recipes live in `runbooks/`. Reports carry
+no takeaway sections — conclusions belong in the manuscript.
 
 Two conventions hold everywhere: **TMB is always exactly two definitions** — *normal*
 (`tmb__TMB_SCORE`) and *ancestry corrected* (`tmb__TMB_nassar`) — and **highlighted

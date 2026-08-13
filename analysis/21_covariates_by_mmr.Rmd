@@ -17,8 +17,9 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 source(here("code", "attend_classes.R"))   # attend_cols / attend_levels / attend_thresholds
 source(here("code", "attend_plots.R"))     # attend_theme(), attend_mmr_cols
 source(here("code", "attend_io.R"))        # read_intermediate()
+source(here("code", "build_master.R"))   # get_master() — builds on demand
 
-master <- read_intermediate("attend_master_joined")
+master <- get_master()
 ```
 
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
@@ -29,15 +30,6 @@ master <- read_intermediate("attend_master_joined")
 Whole distributions, not group averages. The expected differences here are tail phenomena:
 MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than
 a uniform shift, which an ECDF shows plainly and a median hides.
-
-```{r child='_explainers/master-provenance.Rmd'}
-```
-
-```{r child='_explainers/tmb-two-definitions.Rmd'}
-```
-
-```{r child='_explainers/aneuploidy-classes.Rmd'}
-```
 
 ### Why an ECDF rather than a boxplot
 
@@ -55,8 +47,6 @@ MMR status is `attend_cols$mmr_status`, collapsed to deficient
 (`r attend_levels$mmr_deficient`) versus everything else non-missing.
 
 ```{r data}
-master <- read_intermediate("attend_master_joined")
-
 # continuous covariates (prefixed master columns) -> readable labels
 covar_map <- c(
   "aneuploidy score" = attend_cols$aneuploidy,   # aneu__aneuploidy_score

@@ -13,25 +13,11 @@
 #   [5] no takeaway/interpretation/notes sections anywhere
 #   [6] the "two TMB definitions" table lives in exactly one file, an explainer
 
-MAX_LINES <- 400L
-
-# Spec section 10 anticipated that the 400-line cap is a first guess and told us to adjust it
-# rather than force an unnatural split. Adjusting it globally would licence every report to
-# grow, so the exemptions are named one at a time with their own ceiling and their reason.
-# A file whose exemption is no longer needed fails too (STALE), so these cannot outlive
-# the argument for them.
-OVER_CAP <- list(
-  # The single destination for every justification in the pipeline (D5). Length is the
-  # point: capping it pushes prose back into the reports it was extracted from.
-  `00_methods.Rmd` = 500L,
-  # Spec section 4 maps 04:358-773 here as one report. It carries four question-groups
-  # (composition, immune content, continuous covariates, imaging calls) and is the
-  # natural next split if the report set is ever extended past the 15 the spec plans.
-  `32_cell_composition.Rmd` = 550L,
-  # Named in spec section 10 as the file expected to exceed the cap even after the
-  # methods extraction. It does: clustering, k-sweep, enrichment, and the cascade.
-  `40_tcga_classification.Rmd` = 650L
-)
+# The cap exists to stop a report quietly accumulating unrelated analyses. After the merge
+# to nine reports, several are DELIBERATELY multi-part ("Part 1 ... Part 2"), so a tight
+# cap would fight the chosen structure rather than protect it. It is kept only as a
+# runaway guard; the scope contract is what actually keeps a report honest about its scope.
+MAX_LINES <- 800L
 
 # Chunks that exist in every report for mechanical reasons and carry no result of their
 # own, so rule [2] would only force a sentence restating the label.
@@ -161,15 +147,8 @@ for (f in reports) {
 # ---- [3] length cap --------------------------------------------------------
 
 for (f in list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE)) {
-  n   <- length(readLines(f, warn = FALSE))
-  b   <- basename(f)
-  cap <- if (!is.null(OVER_CAP[[b]])) OVER_CAP[[b]] else MAX_LINES
-  if (n > cap) {
-    note(b, ": ", n, " lines, over its ", cap, "-line cap")
-  } else if (!is.null(OVER_CAP[[b]]) && n <= MAX_LINES) {
-    note(b, ": ", n, " lines — now under the ", MAX_LINES,
-         "-line cap, so its OVER_CAP exemption is STALE and should be deleted")
-  }
+  n <- length(readLines(f, warn = FALSE))
+  if (n > MAX_LINES) note(basename(f), ": ", n, " lines, over the ", MAX_LINES, "-line guard")
 }
 
 # ---- [4] no blockquotes outside the scope contract -------------------------
@@ -199,6 +178,9 @@ for (f in list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE)) {
 
 # ---- [6] the two-TMB-definitions table is written once ---------------------
 
+# The explainer fragments were folded into 00_methods.Rmd when the reports merged: with
+# nine reports the same block was rendering on up to eight pages, so reports now LINK to
+# 00_methods instead of inlining. The table must therefore appear exactly once, there.
 all_rmd <- list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE, recursive = TRUE)
 carriers <- Filter(function(f) {
   lines <- readLines(f, warn = FALSE)
@@ -206,10 +188,20 @@ carriers <- Filter(function(f) {
 }, all_rmd)
 if (length(carriers) != 1L) {
   note("the two-TMB-definitions table appears in ", length(carriers), " file(s) (",
-       paste(basename(carriers), collapse = ", "), "); it belongs in _explainers/ only")
-} else if (basename(dirname(carriers)) != "_explainers") {
-  note("the two-TMB-definitions table lives in ", basename(carriers),
-       ", not in analysis/_explainers/")
+       paste(basename(carriers), collapse = ", "), "); it belongs in 00_methods.Rmd only")
+} else if (basename(carriers) != "00_methods.Rmd") {
+  note("the two-TMB-definitions table lives in ", basename(carriers), ", not 00_methods.Rmd")
+}
+
+# ---- [7] no report re-inlines a shared explainer ---------------------------
+
+for (f in banded) {
+  lines <- readLines(f, warn = FALSE)
+  hits <- grep("child\\s*=\\s*'_explainers/", lines)
+  if (length(hits)) {
+    note(basename(f), ": inlines an explainer at line(s) ", paste(hits, collapse = ", "),
+         " — link to 00_methods instead, or the same text renders on every page")
+  }
 }
 
 # ---- report ----------------------------------------------------------------

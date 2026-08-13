@@ -22,6 +22,7 @@ source(here("code", "attend_harmonise.R"))   # make_id_cfg(), build_barcode_pid(
 source(here("code", "attend_classes.R"))     # attend_cnv/_pole, arm + cascade helpers
 source(here("code", "attend_plots.R"))       # fig1a_heatmap(), feature_positions(), km_by_cluster()
 source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
 source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(), load_tmb_scores()
 
@@ -54,12 +55,6 @@ serous-like** group. Turning an unlabelled cluster into a serous-like call is in
 the copy-number data and is not part of TCGA's methodology; how, and why it is directional,
 is in [00_methods](00_methods.html).
 
-```{r child='_explainers/master-provenance.Rmd'}
-```
-
-```{r child='_explainers/aneuploidy-classes.Rmd'}
-```
-
 ## The cascade
 
 A priority cascade (TCGA Fig. 2b). POLE is omitted — ATTEND has no POLE-ultramutated
@@ -91,10 +86,7 @@ and `.seg` sample ids are sequencing barcodes while the master is keyed on `pid`
 wrapped so a missing input degrades to a skipped section rather than an error.
 
 ```{r data}
-master <- tryCatch(
-  read_intermediate("attend_master_joined") |> add_molecular_classes(),
-  error = function(e) { message("master unavailable: ", conditionMessage(e)); NULL }
-)
+master <- get_master() |> add_molecular_classes()
 
 # barcode -> pid crosswalk (the same derivation every other report uses)
 cw <- tryCatch(

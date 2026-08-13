@@ -24,6 +24,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 
 source(here("code", "attend_classes.R"))     # attend_tmb_*, ancestry_by_pid(), nassar helpers
 source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
 ```
 
@@ -37,10 +38,7 @@ the ancestry correction is *fitted*, so its coefficients and effect are shown ra
 asserted.
 
 ```{r data}
-master <- tryCatch(
-  read_intermediate("attend_master_joined") |> add_molecular_classes(),
-  error = function(e) { message("master unavailable: ", conditionMessage(e)); NULL }
-)
+master <- get_master() |> add_molecular_classes()
 have_master <- !is.null(master)
 ```
 
@@ -71,7 +69,7 @@ that actually characterises serous-like disease.
 
 This report therefore scores clusters **directionally**: only *concordant* events count —
 **gains at amplification peaks, losses at deletion peaks**. It is the same principle
-`attend_scna$panel` already applies to the pre-specified locus panel in [35_subgroup_cna_contrast](35_subgroup_cna_contrast.html)
+`attend_scna$panel` already applies to the pre-specified locus panel in [33_mutation_and_cna](33_mutation_and_cna.html)
 (*a deletion at MYC must not score as serous-like*).
 
 ⚠️ **Both calls are computed and printed, and a `[DISAGREE]` flag is raised when they
@@ -132,8 +130,25 @@ reference is Euro-skewed — the inflation is **ancestry-dependent** (Nassar et 
 *Cancer Cell* 2022). The ATTEND MAFs carry gnomAD v4.1 **per-sub-population** allele
 frequencies, which is what makes a correction possible without matched normals.
 
-```{r child='_explainers/tmb-two-definitions.Rmd'}
-```
+ATTEND is sequenced tumour-only, so leftover germline variants inflate TMB, and because
+germline allele frequencies differ between ancestries that inflation is ancestry-dependent
+(Nassar et al., *Cancer Cell* 2022). The pipeline therefore carries two definitions and
+never silently picks one:
+
+| Reported name | Column | What it is |
+|---|---|---|
+| **TMB (normal)** | `tmb__TMB_SCORE` | the upstream tumour-only score, as delivered |
+| **TMB (ancestry corrected)** | `tmb__TMB_nassar` | the same score after the ancestry recalibration |
+
+Two further columns, `tmb__TMB_robust` and `tmb__TMB_matched`, exist on the master because
+the recalibration is fitted on top of `robust`. They are intermediates: `tmb_defs_present()`
+cannot return them, so no figure can show them. How the recalibration works is in
+[00_methods](00_methods.html).
+
+Every definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
+`tmb_class_of()`, so panels that differ only in definition differ only in who crossed the
+cut. The ancestry-corrected column stays all-`NA` until `attend_ancestry$clinical_col` is
+set, and panels that would be empty are skipped rather than drawn blank.
 
 Getting from the delivered score to the reported corrected one passes through two
 intermediates, computed in [10_data_integration](10_data_integration.html) and living on
@@ -444,6 +459,53 @@ The arm-boundary table is `data/arm_boundaries_hg38.tsv`, derived from UCSC hg38
 centromeres; set `attend_cnv$build` and `attend_cnv$arm_table` to work in hg19. The cut
 height `k_cnv` is the one method parameter that stays at the top of the report that uses
 it, because changing it changes that report's figures rather than the pipeline's method.
+
+## The aneuploidy classes
+Aneuploidy score is the ASCETS arm-level SCNA burden read from `data/ascets/`: the fraction
+of evaluable chromosome arms called altered, with arms below ASCETS' breadth-of-coverage
+threshold (`LOWCOV`) excluded from the denominator rather than counted as unaltered.
+
+Patients are split at `attend_thresholds$aneuploidy` = `r attend_thresholds$aneuploidy`
+into **aneuploidy-high** and **aneuploidy-low** by `aneuploidy_class_of()`. The cut is a
+configured constant, not a cohort quantile, so it does not move when the cohort grows.
+Patients without an ASCETS score are `NA` and are dropped from class comparisons.
+
+## Highlighted patients
+Two overlay groups are drawn on top of the base colouring by `highlight_points()`, which
+partitions the data so no patient is plotted twice:
+
+- **`polipo`** — sample `21S188`, in magenta.
+- **`cohort`** — the multi-modal subset, in gold: patients who also have IHC or imaging
+  data, and so appear in the concordance and composition reports.
+
+`polipo` is declared first in `attend_highlight`, and matching is first-match-wins, so
+`21S188` is never absorbed into `cohort`.
+
+## What "MMR-deficient only" means
+The cohort restriction is `is_mmrd()`, which reads the **IHC** MMR call: loss of one or
+more mismatch-repair proteins on staining. That is the criterion the TCGA cascade puts at
+the top, and the one used throughout this pipeline.
+
+MSI-high by NGS is a **correlate, not a criterion**. It agrees with the IHC call in most
+patients and is reported alongside it, but it never defines the cohort — restricting on it
+instead would silently swap the population between reports. Patients with no MMR IHC call
+are excluded rather than assumed proficient.
+
+## Where the data comes from
+Everything below is read from `attend_master_joined`, the one-row-per-patient table written
+by [10_data_integration](10_data_integration.html) and loaded here through
+`read_intermediate()` — never by a hard-coded `.csv` or `.parquet` path.
+
+That report translates each modality's native identifier onto `pid`, collapses to one row
+per patient (numeric columns averaged, others first-non-`NA`), and prefixes columns with
+the source dataset: `gianlu__` clinical, `aneu__` ASCETS, `tmb__` TMB, `hrd__`, `msi__`,
+`ihc__`. Mutation status is the exception — the MAF is never mean-collapsed, so
+`TP53_pathogenic` and `panel_pathogenic` are derived per patient by
+`pathogenic_by_patient()` and joined on.
+
+Column names and thresholds are read from `attend_cols` and `attend_thresholds`
+(`code/attend_classes.R`); chunks guarded by `have_cols()` skip themselves when a name is
+still a placeholder.
 
 ```{r session-info}
 sessionInfo()

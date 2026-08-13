@@ -22,17 +22,18 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 
 source(here("code", "attend_classes.R"))     # column config + km_facet() / surv_table()
 source(here("code", "attend_io.R"))          # read_intermediate() (Parquet/CSV)
+source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "attend_ihc.R"))         # ihc_patient_metrics(), for the immune split
 source(here("code", "load_phenotypes.R"))    # load_ihc_data()
 source(here("code", "load_clinical.R"))      # load_imaging_data()
 
-master <- read_intermediate("attend_master_joined") |> add_molecular_classes()
+master <- get_master() |> add_molecular_classes()
 ```
 
 > **Question.** Does the treatment comparison behave differently in different molecular subgroups?
 > **Cohort.** All `r nrow(master)` patients on the master; the immune-content panels are restricted to the imaged subset.
 > **Reads.** `attend_master_joined`, plus the FlowPath/imaging join for `immune_class`.
-> **Out of scope.** Everything that is not a survival model. Composition itself -> [32_cell_composition](32_cell_composition.html); concordance -> [20_flowpath_concordance](20_flowpath_concordance.html).
+> **Out of scope.** Everything that is not a survival model. Composition itself -> [31_aneuploidy_mmrd](31_aneuploidy_mmrd.html); concordance -> [20_flowpath_concordance](20_flowpath_concordance.html).
 
 Every figure below has the same structure. The two coloured curves are always the same
 comparison, `attend_cols$km_group` (the treatment arm); what changes between figures is how
@@ -41,12 +42,6 @@ and immune content. Each panel carries its own log-rank p-value, comparing the t
 *within* that panel only. A gap that is similar in every panel means the molecular axis
 does not modify the treatment effect; a gap that opens in one panel and closes in another
 might, and the interaction test after the headline figure puts a number on it.
-
-```{r child='_explainers/master-provenance.Rmd'}
-```
-
-```{r child='_explainers/aneuploidy-classes.Rmd'}
-```
 
 Continuous scores are binarised by `add_molecular_classes()` at the configured thresholds:
 aneuploidy at `r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
@@ -61,9 +56,6 @@ distributes across the panels used later, which is the fastest way to spot a pan
 will be too small to interpret.
 
 ```{r data}
-master <- read_intermediate("attend_master_joined") |>
-  add_molecular_classes()
-
 # quick visibility on the binarised classes
 master |>
   count(aneuploidy_class, MMR_class, TMB_class, HRD_class, MSI_class) |>
