@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-13" />
+
+<title>ATTEND — 36. Tumour mutational burden</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 36. Tumour mutational burden</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-13</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-13
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytreeed3a2279796b5a6d6839fc88a213531c210f6100targetblanked3a227a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/attend_aneuploidy/tree/ed3a2279796b5a6d6839fc88a213531c210f6100" target="_blank">ed3a227</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytreeed3a2279796b5a6d6839fc88a213531c210f6100targetblanked3a227a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/attend_aneuploidy/tree/ed3a2279796b5a6d6839fc88a213531c210f6100" target="_blank">ed3a227</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    output/clean_data/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/08-tmb.Rmd</code>) and HTML
+(<code>docs/08-tmb.html</code>) files. If you’ve configured a remote Git
+repository (see <code>?wflow_git_remote</code>), click on the hyperlinks
+in the table below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/attend_aneuploidy/blob/bf0f0f841fcfff2d62e4d67c25f5a194829e20fb/analysis/08-tmb.Rmd" target="_blank">bf0f0f8</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:bug: Expose tmb_long()’s filtered def_cols; switch off report 05’s
+highlight overlay
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/attend_aneuploidy/blob/1592d06f7d7925c78f7e90bbaab80e03a8832a40/analysis/08-tmb.Rmd" target="_blank">1592d06</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:sparkles: Add report 06-response, fix duplicate chunk labels, renumber
+07-09
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Does TMB split the cohort into two
+populations, does that split track aneuploidy within each MMR stratum,
+and does it reproduce in a paired-sequencing cohort?
+<strong>Cohort.</strong> All 245 patients; Part 2 is stratified by MMR,
+Part 3 compares against TCGA UCEC. <strong>Reads.</strong> The master
+(built on demand), plus data/tcga_2013/ for Part 3. <strong>Out of
+scope.</strong> How the ancestry correction works, and why there are
+exactly two definitions -&gt; <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<p>A genuine second mode at high TMB <em>is</em> the hypermutator
+population: MMR-deficient tumours whose failed mismatch repair produces
+an order of magnitude more mutations. ATTEND has no POLE cases, the
+other hypermutator route, so the question is whether TMB by itself
+identifies the hypermutators.</p>
+<p>Every distribution and every test is on the <strong>raw mut/Mb
+scale</strong>, with no log transform. On that scale a long tail and a
+genuine second mode look alike, which is why Part 1 triangulates three
+independent criteria rather than trusting any one of them.</p>
+<div id="part-1-is-the-distribution-split" class="section level2">
+<h2>Part 1 — is the distribution split?</h2>
+<p>A genuine second mode at high TMB <em>is</em> the hypermutator
+population: MMR-deficient tumours whose failed mismatch repair produces
+an order of magnitude more mutations. POLE- ultramutated tumours are the
+other hypermutator route, and ATTEND has none, so the question is really
+whether TMB by itself cleanly identifies the hypermutators.</p>
+<p>Four steps: describe each distribution, test for bimodality under
+three independent criteria, validate any second mode against MMR status,
+and — in <a href="08-tmb.html">08-tmb</a> — reproduce the whole thing in
+TCGA UCEC, where the answer is externally known.</p>
+<p>Comparing the two definitions is a second question this report
+answers. Tumour-only TMB carries ancestry-dependent germline inflation,
+which is noise added to the signal, so removing it should deepen the
+valley between the modes. If the corrected definition is more clearly
+bimodal than the uncorrected one, the correction is doing something
+real; if not, it is not helping the split, and the battery below says so
+either way.</p>
+<p>Every distribution and every test is on the raw mut/Mb scale, with no
+log transform. TMB is heavily right-skewed, and on that scale a long
+tail and a genuine second mode can look alike, which is why three
+independent criteria are triangulated rather than trusting any one of
+them.</p>
+<div id="data" class="section level3">
+<h3>Data</h3>
+<p>The tmb__* columns of the master, reshaped to one row per patient and
+definition. Definitions with fewer than 10 finite values are dropped:
+the ancestry-corrected column is all-NA until
+attend_ancestry$clinical_col is set, and a distribution test needs
+values.</p>
+</div>
+<div id="distribution-overview" class="section level3">
+<h3>1. Distribution overview</h3>
+<p>Per-definition summary of the raw TMB. %high is the fraction at or
+above the pipeline TMB-high cut (attend_thresholds$tmb = 10 mut/Mb), via
+the shared tmb_class_of() — the same high/low split every TMB-keyed
+figure uses.</p>
+<pre class="r"><code>if (nrow(long) &gt; 0) {
+  summ &lt;- long |&gt;
+    group_by(definition) |&gt;
+    summarise(
+      n       = dplyr::n(),
+      median  = median(tmb),
+      IQR     = IQR(tmb),
+      mean    = mean(tmb),
+      sd      = sd(tmb),
+      min     = min(tmb),
+      max     = max(tmb),
+      skew    = unname(.skew_kurt(tmb)[&quot;skew&quot;]),
+      exkurt  = unname(.skew_kurt(tmb)[&quot;kurt&quot;]),
+      `%high` = 100 * mean(tmb_class_of(tmb) == &quot;TMB-high&quot;),
+      .groups = &quot;drop&quot;
+    )
+  knitr::kable(summ, digits = 2,
+               caption = &quot;Raw TMB (mut/Mb) by definition. High right-skew (large positive `skew`) is expected and is itself a hint of a heavy hypermutator tail.&quot;)
+} else {
+  cat(&quot;No TMB values present — nothing to summarise.\n&quot;)
+}</code></pre>
+<table>
+<caption>Raw TMB (mut/Mb) by definition. High right-skew (large positive
+<code>skew</code>) is expected and is itself a hint of a heavy
+hypermutator tail.</caption>
+<colgroup>
+<col width="29%" />
+<col width="4%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="7%" />
+<col width="5%" />
+<col width="8%" />
+<col width="5%" />
+<col width="8%" />
+<col width="7%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">definition</th>
+<th align="right">n</th>
+<th align="right">median</th>
+<th align="right">IQR</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">skew</th>
+<th align="right">exkurt</th>
+<th align="right">%high</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TMB (normal)</td>
+<td align="right">234</td>
+<td align="right">23.30</td>
+<td align="right">24.46</td>
+<td align="right">30.28</td>
+<td align="right">23.10</td>
+<td align="right">1.14</td>
+<td align="right">208.42</td>
+<td align="right">3.12</td>
+<td align="right">17.49</td>
+<td align="right">93.59</td>
+</tr>
+<tr class="even">
+<td align="left">TMB (ancestry corrected)</td>
+<td align="right">234</td>
+<td align="right">10.58</td>
+<td align="right">7.97</td>
+<td align="right">13.03</td>
+<td align="right">8.27</td>
+<td align="right">3.68</td>
+<td align="right">78.29</td>
+<td align="right">3.53</td>
+<td align="right">21.46</td>
+<td align="right">52.56</td>
+</tr>
+</tbody>
+</table>
+<p>Kernel density of the raw mut/Mb values in long, one curve per
+definition, with the 10 mut/Mb cutoff marked. A valley between two humps
+is the shape the battery below puts numbers on.</p>
+<pre class="r"><code>if (nrow(long) &gt; 0) {
+  ggplot(long, aes(tmb)) +
+    geom_histogram(aes(y = after_stat(density)), bins = 40,
+                   fill = &quot;grey85&quot;, colour = &quot;grey65&quot;, linewidth = 0.2) +
+    geom_density(colour = &quot;steelblue&quot;, linewidth = 0.8, adjust = 0.9, na.rm = TRUE) +
+    geom_rug(alpha = 0.25) +
+    geom_vline(xintercept = attend_thresholds$tmb, linetype = &quot;dashed&quot;,
+               colour = &quot;firebrick&quot;) +
+    facet_wrap(~ definition, scales = &quot;free&quot;) +
+    labs(title = &quot;TMB distribution by definition (raw mut/Mb)&quot;,
+         subtitle = paste0(&quot;dashed red = TMB-high cut (&quot;, attend_thresholds$tmb,
+                           &quot; mut/Mb). A distinct high-TMB hump = hypermutator mode.&quot;),
+         x = &quot;TMB (mut/Mb)&quot;, y = &quot;density&quot;) +
+    attend_theme()
+} else {
+  message(&quot;No TMB values to plot.&quot;)
+}</code></pre>
+<p><img src="figure/08-tmb.Rmd/density-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="bimodality-battery" class="section level3">
+<h3>2. Bimodality battery</h3>
+<p>Three independent criteria per definition, because on the raw scale
+no single test is decisive:</p>
+<ul>
+<li><strong>Hartigan’s dip test</strong> (dip_bimodality(), reused from
+attend_classes.R) — the scale-invariant departure-from-unimodality
+statistic; small <strong>p</strong> ⇒ bimodal.</li>
+<li><strong>Sarle’s bimodality coefficient (BC)</strong> — from
+skewness/kurtosis; <strong>b &gt; 0.555</strong> leans bimodal.
+(Inflated by a heavy tail, so corroborative only.)</li>
+<li><strong>Gaussian mixture (GMM)</strong> — mclust::Mclust(G = 1:3),
+BIC-selected component count; <strong>≥ 2</strong> components ⇒ the data
+prefer more than one Gaussian.</li>
+</ul>
+<p>The <strong>verdict</strong> calls a definition <em>bimodal</em> when
+<strong>≥ 2 of the 3</strong> criteria agree — a deliberately
+conservative majority vote.</p>
+<pre class="r"><code>if (nrow(long) &gt; 0) {
+  battery &lt;- tmb_battery(long, by = &quot;definition&quot;)
+  knitr::kable(
+    battery |&gt;
+      transmute(definition, n,
+                dip_D = round(dip_D, 4), dip_p = signif(dip_p, 3), dip_bimodal,
+                BC = round(BC, 3), BC_bimodal,
+                gmm_G, gmm_bimodal,
+                votes, verdict),
+    caption = &quot;Bimodality battery per TMB definition. verdict = bimodal when &gt;= 2 of {dip, BC, GMM} agree.&quot;
+  )
+} else {
+  battery &lt;- tibble()
+  cat(&quot;No TMB values — bimodality battery skipped.
+&quot;)
+}</code></pre>
+<table>
+<caption>Bimodality battery per TMB definition. verdict = bimodal when
+&gt;= 2 of {dip, BC, GMM} agree.</caption>
+<colgroup>
+<col width="24%" />
+<col width="3%" />
+<col width="6%" />
+<col width="5%" />
+<col width="11%" />
+<col width="5%" />
+<col width="10%" />
+<col width="5%" />
+<col width="11%" />
+<col width="5%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">definition</th>
+<th align="right">n</th>
+<th align="right">dip_D</th>
+<th align="right">dip_p</th>
+<th align="left">dip_bimodal</th>
+<th align="right">BC</th>
+<th align="left">BC_bimodal</th>
+<th align="right">gmm_G</th>
+<th align="left">gmm_bimodal</th>
+<th align="right">votes</th>
+<th align="left">verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TMB (normal)</td>
+<td align="right">234</td>
+<td align="right">0.0148</td>
+<td align="right">0.991</td>
+<td align="left">FALSE</td>
+<td align="right">0.523</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+<td align="right">0</td>
+<td align="left">unimodal</td>
+</tr>
+<tr class="even">
+<td align="left">TMB (ancestry corrected)</td>
+<td align="right">234</td>
+<td align="right">0.0150</td>
+<td align="right">0.991</td>
+<td align="left">FALSE</td>
+<td align="right">0.549</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+<td align="right">0</td>
+<td align="left">unimodal</td>
+</tr>
+</tbody>
+</table>
+<p>The same table read back as sentences, one line per definition, so
+the vote and its verdict are stated rather than inferred from the
+columns.</p>
+<pre class="r"><code>if (exists(&quot;battery&quot;) &amp;&amp; nrow(battery) &gt; 0) {
+  bm &lt;- battery |&gt; filter(verdict == &quot;bimodal&quot;) |&gt; pull(definition) |&gt; as.character()
+  if (length(bm)) {
+    cat(&quot;**Bimodal by majority vote:** &quot;, paste(bm, collapse = &quot;, &quot;), &quot;.\n\n&quot;, sep = &quot;&quot;)
+  } else {
+    cat(&quot;**No definition reaches the ≥2-of-3 bimodality threshold** on the raw scale. &quot;,
+        &quot;The high-TMB signal may be a heavy tail rather than a resolved second mode — &quot;,
+        &quot;revisit on a log scale if a hypermutator subpopulation is expected.\n\n&quot;, sep = &quot;&quot;)
+  }
+}</code></pre>
+<p><strong>No definition reaches the ≥2-of-3 bimodality
+threshold</strong> on the raw scale. The high-TMB signal may be a heavy
+tail rather than a resolved second mode — revisit on a log scale if a
+hypermutator subpopulation is expected.</p>
+</div>
+<div
+id="mode-validation-does-the-high-tmb-mode-capture-mmr-deficient-tumours"
+class="section level3">
+<h3>3. Mode validation — does the high-TMB mode capture MMR-deficient
+tumours?</h3>
+<p>A statistical second mode is only interesting if it is the
+<strong>biological</strong> one. For every definition the mixture split
+into ≥ 2 components, we assign each patient to a component by posterior,
+label the <strong>highest-mean component</strong> as the high-TMB mode,
+and cross-tabulate that membership against <strong>MMR status</strong>
+(gianlu__MMR_STATUS, via the shared is_mmrd()). A Fisher test asks
+whether the high-TMB mode is enriched for MMR-deficient tumours — the
+expected hypermutators.</p>
+<pre class="r"><code>mmr_col &lt;- attend_cols$mmr_status   # gianlu__MMR_STATUS
+
+validate_mode &lt;- function(def_key, def_lab) {
+  col &lt;- def_cols[[def_key]]
+  d &lt;- master |&gt;
+    transmute(pid,
+              tmb  = suppressWarnings(as.numeric(.data[[col]])),
+              mmrd = is_mmrd(.data[[mmr_col]])) |&gt;
+    filter(is.finite(tmb))
+  if (nrow(d) &lt; 6) return(NULL)
+  mc &lt;- tryCatch(mclust::Mclust(d$tmb, G = 1:3, verbose = FALSE), error = function(e) NULL)
+  if (is.null(mc) || mc$G &lt; 2) return(NULL)
+  hi_comp  &lt;- which.max(as.numeric(mc$parameters$mean))         # highest-mean component
+  d$hi_mode &lt;- factor(if_else(mc$classification == hi_comp, &quot;high-TMB mode&quot;, &quot;bulk&quot;),
+                      levels = c(&quot;bulk&quot;, &quot;high-TMB mode&quot;))
+  d2 &lt;- d |&gt; filter(!is.na(mmrd))
+  if (nrow(d2) &lt; 4 || dplyr::n_distinct(d2$hi_mode) &lt; 2 || dplyr::n_distinct(d2$mmrd) &lt; 2)
+    return(list(lab = def_lab, tab = table(d$hi_mode), p = NA_real_))
+  tab &lt;- table(MMR = if_else(d2$mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;), mode = d2$hi_mode)
+  p   &lt;- tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+  list(lab = def_lab, tab = tab, p = p)
+}
+
+if (!have_mclust) {
+  cat(&quot;_`mclust` not installed — mode validation skipped._\n\n&quot;)
+} else if (!mmr_col %in% names(master)) {
+  cat(&quot;_MMR status column (`&quot;, mmr_col, &quot;`) absent from the master — mode validation skipped._\n\n&quot;, sep = &quot;&quot;)
+} else if (!exists(&quot;battery&quot;) || nrow(battery) == 0) {
+  cat(&quot;_No definitions to validate._\n\n&quot;)
+} else {
+  qualifying &lt;- battery |&gt; filter(is.finite(gmm_G) &amp; gmm_G &gt;= 2) |&gt; pull(definition) |&gt; as.character()
+  key_by_lab &lt;- setNames(names(def_cols), unname(def_labels))
+  if (!length(qualifying)) {
+    cat(&quot;_No definition produced a ≥2-component mixture — no high-TMB mode to validate._\n\n&quot;)
+  } else {
+    for (lab in qualifying) {
+      res &lt;- validate_mode(key_by_lab[[lab]], lab)
+      if (is.null(res)) next
+      cat(&quot;### &quot;, res$lab, &quot;\n\n&quot;, sep = &quot;&quot;)
+      print(knitr::kable(as.data.frame.matrix(res$tab),
+                         caption = paste0(&quot;High-TMB mode membership vs MMR status — &quot;, res$lab)))
+      cat(&quot;\n\nFisher exact p = &quot;,
+          if (is.finite(res$p)) signif(res$p, 3) else &quot;NA (a margin was degenerate)&quot;,
+          if (is.finite(res$p) &amp;&amp; res$p &lt; 0.05) &quot; — the high-TMB mode is significantly enriched for MMRd.&quot; else &quot;&quot;,
+          &quot;\n\n&quot;, sep = &quot;&quot;)
+    }
+  }
+}</code></pre>
+<p><em>No definition produced a ≥2-component mixture — no high-TMB mode
+to validate.</em></p>
+</div>
+<div id="cross-definition-synthesis-does-correction-sharpen-the-split"
+class="section level3">
+<h3>4. Cross-definition synthesis — does correction sharpen the
+split?</h3>
+<p>Removing ancestry-dependent germline inflation should make the
+hypermutator mode <em>stand out more</em>: as ancestry-inflated germline
+counts are stripped, the bulk tightens and the valley deepens. Two
+comparators, read left-to-right along the chain:</p>
+<ul>
+<li><strong>Dip statistic D</strong> (scale-invariant) — higher =
+further from unimodal.</li>
+<li><strong>SD-normalised mixture gap</strong> — the distance between
+the extreme component means in units of the definition’s own SD
+(comparable across definitions; the raw mut/Mb gap is not, because the
+definitions live on shifted scales).</li>
+</ul>
+<pre class="r"><code>have_syn &lt;- exists(&quot;battery&quot;) &amp;&amp; nrow(battery) &gt; 0 &amp;&amp;
+  (any(is.finite(battery$dip_D)) || any(is.finite(battery$gmm_gap_sd)))
+if (have_syn) {
+  syn &lt;- battery |&gt;
+    select(definition, `dip statistic D` = dip_D, `mixture gap (÷SD)` = gmm_gap_sd) |&gt;
+    pivot_longer(-definition, names_to = &quot;metric&quot;, values_to = &quot;value&quot;) |&gt;
+    filter(is.finite(value))
+  if (nrow(syn) &gt; 0) {
+    ggplot(syn, aes(definition, value, group = 1)) +
+      geom_line(colour = &quot;grey60&quot;) +
+      geom_point(size = 3, colour = &quot;steelblue&quot;) +
+      facet_wrap(~ metric, scales = &quot;free_y&quot;) +
+      labs(title = &quot;Separation strength along the germline-correction chain&quot;,
+           subtitle = &quot;left to right = normal -&gt; ancestry corrected; up = more clearly bimodal&quot;,
+           x = NULL, y = NULL) +
+      attend_theme() +
+      theme(axis.text.x = element_text(angle = 20, hjust = 1))
+  } else {
+    message(&quot;No finite separation metrics to plot.&quot;)
+  }
+} else {
+  message(&quot;Battery unavailable — synthesis skipped.&quot;)
+}</code></pre>
+<p><img src="figure/08-tmb.Rmd/synthesis-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+<p>The cross-definition comparison in words: whether moving from the
+delivered score to the ancestry-corrected one deepens the valley, holds
+it, or closes it.</p>
+<pre class="r"><code>if (exists(&quot;battery&quot;) &amp;&amp; nrow(battery) &gt; 0 &amp;&amp; sum(is.finite(battery$dip_D)) &gt;= 2) {
+  b &lt;- battery |&gt; filter(is.finite(dip_D))
+  first_lab &lt;- as.character(b$definition[1]); last_lab &lt;- as.character(b$definition[nrow(b)])
+  d_first &lt;- b$dip_D[1]; d_last &lt;- b$dip_D[nrow(b)]
+  cat(&quot;Dip D moves from &quot;, signif(d_first, 3), &quot; (&quot;, first_lab, &quot;) to &quot;,
+      signif(d_last, 3), &quot; (&quot;, last_lab, &quot;). &quot;,
+      if (d_last &gt; d_first)
+        &quot;Separation **increases** after correction — consistent with the correction sharpening the hypermutator mode.&quot;
+      else if (d_last &lt; d_first)
+        &quot;Separation **decreases** after correction — it does not visibly sharpen the split on the raw scale (or the corrected column is too sparse to resolve it).&quot;
+      else &quot;Separation is unchanged after correction.&quot;,
+      &quot;\n\n&quot;, sep = &quot;&quot;)
+}</code></pre>
+<p>Dip D moves from 0.0148 (TMB (normal)) to 0.015 (TMB (ancestry
+corrected)). Separation <strong>increases</strong> after correction —
+consistent with the correction sharpening the hypermutator mode.</p>
+<p>The battery is written to an intermediate for <a
+href="08-tmb.html">08-tmb</a>, which appends TCGA as one more row of
+this same table.</p>
+</div>
+</div>
+<div id="part-2-tmb-by-aneuploidy-within-mmr-strata"
+class="section level2">
+<h2>Part 2 — TMB by aneuploidy, within MMR strata</h2>
+<p>Splitting by MMR <em>first</em> is the point. The two routes to a
+high number are biologically distinct and must not be pooled:
+MMR-deficient tumours are hypermutators, high TMB with often-modest
+aneuploidy, whereas the CN-high / serous-like route drives high
+aneuploidy with typically low TMB. Pooling the two would let one route’s
+signal mask the other, so the aneuploidy-high-vs-low contrast is drawn
+once per MMR group and repeated across every TMB definition present.</p>
+<div id="building-the-strata" class="section level3">
+<h3>Building the strata</h3>
+<p>Each point is one patient. TMB (mut/Mb, raw) comes from the tmb__*
+master columns via the long table above. Aneuploidy status is
+aneu__aneuploidy_score, the ASCETS arm-level SCNA burden from
+data/ascets/, split at attend_thresholds$aneuploidy = 0.1. MMR group is
+gianlu__MMR_STATUS collapsed to MMRd/MMRp by the shared is_mmrd(), so
+the split matches every other report. Patients missing an aneuploidy
+score or an MMR call are dropped.</p>
+<pre class="r"><code>aneu_col &lt;- attend_cols$aneuploidy    # aneu__aneuploidy_score
+mmr_col  &lt;- attend_cols$mmr_status    # gianlu__MMR_STATUS
+aneu_cut &lt;- attend_thresholds$aneuploidy
+
+have_aneu_tmb &lt;- nrow(long) &gt; 0 &amp;&amp;
+  aneu_col %in% names(master) &amp;&amp; mmr_col %in% names(master)
+
+if (have_aneu_tmb) {
+  # Per-patient aneuploidy class + MMR group, joined onto the per-(patient, definition)
+  # TMB rows read back from report 07.
+  meta &lt;- master |&gt;
+    transmute(
+      pid,
+      aneu_class = factor(
+        if_else(suppressWarnings(as.numeric(.data[[aneu_col]])) &gt;= aneu_cut,
+                &quot;aneuploidy-high&quot;, &quot;aneuploidy-low&quot;),
+        levels = c(&quot;aneuploidy-low&quot;, &quot;aneuploidy-high&quot;)),
+      mmr_group  = dplyr::case_when(
+        is_mmrd(.data[[mmr_col]])   ~ &quot;MMRd&quot;,
+        !is_mmrd(.data[[mmr_col]])  ~ &quot;MMRp&quot;,
+        TRUE                        ~ NA_character_) |&gt;
+        factor(levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;))
+    )
+
+  ta &lt;- long |&gt;
+    inner_join(meta, by = &quot;pid&quot;) |&gt;
+    filter(!is.na(aneu_class), !is.na(mmr_group))
+
+  # Facet rows = TMB definitions actually present; drives the plot&#39;s fig.height below
+  # so each row keeps a legible height whether 1 or 4 definitions render.
+  n_aneu_defs &lt;- max(1L, nlevels(droplevels(ta$definition)))
+
+  cat(&quot;patients per MMR group × aneuploidy status (baseline definition):\n&quot;)
+  print(ta |&gt;
+          filter(definition == levels(definition)[1]) |&gt;
+          count(mmr_group, aneu_class) |&gt;
+          tidyr::pivot_wider(names_from = aneu_class, values_from = n, values_fill = 0))
+} else {
+  ta &lt;- tibble()
+  n_aneu_defs &lt;- 1L
+  cat(&quot;Aneuploidy score (`&quot;, aneu_col, &quot;`) or MMR status (`&quot;, mmr_col,
+      &quot;`) absent from the master, or no TMB values — section skipped.\n&quot;, sep = &quot;&quot;)
+}</code></pre>
+<pre><code>patients per MMR group × aneuploidy status (baseline definition):
+# A tibble: 2 × 3
+  mmr_group `aneuploidy-low` `aneuploidy-high`
+  &lt;fct&gt;                &lt;int&gt;             &lt;int&gt;
+1 MMRp                    67                57
+2 MMRd                   100                 9</code></pre>
+<p>The two boxplots the analysis calls for: TMB (raw mut/Mb) in
+aneuploidy-high vs aneuploidy-low tumours, faceted <strong>by MMR
+group</strong> (columns: MMRp, MMRd) and <strong>by TMB
+definition</strong> (rows). Boxes are filled by aneuploidy status (light
+blue = low, red = high — the shared attend_aneu_cols palette the other
+reports use); the dashed red line is the TMB-high cut
+(attend_thresholds$tmb = 10 mut/Mb). Points are individual patients
+(jittered), not group means.</p>
+<pre class="r"><code>if (nrow(ta) &gt; 0) {
+  aneu_pal &lt;- attend_aneu_cols
+  ggplot(ta, aes(aneu_class, tmb)) +
+    geom_boxplot(aes(fill = aneu_class), outlier.shape = NA, width = 0.6,
+                 alpha = 0.5) +
+    geom_jitter(width = 0.15, height = 0, alpha = 0.4, size = 1) +
+    geom_hline(yintercept = attend_thresholds$tmb, linetype = &quot;dashed&quot;,
+               colour = &quot;firebrick&quot;) +
+    scale_fill_manual(values = aneu_pal, name = &quot;aneuploidy status&quot;) +
+    # Short horizontal tick labels — the fill legend already spells out the full
+    # aneuploidy status, so the x-axis needn&#39;t repeat it (frees per-panel width).
+    scale_x_discrete(labels = c(&quot;aneuploidy-low&quot; = &quot;low&quot;,
+                                &quot;aneuploidy-high&quot; = &quot;high&quot;)) +
+    facet_grid(definition ~ mmr_group, scales = &quot;free_y&quot;) +
+    labs(title = &quot;TMB by aneuploidy status, split by MMR group&quot;,
+         subtitle = paste0(&quot;dashed red = TMB-high cut (&quot;, attend_thresholds$tmb,
+                           &quot; mut/Mb); aneuploidy-high = score ≥ &quot;, aneu_cut),
+         x = NULL, y = &quot;TMB (mut/Mb)&quot;) +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 0),
+          legend.position = &quot;top&quot;)
+} else {
+  message(&quot;No aneuploidy/TMB data to plot.&quot;)
+}</code></pre>
+<p><img src="figure/08-tmb.Rmd/aneu-tmb-box-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+<p>Formalising each panel at the <strong>10 mut/Mb</strong> cut rather
+than by median: within every (MMR group × TMB definition) cell, patients
+are binarised <strong>TMB-high vs TMB-low</strong> at
+attend_thresholds$tmb = 10 mut/Mb via the shared tmb_class_of() (the
+same cut every TMB-keyed figure uses), and the table reports the
+<strong>count and fraction of TMB-high tumours in the aneuploidy-low vs
+-high groups</strong>. A <strong>Fisher exact test</strong> on the 2×2
+(aneuploidy status × TMB-high/low) asks whether the TMB-high fraction
+differs by aneuploidy status. Cells with an aneuploidy group of fewer
+than 3 patients report NA.</p>
+<pre class="r"><code>if (nrow(ta) &gt; 0) {
+  aneu_tmb_tab &lt;- ta |&gt;
+    group_by(definition, mmr_group) |&gt;
+    group_modify(function(.x, ...) {
+      # Binarise TMB at the pipeline 10 mut/Mb cut (shared tmb_class_of()), then
+      # count TMB-high tumours within each aneuploidy group.
+      tmb_hi &lt;- tmb_class_of(.x$tmb) == &quot;TMB-high&quot;
+      is_lo  &lt;- .x$aneu_class == &quot;aneuploidy-low&quot;
+      is_hi  &lt;- .x$aneu_class == &quot;aneuploidy-high&quot;
+      n_lo &lt;- sum(is_lo); n_hi &lt;- sum(is_hi)
+      hi_in_lo &lt;- sum(is_lo &amp; tmb_hi); hi_in_hi &lt;- sum(is_hi &amp; tmb_hi)
+      p &lt;- if (n_lo &gt;= 3 &amp;&amp; n_hi &gt;= 3) {
+        tab &lt;- table(aneu = factor(.x$aneu_class,
+                                   levels = c(&quot;aneuploidy-low&quot;, &quot;aneuploidy-high&quot;)),
+                     tmb  = factor(tmb_hi, levels = c(FALSE, TRUE)))
+        tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+      } else NA_real_
+      tibble(
+        n_aneu_low    = n_lo,
+        n_aneu_high   = n_hi,
+        tmbhigh_low   = hi_in_lo,
+        pct_low       = if (n_lo &gt; 0) 100 * hi_in_lo / n_lo else NA_real_,
+        tmbhigh_high  = hi_in_hi,
+        pct_high      = if (n_hi &gt; 0) 100 * hi_in_hi / n_hi else NA_real_,
+        fisher_p      = p
+      )
+    }) |&gt;
+    ungroup()
+
+  knitr::kable(
+    aneu_tmb_tab |&gt;
+      transmute(definition, mmr_group,
+                `n aneu-low`  = n_aneu_low,
+                `n aneu-high` = n_aneu_high,
+                `TMB-high | aneu-low`  = ifelse(is.finite(pct_low),
+                    sprintf(&quot;%d (%.0f%%)&quot;, tmbhigh_low,  pct_low),  &quot;—&quot;),
+                `TMB-high | aneu-high` = ifelse(is.finite(pct_high),
+                    sprintf(&quot;%d (%.0f%%)&quot;, tmbhigh_high, pct_high), &quot;—&quot;),
+                `Fisher p` = signif(fisher_p, 3)),
+    caption = paste0(&quot;TMB-high tumours (≥ &quot;, attend_thresholds$tmb,
+                     &quot; mut/Mb) as count (%) within the aneuploidy-low vs -high groups, &quot;,
+                     &quot;and Fisher&#39;s exact p, per MMR group and TMB definition.&quot;)
+  )
+} else {
+  cat(&quot;No aneuploidy/TMB data — test skipped.\n&quot;)
+}</code></pre>
+<table style="width:100%;">
+<caption>TMB-high tumours (≥ 10 mut/Mb) as count (%) within the
+aneuploidy-low vs -high groups, and Fisher’s exact p, per MMR group and
+TMB definition.</caption>
+<colgroup>
+<col width="21%" />
+<col width="8%" />
+<col width="9%" />
+<col width="10%" />
+<col width="21%" />
+<col width="22%" />
+<col width="7%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">definition</th>
+<th align="left">mmr_group</th>
+<th align="right">n aneu-low</th>
+<th align="right">n aneu-high</th>
+<th align="left">TMB-high | aneu-low</th>
+<th align="left">TMB-high | aneu-high</th>
+<th align="right">Fisher p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TMB (normal)</td>
+<td align="left">MMRp</td>
+<td align="right">67</td>
+<td align="right">57</td>
+<td align="left">58 (87%)</td>
+<td align="left">53 (93%)</td>
+<td align="right">0.379</td>
+</tr>
+<tr class="even">
+<td align="left">TMB (normal)</td>
+<td align="left">MMRd</td>
+<td align="right">100</td>
+<td align="right">9</td>
+<td align="left">98 (98%)</td>
+<td align="left">9 (100%)</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="odd">
+<td align="left">TMB (ancestry corrected)</td>
+<td align="left">MMRp</td>
+<td align="right">67</td>
+<td align="right">57</td>
+<td align="left">18 (27%)</td>
+<td align="left">11 (19%)</td>
+<td align="right">0.396</td>
+</tr>
+<tr class="even">
+<td align="left">TMB (ancestry corrected)</td>
+<td align="left">MMRd</td>
+<td align="right">100</td>
+<td align="right">9</td>
+<td align="left">87 (87%)</td>
+<td align="left">6 (67%)</td>
+<td align="right">0.126</td>
+</tr>
+</tbody>
+</table>
+<p>The table above read back as one line per TMB definition, giving each
+MMR group’s TMB-high fraction in the aneuploidy-low and aneuploidy-high
+groups with its Fisher p.</p>
+<pre class="r"><code>if (exists(&quot;aneu_tmb_tab&quot;) &amp;&amp; nrow(aneu_tmb_tab) &gt; 0) {
+  # One MMRp/MMRd line per TMB definition present, in correction order — the same set
+  # the boxplot rows and the table above show.
+  say &lt;- function(b, grp) {
+    r &lt;- b |&gt; filter(mmr_group == grp)
+    if (nrow(r) == 0) return(paste0(&quot;**&quot;, grp, &quot;**: no patients.&quot;))
+    paste0(&quot;**&quot;, grp, &quot;**: TMB-high fraction &quot;,
+           if (is.finite(r$pct_low))  sprintf(&quot;%.0f%%&quot;, r$pct_low)  else &quot;NA&quot;,
+           &quot; in aneuploidy-low vs &quot;,
+           if (is.finite(r$pct_high)) sprintf(&quot;%.0f%%&quot;, r$pct_high) else &quot;NA&quot;,
+           &quot; in aneuploidy-high (Fisher p = &quot;,
+           if (is.finite(r$fisher_p)) signif(r$fisher_p, 3) else &quot;NA&quot;, &quot;)&quot;)
+  }
+  for (lab in levels(ta$definition)) {
+    b &lt;- aneu_tmb_tab |&gt; filter(definition == lab)
+    if (nrow(b) == 0) next
+    cat(&quot;- _&quot;, lab, &quot;_ — &quot;, say(b, &quot;MMRp&quot;), &quot;; &quot;, say(b, &quot;MMRd&quot;), &quot;.\n&quot;, sep = &quot;&quot;)
+  }
+  cat(&quot;\n_Read against the two-routes framing at the top: within MMRp the CN-high/serous-like &quot;,
+      &quot;signature is a **lower** TMB-high fraction among aneuploidy-high tumours (high &quot;,
+      &quot;aneuploidy, low TMB), while MMRd tumours stay TMB-high largely independent of &quot;,
+      &quot;aneuploidy. Comparing the lines across definitions shows whether stripping &quot;,
+      &quot;ancestry-inflated germline (normal -&gt; ancestry corrected) changes that within-stratum &quot;,
+      &quot;contrast._\n\n&quot;, sep = &quot;&quot;)
+}</code></pre>
+<ul>
+<li><em>TMB (normal)</em> — <strong>MMRp</strong>: TMB-high fraction 87%
+in aneuploidy-low vs 93% in aneuploidy-high (Fisher p = 0.379);
+<strong>MMRd</strong>: TMB-high fraction 98% in aneuploidy-low vs 100%
+in aneuploidy-high (Fisher p = 1).</li>
+<li><em>TMB (ancestry corrected)</em> — <strong>MMRp</strong>: TMB-high
+fraction 27% in aneuploidy-low vs 19% in aneuploidy-high (Fisher p =
+0.396); <strong>MMRd</strong>: TMB-high fraction 87% in aneuploidy-low
+vs 67% in aneuploidy-high (Fisher p = 0.126).</li>
+</ul>
+<p><em>Read against the two-routes framing at the top: within MMRp the
+CN-high/serous-like signature is a <strong>lower</strong> TMB-high
+fraction among aneuploidy-high tumours (high aneuploidy, low TMB), while
+MMRd tumours stay TMB-high largely independent of aneuploidy. Comparing
+the lines across definitions shows whether stripping ancestry-inflated
+germline (normal -&gt; ancestry corrected) changes that within-stratum
+contrast.</em></p>
+</div>
+</div>
+<div id="part-3-does-the-split-reproduce-in-tcga-ucec"
+class="section level2">
+<h2>Part 3 — does the split reproduce in TCGA UCEC?</h2>
+<p>TCGA UCEC 2013 (Kandoth et al., <em>Nature</em> 2013) is the same
+disease sequenced tumour with matched normal, so germline variants were
+subtracted at source and its TMB carries none of the tumour-only
+inflation the ancestry correction is trying to undo. That makes it a
+reference rather than just another cohort: if TCGA is clearly bimodal
+and ATTEND is not, the missing split is a measurement problem in
+tumour-only TMB; and if the ancestry-corrected definition looks more
+TCGA-like than the uncorrected one, the correction is moving ATTEND
+toward the paired-sequencing ground truth.</p>
+<p>TCGA UCEC is <strong>primary</strong> disease and ATTEND is
+<strong>metastatic</strong>, so any difference between the cohorts is
+confounded with disease setting and cannot be attributed to sequencing
+strategy alone. TCGA is a reference for what a paired-sequencing TMB
+distribution looks like, not a matched control.</p>
+<div id="loading-the-reference-cohort" class="section level3">
+<h3>Loading the reference cohort</h3>
+<p>TCGA’s TMB_NONSYNONYMOUS (non-synonymous mutations per Mb, available
+on the 248 of 373 tumours that were exome-sequenced) on the same raw
+mut/Mb scale as ATTEND. POLE-ultramutated tumours are excluded: TCGA has
+17 at roughly 232 mut/Mb, an order of magnitude above even the MSI
+hypermutators, and ATTEND structurally cannot have them, so leaving them
+in would make every comparison detect that rather than the MMRd split.
+TCGA’s MMRd group is its own MSI (Hyper-mutated) integrative cluster
+(mmrd_rule = “tcga_exact”), i.e. the paper’s published classification
+rather than a marker call.</p>
+<pre class="r"><code>tcga_raw &lt;- tryCatch(load_tcga_ucec_2013(), error = function(e) tibble())
+have_tcga &lt;- nrow(tcga_raw) &gt; 0 &amp;&amp; &quot;tmb&quot; %in% names(tcga_raw) &amp;&amp;
+             sum(is.finite(tcga_raw$tmb)) &gt;= 10
+
+if (!have_tcga) {
+  cat(&quot;**TCGA UCEC 2013 not available** (`data/tcga_2013/`) — run&quot;,
+      &quot;`Rscript code/fetch_tcga_ucec_2013.R`. This report is skipped, not silently empty.\n&quot;)
+} else {
+  n_all  &lt;- sum(is.finite(tcga_raw$tmb))
+  tcga &lt;- tcga_raw |&gt; filter(is.finite(tmb), !pole)      # &lt;- POLE excluded
+  cat(&quot;TCGA tumours with a TMB value :&quot;, n_all, &quot;\n&quot;)
+  cat(&quot;POLE-ultramutated, excluded   :&quot;, n_all - nrow(tcga), &quot;\n&quot;)
+  cat(&quot;TCGA cohort used here         :&quot;, nrow(tcga), &quot;\n&quot;)
+  cat(&quot;  of which MMRd (MSI cluster) :&quot;, sum(tcga$mmrd, na.rm = TRUE),
+      &quot; | MMRp:&quot;, sum(!tcga$mmrd, na.rm = TRUE),
+      &quot; | unclassified:&quot;, sum(is.na(tcga$mmrd)), &quot;\n&quot;)
+}</code></pre>
+<pre><code>TCGA tumours with a TMB value : 248 
+POLE-ultramutated, excluded   : 17 
+TCGA cohort used here         : 231 
+  of which MMRd (MSI cluster) : 65  | MMRp: 150  | unclassified: 16 </code></pre>
+<p>Densities of the ATTEND definitions and the TCGA reference on one
+axis. The ATTEND distributions are tumour-only, TCGA’s is paired — so a
+systematic rightward shift of the ATTEND curves relative to TCGA is the
+germline inflation, visible directly. The dashed line is the pipeline’s
+10 mut/Mb TMB-high cutoff.</p>
+<p>The x-axis is trimmed at the 99th percentile so the shape near the
+modes stays readable; the extreme tail is still in every test below,
+just not in the picture.</p>
+<pre class="r"><code>if (have_tcga &amp;&amp; nrow(long) &gt; 0) {
+  cmp &lt;- bind_rows(
+    long |&gt; transmute(cohort = paste0(&quot;ATTEND — &quot;, as.character(definition)), tmb),
+    tibble(cohort = &quot;TCGA UCEC (paired, POLE excluded)&quot;, tmb = tcga$tmb)
+  ) |&gt; filter(is.finite(tmb))
+
+  xmax &lt;- quantile(cmp$tmb, 0.99, na.rm = TRUE)
+
+  ggplot(cmp, aes(tmb, colour = cohort)) +
+    geom_density(linewidth = 0.9, na.rm = TRUE) +
+    geom_vline(xintercept = attend_thresholds$tmb, linetype = 2, colour = &quot;grey50&quot;) +
+    coord_cartesian(xlim = c(0, xmax)) +
+    labs(title = &quot;TMB distribution: ATTEND (tumour-only) vs TCGA UCEC (tumour-normal paired)&quot;,
+         subtitle = paste0(&quot;raw mut/Mb, x-axis trimmed at the 99th percentile; dashed line = &quot;,
+                           attend_thresholds$tmb, &quot; mut/Mb TMB-high cutoff&quot;),
+         x = &quot;TMB (mut/Mb)&quot;, y = &quot;density&quot;, colour = NULL) +
+    attend_theme() +
+    theme(legend.position = &quot;top&quot;) +
+    guides(colour = guide_legend(ncol = 1))
+}</code></pre>
+<p><img src="figure/08-tmb.Rmd/tcga-density-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+<p>The same three-criterion battery Part 1 runs — literally the same
+tmb_battery() call — now with TCGA as an extra row. Read the TCGA row
+first: it is the benchmark. If TCGA is bimodal and an ATTEND definition
+is not, the split exists in this disease and that definition is failing
+to resolve it.</p>
+<pre class="r"><code>if (have_tcga) {
+  # Same tmb_battery() Part 1 runs, on one ungrouped vector — so the TCGA row and the
+  # ATTEND rows cannot be computed by two subtly different routes.
+  tcga_row &lt;- tmb_battery(tibble(tmb = tcga$tmb), by = NULL) |&gt;
+    mutate(definition = &quot;TCGA UCEC (paired, POLE excl.)&quot;, .before = 1)
+
+  combined &lt;- if (exists(&quot;battery&quot;) &amp;&amp; nrow(battery) &gt; 0)
+    bind_rows(battery |&gt; mutate(definition = as.character(definition)), tcga_row) else tcga_row
+
+  knitr::kable(
+    combined |&gt;
+      transmute(definition, n,
+                dip_D = round(dip_D, 4), dip_p = signif(dip_p, 3), dip_bimodal,
+                BC = round(BC, 3), BC_bimodal,
+                gmm_G, gmm_bimodal,
+                gmm_gap_sd = round(gmm_gap_sd, 2),
+                votes, verdict),
+    caption = &quot;Bimodality battery — ATTEND definitions plus the TCGA paired-sequencing reference. verdict = bimodal when &gt;= 2 of {dip, BC, GMM} agree.&quot;
+  )
+}</code></pre>
+<table>
+<caption>Bimodality battery — ATTEND definitions plus the TCGA
+paired-sequencing reference. verdict = bimodal when &gt;= 2 of {dip, BC,
+GMM} agree.</caption>
+<colgroup>
+<col width="25%" />
+<col width="3%" />
+<col width="5%" />
+<col width="4%" />
+<col width="9%" />
+<col width="4%" />
+<col width="9%" />
+<col width="4%" />
+<col width="9%" />
+<col width="9%" />
+<col width="4%" />
+<col width="7%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">definition</th>
+<th align="right">n</th>
+<th align="right">dip_D</th>
+<th align="right">dip_p</th>
+<th align="left">dip_bimodal</th>
+<th align="right">BC</th>
+<th align="left">BC_bimodal</th>
+<th align="right">gmm_G</th>
+<th align="left">gmm_bimodal</th>
+<th align="right">gmm_gap_sd</th>
+<th align="right">votes</th>
+<th align="left">verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TMB (normal)</td>
+<td align="right">234</td>
+<td align="right">0.0148</td>
+<td align="right">0.991</td>
+<td align="left">FALSE</td>
+<td align="right">0.523</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="left">unimodal</td>
+</tr>
+<tr class="even">
+<td align="left">TMB (ancestry corrected)</td>
+<td align="right">234</td>
+<td align="right">0.0150</td>
+<td align="right">0.991</td>
+<td align="left">FALSE</td>
+<td align="right">0.549</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="left">unimodal</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA UCEC (paired, POLE excl.)</td>
+<td align="right">231</td>
+<td align="right">0.0168</td>
+<td align="right">0.963</td>
+<td align="left">FALSE</td>
+<td align="right">0.701</td>
+<td align="left">TRUE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="left">unimodal</td>
+</tr>
+</tbody>
+</table>
+<p>Does TCGA’s high-TMB mode contain TCGA’s MMR-deficient tumours? The
+same mode validation Part 1 runs on ATTEND, applied to the reference
+cohort. A strong enrichment here establishes that the high mode really
+is the hypermutator population <em>in this disease</em> — which is what
+licenses reading ATTEND’s high mode the same way.</p>
+<pre class="r"><code>if (have_tcga &amp;&amp; have_mclust) {
+  mc &lt;- tryCatch(mclust::Mclust(tcga$tmb, G = 1:3, verbose = FALSE), error = function(e) NULL)
+  if (is.null(mc) || mc$G &lt; 2) {
+    cat(&quot;_TCGA TMB resolves to a single mixture component — no high mode to validate._\n\n&quot;)
+  } else {
+    hi_comp &lt;- which.max(as.numeric(mc$parameters$mean))
+    d &lt;- tcga |&gt;
+      mutate(hi_mode = factor(if_else(mc$classification == hi_comp, &quot;high-TMB mode&quot;, &quot;bulk&quot;),
+                              levels = c(&quot;bulk&quot;, &quot;high-TMB mode&quot;))) |&gt;
+      filter(!is.na(mmrd))
+    if (nrow(d) &gt;= 4 &amp;&amp; dplyr::n_distinct(d$hi_mode) == 2 &amp;&amp; dplyr::n_distinct(d$mmrd) == 2) {
+      tab &lt;- table(MMR = if_else(d$mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;), mode = d$hi_mode)
+      pv  &lt;- tryCatch(fisher.test(tab)$p.value, error = function(e) NA_real_)
+      cat(&quot;**TCGA — high-TMB mode vs MMR status** (&quot;, mc$G, &quot; mixture components):\n\n&quot;, sep = &quot;&quot;)
+      print(knitr::kable(tab))
+      cat(&quot;\nFisher p = &quot;, signif(pv, 3), &quot;\n\n&quot;, sep = &quot;&quot;)
+    } else {
+      cat(&quot;_Not enough classified TCGA tumours across both mode and MMR groups._\n\n&quot;)
+    }
+  }
+} else if (have_tcga) {
+  cat(&quot;_`mclust` not installed — TCGA mode validation skipped._\n\n&quot;)
+}</code></pre>
+<p><em>TCGA TMB resolves to a single mixture component — no high mode to
+validate.</em></p>
+<p>How each cohort’s TMB separates MMR-deficient from MMR-proficient
+tumours, side by side. This is the comparison the whole section is for:
+the <strong>effect size</strong> of MMR status on TMB in a paired cohort
+versus in ATTEND under each definition. If the ancestry correction is
+working, ATTEND’s corrected separation should look more like TCGA’s than
+the uncorrected one does.</p>
+<p>Wilcoxon rather than t-test, because TMB is heavily skewed on the raw
+scale.</p>
+<pre class="r"><code>if (have_tcga) {
+  mmr_col_l &lt;- attend_cols$mmr_status
+  att &lt;- if (mmr_col_l %in% names(master)) {
+    master |&gt;
+      select(pid, all_of(unname(def_cols)), all_of(mmr_col_l)) |&gt;
+      pivot_longer(all_of(unname(def_cols)), names_to = &quot;col&quot;, values_to = &quot;tmb&quot;) |&gt;
+      mutate(cohort = paste0(&quot;ATTEND — &quot;, def_labels[match(col, def_cols)]),
+             tmb    = suppressWarnings(as.numeric(tmb)),
+             mmrd   = is_mmrd(.data[[mmr_col_l]])) |&gt;
+      filter(is.finite(tmb), !is.na(mmrd)) |&gt;
+      select(cohort, tmb, mmrd)
+  } else tibble()
+
+  both &lt;- bind_rows(att,
+    tcga |&gt; filter(!is.na(mmrd)) |&gt;
+      transmute(cohort = &quot;TCGA UCEC (paired)&quot;, tmb, mmrd))
+
+  if (nrow(both) &gt; 0) {
+    both &lt;- both |&gt; mutate(MMR = if_else(mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;))
+
+    print(knitr::kable(
+      both |&gt; group_by(cohort, MMR) |&gt;
+        summarise(n = n(), median = round(median(tmb), 2),
+                  IQR = paste0(round(quantile(tmb, .25), 2), &quot;-&quot;, round(quantile(tmb, .75), 2)),
+                  .groups = &quot;drop&quot;),
+      caption = &quot;TMB by MMR status in each cohort / definition&quot;))
+
+    pv &lt;- both |&gt; group_by(cohort) |&gt;
+      summarise(p = tryCatch(signif(wilcox.test(tmb ~ MMR)$p.value, 3),
+                             error = function(e) NA_real_), .groups = &quot;drop&quot;)
+    print(knitr::kable(pv, caption = &quot;MMRd vs MMRp Wilcoxon p, per cohort / definition&quot;))
+
+    ggplot(both, aes(MMR, tmb, fill = MMR)) +
+      geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+      geom_jitter(width = 0.15, size = 0.5, alpha = 0.35) +
+      geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = &quot;grey50&quot;) +
+      scale_y_log10() +
+      facet_wrap(~ cohort, nrow = 1) +
+      scale_fill_manual(values = attend_mmr_cols) +
+      labs(title = &quot;TMB by MMR status — ATTEND definitions vs the TCGA paired reference&quot;,
+           subtitle = &quot;log10 y-axis for display only; all tests above are on the raw scale&quot;,
+           x = NULL, y = &quot;TMB (mut/Mb, log10)&quot;) +
+      attend_theme() + theme(legend.position = &quot;none&quot;)
+  }
+}</code></pre>
+<pre><code>
+
+Table: TMB by MMR status in each cohort / definition
+
+|cohort                            |MMR  |   n| median|IQR         |
+|:---------------------------------|:----|---:|------:|:-----------|
+|ATTEND — TMB (ancestry corrected) |MMRd | 110|  15.48|12.52-20.51 |
+|ATTEND — TMB (ancestry corrected) |MMRp | 124|   8.08|6.97-9.89   |
+|ATTEND — TMB (normal)             |MMRd | 110|  39.34|28.06-51.46 |
+|ATTEND — TMB (normal)             |MMRp | 124|  17.07|13.17-21.46 |
+|TCGA UCEC (paired)                |MMRd |  65|   9.80|6.87-12.93  |
+|TCGA UCEC (paired)                |MMRp | 150|   1.43|1.17-1.82   |
+
+
+Table: MMRd vs MMRp Wilcoxon p, per cohort / definition
+
+|cohort                            |  p|
+|:---------------------------------|--:|
+|ATTEND — TMB (ancestry corrected) |  0|
+|ATTEND — TMB (normal)             |  0|
+|TCGA UCEC (paired)                |  0|</code></pre>
+<p><img src="figure/08-tmb.Rmd/tcga-mmr-contrast-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.6         sass_0.4.10        generics_0.1.4     stringi_1.8.7     
+ [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     timechange_0.4.0  
+ [9] evaluate_1.0.5     grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0     
+[13] cellranger_1.1.0   rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0    
+[17] whisker_0.4.1      mclust_6.0.1       promises_1.5.0     scales_1.4.0      
+[21] jquerylib_0.1.4    cli_3.6.6          crayon_1.5.3       rlang_1.2.0       
+[25] bit64_4.0.5        withr_3.0.2        cachem_1.1.0       yaml_2.3.12       
+[29] otel_0.2.0         parallel_4.3.2     tools_4.3.2        tzdb_0.5.0        
+[33] httpuv_1.6.12      vctrs_0.7.3        R6_2.6.1           lifecycle_1.0.5   
+[37] git2r_0.33.0       bit_4.6.0          vroom_1.7.1        pkgconfig_2.0.3   
+[41] pillar_1.11.1      bslib_0.9.0        later_1.4.8        gtable_0.3.6      
+[45] glue_1.8.1         Rcpp_1.1.1-1.1     xfun_0.58          tidyselect_1.2.1  
+[49] rstudioapi_0.15.0  knitr_1.51         dichromat_2.0-0.1  farver_2.1.2      
+[53] htmltools_0.5.9    labeling_0.4.3     rmarkdown_2.31     compiler_4.3.2    
+[57] S7_0.2.2           diptest_0.77-0    </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.6         sass_0.4.10        generics_0.1.4     stringi_1.8.7     
+ [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     timechange_0.4.0  
+ [9] evaluate_1.0.5     grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0     
+[13] cellranger_1.1.0   rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0    
+[17] whisker_0.4.1      mclust_6.0.1       promises_1.5.0     scales_1.4.0      
+[21] jquerylib_0.1.4    cli_3.6.6          crayon_1.5.3       rlang_1.2.0       
+[25] bit64_4.0.5        withr_3.0.2        cachem_1.1.0       yaml_2.3.12       
+[29] otel_0.2.0         parallel_4.3.2     tools_4.3.2        tzdb_0.5.0        
+[33] httpuv_1.6.12      vctrs_0.7.3        R6_2.6.1           lifecycle_1.0.5   
+[37] git2r_0.33.0       bit_4.6.0          vroom_1.7.1        pkgconfig_2.0.3   
+[41] pillar_1.11.1      bslib_0.9.0        later_1.4.8        gtable_0.3.6      
+[45] glue_1.8.1         Rcpp_1.1.1-1.1     xfun_0.58          tidyselect_1.2.1  
+[49] rstudioapi_0.15.0  knitr_1.51         dichromat_2.0-0.1  farver_2.1.2      
+[53] htmltools_0.5.9    labeling_0.4.3     rmarkdown_2.31     compiler_4.3.2    
+[57] S7_0.2.2           diptest_0.77-0    </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
