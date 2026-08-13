@@ -26,21 +26,8 @@ source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
 source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(), load_tmb_scores()
 
-# --- CNV clustering distance and linkage -----------------------------------------
-# 1 - Pearson correlation distance with Ward.D2 linkage. TCGA's Suppl. Methods S2 leaves
-# the *copy-number* clustering metric unstated, but its mRNA and methylation clusterings
-# both use 1 - Pearson / Ward, so the same pair is applied here to the CN matrix. This is
-# the only distance/linkage combination the pipeline uses.
-cnv_method <- "ward.D2"       # Ward linkage
-cnv_dist   <- "correlation"   # 1 - Pearson correlation (cluster_arm_matrix() correlation path)
-
-# Cut height for the DOWNSTREAM cascade / CN-high-burden label. TCGA found 4 SCNA clusters
-# (Fig. 1a); ATTEND has no POLE and is smaller, but k = 4 keeps parity. Change freely.
-k_cnv <- 4
-
-# The chromosome heatmap is drawn ONCE and annotated with a cluster bar for every k in
-# this range, so k = 2..8 can be compared in one figure (fig1a_heatmap_ksweep()).
-k_sweep <- 2:8
+# cnv_method, cnv_dist, k_cnv and k_sweep are configuration and live in attend_classes.R
+# with every other method parameter, so 00_methods.Rmd can name the cut it justifies.
 ```
 > **Question.** Which copy-number cluster is enriched for aneuploidy, i.e. which one is the copy-number-high / serous-like group?
 > **Cohort.** All patients with GISTIC output; the cascade itself is drawn on the full master.

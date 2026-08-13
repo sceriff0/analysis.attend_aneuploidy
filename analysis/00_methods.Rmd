@@ -47,8 +47,7 @@ have_master <- !is.null(master)
 Kandoth et al. (*Nature* 2013) Suppl. Methods S2 names no metric or linkage for the
 *copy-number* clustering, though it names 1 − Pearson / Ward for its mRNA and methylation
 clusterings. This pipeline applies that same pair to the copy-number matrix, set via
-`cnv_method`/`cnv_dist` at the top of `08_tcga_classification.Rmd` and passed to
-`cluster_arm_matrix()`. It is the only distance/linkage combination the pipeline uses.
+`cnv_method` / `cnv_dist` in `attend_classes.R` and passed to `cluster_arm_matrix()`. It is the only distance/linkage combination the pipeline uses.
 
 Euclidean with complete linkage is the obvious alternative. Comparing the two shows how
 sensitive the copy-number groups are to a metric choice the source paper never fixed.
@@ -88,8 +87,8 @@ addition. Read it once; the reports themselves carry only their own derivations.
 *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
 hierarchical clustering. *Differs:* DRAGEN WES `.seg` rather than SNP6; 1 − Pearson /
 Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
-cascade reads a single cut, `k_cnv` at the top of `08_tcga_classification.Rmd`, while the
-k-sweep heatmap shows the whole range around it; and the integrated-class and
+cascade reads a single cut, `k_cnv` = `r k_cnv` (`attend_classes.R`), while the k-sweep
+heatmap shows k = `r min(k_sweep)`..`r max(k_sweep)` around it; and the integrated-class and
 aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
 
 ### The k-sweep
@@ -457,9 +456,10 @@ never inline in a report. The entries that govern the copy-number and TMB method
 | `attend_pole` | POLE hotspots and TMB cutoff, kept unwired (ATTEND has no POLE cases) |
 
 The arm-boundary table is `data/arm_boundaries_hg38.tsv`, derived from UCSC hg38 cytoBand
-centromeres; set `attend_cnv$build` and `attend_cnv$arm_table` to work in hg19. The cut
-height `k_cnv` is the one method parameter that stays at the top of the report that uses
-it, because changing it changes that report's figures rather than the pipeline's method.
+centromeres; set `attend_cnv$build` and `attend_cnv$arm_table` to work in hg19. The clustering parameters
+`cnv_method`, `cnv_dist`, `k_cnv` and `k_sweep` are declared there too rather than at the
+top of report 08 — a parameter this file *discusses* and another file *applies* has to be
+visible to both.
 
 ## The aneuploidy classes
 Aneuploidy score is the ASCETS arm-level SCNA burden read from `data/ascets/`: the fraction

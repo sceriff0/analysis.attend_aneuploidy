@@ -451,6 +451,28 @@ km_panel_counts <- function(df, facets,
 #           unlisted regions as copy-neutral (0).
 # Everything is config-driven and knit-safe: absent inputs -> the report skips
 # the CNV sections, mirroring have_cols() / requireNamespace().
+# --- Copy-number clustering parameters (report 08) --------------------------
+#
+# These four live here, not at the top of the report that uses them, for the reason every
+# other threshold does (gotcha #2): a method parameter referenced from prose in one file
+# and defined in another resolves to nothing. 00_methods.Rmd discusses the cut; report 08
+# applies it; both source this file, so both can name it.
+#
+# 1 - Pearson correlation distance with Ward.D2 linkage. TCGA Suppl. Methods S2 leaves the
+# *copy-number* clustering metric unstated, but its mRNA and methylation clusterings both
+# use 1 - Pearson / Ward, so the same pair is applied to the CN matrix. This is the only
+# distance/linkage combination the pipeline uses.
+cnv_method <- "ward.D2"       # Ward linkage
+cnv_dist   <- "correlation"   # 1 - Pearson correlation (cluster_arm_matrix() correlation path)
+
+# Cut height for the cascade / CN-high-burden label. TCGA found 4 SCNA clusters (Fig. 1a);
+# ATTEND has no POLE and is smaller, but k = 4 keeps parity. Change freely.
+k_cnv <- 4
+
+# The chromosome heatmap is drawn ONCE with a cluster bar per k in this range, so k = 2..8
+# can be compared in one figure (fig1a_heatmap_ksweep()).
+k_sweep <- 2:8
+
 attend_cnv <- list(
   build     = "hg38",                    # which arm-boundary table to use
   arm_table = "arm_boundaries_hg38.tsv", # bundled in data/
