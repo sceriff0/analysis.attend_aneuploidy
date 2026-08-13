@@ -161,12 +161,15 @@ ct_cohorts <- list(`all patients` = ct_all, `MMR-deficient` = ct_mmrd)
 cat("patients with cell-type metrics + a response class:", n_distinct(ct_all$pid), "\n")
 cat("  ... of them MMR-deficient                       :", n_distinct(ct_mmrd$pid), "\n")
 cat("cell types measured                               :", n_distinct(ct_all$cell_type), "\n\n")
-if (nrow(ct_all) > 0)
-  print(table(cohort = "all patients",
-              response = droplevels(ct_all |> distinct(pid, response_class) |> pull(response_class))))
-if (nrow(ct_mmrd) > 0)
-  print(table(cohort = "MMR-deficient",
-              response = droplevels(ct_mmrd |> distinct(pid, response_class) |> pull(response_class))))
+# distinct(pid, ...) first: ct is long (one row per patient x cell type), so tabulating it
+# directly would count every patient once per cell type. The cohort name is a caption and
+# NOT a table() argument -- table() cross-tabulates its arguments and requires them to be
+# equal length, so a length-1 label next to the vector is an error, not a heading.
+for (nm in names(ct_cohorts)) {
+  d <- ct_cohorts[[nm]] |> distinct(pid, response_class)
+  cat("\n", nm, " (n = ", nrow(d), " patients):\n", sep = "")
+  if (nrow(d) > 0) print(table(response = droplevels(d$response_class)))
+}
 ```
 
 ```{r box-helpers, include=FALSE}
