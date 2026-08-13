@@ -28,7 +28,7 @@ master <- get_master()
 
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
 > **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
-> **Reads.** `attend_master_joined` only.
+> **Reads.** attend_master_joined only.
 > **Out of scope.** Anything conditioned on aneuploidy class -> reports [05](05_aneuploidy_mmrd.html) to [07](07_tmb.html). Survival -> [04_survival](04_survival.html).
 
 Whole distributions, not group averages. The expected differences here are tail phenomena:
@@ -41,13 +41,13 @@ An empirical cumulative distribution function plots, for every value on the x-ax
 fraction of patients at or below it. The curve rises from 0 to 1 left to right; where the
 two curves separate says *where in the range* the groups differ, a curve further right
 means systematically higher values, and the largest vertical gap between them is the KS
-statistic `D` tested below.
+statistic D tested below.
 
 ## Data
 
 Covariates are mapped to readable labels here, and only those actually present on the
 master are kept, so a covariate that failed to join is dropped rather than drawn empty.
-MMR status is `attend_cols$mmr_status`, collapsed to deficient
+MMR status is attend_cols$mmr_status, collapsed to deficient
 (`r attend_levels$mmr_deficient`) versus everything else non-missing.
 
 ```{r data}
@@ -110,10 +110,10 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
 
 The formal counterpart to the figure. The two-sample KS test asks whether the two
 distributions differ **anywhere**, without assuming a shape or testing only the mean.
-`D` is the largest vertical gap between the two curves above — so the test statistic is
+D is the largest vertical gap between the two curves above — so the test statistic is
 literally the thing the eye picks out of the plot.
 
-`n_deficient` and `n_proficient` are that covariate's own group sizes after dropping
+n_deficient and n_proficient are that covariate's own group sizes after dropping
 missing values, which is why they vary between rows.
 
 **No multiple-testing correction is applied** across the covariates listed. With a handful
@@ -151,7 +151,7 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
 The ECDF above shows the whole aneuploidy distribution; this is the same comparison as a
 two-group contrast with a test attached, because aneuploidy is this pipeline's subject and
 the ECDF alone gives no effect size or p-value. Aneuploidy score is
-`aneu__aneuploidy_score` (ASCETS arm-level SCNA burden from `data/ascets/`, LOWCOV arms
+aneu__aneuploidy_score (ASCETS arm-level SCNA burden from data/ascets/, LOWCOV arms
 excluded from each sample's denominator); the dashed line is the
 `r attend_thresholds$aneuploidy` class cutoff, drawn so the boxes can be read against the
 split the later reports use. Wilcoxon rank-sum on the two groups, uncorrected.

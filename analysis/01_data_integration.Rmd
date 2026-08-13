@@ -49,7 +49,7 @@ sets           <- cwx$sets
 
 > **Question.** Which measurement belongs to which patient, what did the join cost, and are the joined values usable?
 > **Cohort.** Every patient reached by at least one modality; no restriction.
-> **Reads.** The `code/load_*.R` loaders, straight from HPC storage, plus `data/attend_barcodes.csv`.
+> **Reads.** The code/load_*.R loaders, straight from HPC storage, plus data/attend_barcodes.csv.
 > **Out of scope.** Any biological comparison. The TMB definitions, the aneuploidy cut and the highlight groups are defined once in [00_methods](00_methods.html).
 
 ATTEND measures the same patients several different ways, each recorded with a different
@@ -58,19 +58,19 @@ reports what that cost: which records never reached a patient, which patients ar
 which modality, and whether the joined values are sane.
 
 Genomics tables are keyed by sequencing **barcode**, imaging and IHC by **image** id,
-clinical tables by **patient** id (`pid`). Two crosswalks translate everything onto `pid`;
-that logic is in `code/attend_harmonise.R` and the join consuming it is in
-`code/build_master.R` — one definition each, so no two reports can drift.
+clinical tables by **patient** id (pid). Two crosswalks translate everything onto pid;
+that logic is in code/attend_harmonise.R and the join consuming it is in
+code/build_master.R — one definition each, so no two reports can drift.
 
-Optional and guarded, so the report knits without them: `pointblank`, `reclin2`,
-`naniar`/`skimr`, `arrow`.
+Optional and guarded, so the report knits without them: pointblank, reclin2,
+naniar/skimr, arrow.
 
 ## Part 1 — building the master
 
-The whole join in one call: union every patient any dataset reached, `left_join` each
+The whole join in one call: union every patient any dataset reached, left_join each
 collapsed dataset onto it, derive mutation status per patient as booleans (never averaged),
 recompute the ancestry-aware TMB definitions, and write the result plus every raw table to
-`output/clean_data/`.
+output/clean_data/.
 
 ```{r master-build}
 master <- build_master(raw = raw, cw = cwx, write = TRUE, verbose = TRUE)
@@ -82,26 +82,26 @@ Each modality was recorded with a different kind of identifier, so this report p
 onto one patient key and writes the result.
 
 Genomics tables are keyed by sequencing **barcode**, imaging and IHC by **image** id,
-clinical tables by **patient** id (`pid`). Two crosswalks, barcode to pid and image to pid,
-translate everything onto `pid`. That logic lives in `code/attend_harmonise.R` — one
+clinical tables by **patient** id (pid). Two crosswalks, barcode to pid and image to pid,
+translate everything onto pid. That logic lives in code/attend_harmonise.R — one
 definition, so no two reports can drift apart.
 
 Four packages are optional and every use is guarded, so the report knits without them:
-`pointblank` for the post-join gate, `reclin2` for the fuzzy near-miss check, and `arrow`
+pointblank for the post-join gate, reclin2 for the fuzzy near-miss check, and arrow
 for Parquet intermediates. Install with
-`renv::install(c("pointblank","reclin2","arrow"))`.
+renv::install(c("pointblank","reclin2","arrow")).
 
 ### The raw inputs
 
-Every table is read straight from its loader in `code/load_*.R`, which are the seam
-between HPC storage (`/hpcnfs/scratch/P_DIMA_ATTEND`) and this pipeline. Nothing is
+Every table is read straight from its loader in code/load_*.R, which are the seam
+between HPC storage (/hpcnfs/scratch/P_DIMA_ATTEND) and this pipeline. Nothing is
 filtered or transformed at this point — these are the raw shapes as delivered.
 
 
 Row and column counts of each raw table as loaded above, before any ID translation.
-The key column differs per table — clinical/MSI/TMB/MAF use `ID`, imaging and IHC use
-`image_id`, HRD uses `Sample`, aneuploidy uses `sequencing_id`, the conversion table
-uses `barcode` — and reconciling those is the whole job of this report.
+The key column differs per table — clinical/MSI/TMB/MAF use ID, imaging and IHC use
+image_id, HRD uses Sample, aneuploidy uses sequencing_id, the conversion table
+uses barcode — and reconciling those is the whole job of this report.
 
 ```{r load-dims}
 raw_inputs <- list(
@@ -119,9 +119,9 @@ tibble(
 
 ### Building the two crosswalks
 
-The **barcode→pid** crosswalk is derived from `gianlu_clinical_data`, which is the only
-table carrying both a sequencing barcode (`TUMOR_BARCODE`) and a patient id. The
-**image→pid** crosswalk comes from `imaging_data`, which carries both `image_id` and a
+The **barcode→pid** crosswalk is derived from gianlu_clinical_data, which is the only
+table carrying both a sequencing barcode (TUMOR_BARCODE) and a patient id. The
+**image→pid** crosswalk comes from imaging_data, which carries both image_id and a
 patient id. Everything else is translated through one of these two.
 
 
@@ -140,7 +140,7 @@ cat("image   crosswalk:", nrow(cw_image_pid), "pairs,",
 #### Is the derived crosswalk right?
 
 The barcode→pid crosswalk above is *reverse-engineered* from the clinical table, but
-`data/attend_barcodes.csv` is the **canonical** map. The two are compared here on two
+data/attend_barcodes.csv is the **canonical** map. The two are compared here on two
 questions: which barcodes each one knows about, and — more seriously — whether they ever
 **disagree about which patient a barcode belongs to**. A disagreement is not a coverage
 gap; it would attach one patient's genomics to another patient's clinical record, and
@@ -186,7 +186,7 @@ if (!is.na(canon_pid_col)) {
 ```
 
 The comparison above is character-for-character, so a canonical barcode differing only
-by case, whitespace, or a `-DNA` suffix is reported as missing when it is really the
+by case, whitespace, or a -DNA suffix is reported as missing when it is really the
 same sample. This fuzzy-matches the unmatched canonical barcodes against the derived set
 (Jaro–Winkler ≥ 0.9 but < 1, i.e. close but not identical) and lists the near-misses, so
 formatting drift can be told apart from genuine absence. Size-capped and guarded.
@@ -252,7 +252,7 @@ cat("\npatients with >1 barcode:", nrow(multi_barcode),
 
 The master keeps exactly one row per patient. Where a patient contributed several rows,
 numeric columns are **averaged** and non-numeric columns take the first non-missing
-value (`num_or_first()` in `attend_harmonise.R`). That is harmless for a score measured
+value (num_or_first() in attend_harmonise.R). That is harmless for a score measured
 once and lossy for anything measured repeatedly, so the table below counts, per dataset,
 how many patients were affected — that count is the size of the hidden heterogeneity.
 
@@ -271,38 +271,38 @@ collapse_report
 
 ### Assembling the master table
 
-Start from the **union** of every patient any dataset reached, `left_join` each collapsed
-dataset onto it (so an absent modality becomes `NA` rather than dropping the patient),
-prefix each dataset's columns with its name (`tmb__`, `aneu__`, …) so nothing collides,
-and add an `in_<dataset>` flag per modality.
+Start from the **union** of every patient any dataset reached, left_join each collapsed
+dataset onto it (so an absent modality becomes NA rather than dropping the patient),
+prefix each dataset's columns with its name (tmb__, aneu__, …) so nothing collides,
+and add an in_<dataset> flag per modality.
 
 **The MAF is deliberately excluded from the averaging.** Mean-collapsing mutation rows is
 meaningless — the average of a genomic position is not a genomic position. Instead
-mutation status is derived per patient as booleans by `pathogenic_by_patient()`
-(`attend_classes.R`), which is the same helper the downstream mutation reports call, so
+mutation status is derived per patient as booleans by pathogenic_by_patient()
+(attend_classes.R), which is the same helper the downstream mutation reports call, so
 they cannot drift from this table.
 
 
 #### The two TMB definitions
 
-The recompute reads the gnomAD-annotated long MAF (`data/variant_annotations/`, loaded by
-`load_maf_tmb()`), counts the variant classes listed in `attend_tmb_recompute`, and anchors
-the result to the upstream `tmb__TMB_SCORE` scale so the definitions differ only by the
-germline filter. `apply_nassar_recalibration()` then produces `tmb__TMB_nassar` on top of
-the robust recompute. If the annotated MAFs are not synced, `load_maf_tmb()` returns empty
+The recompute reads the gnomAD-annotated long MAF (data/variant_annotations/, loaded by
+load_maf_tmb()), counts the variant classes listed in attend_tmb_recompute, and anchors
+the result to the upstream tmb__TMB_SCORE scale so the definitions differ only by the
+germline filter. apply_nassar_recalibration() then produces tmb__TMB_nassar on top of
+the robust recompute. If the annotated MAFs are not synced, load_maf_tmb() returns empty
 and both recomputed columns are simply absent from the master.
 
 
 #### Write the integration point
 
-The master is written through `write_intermediate()`, which picks Parquet when `arrow` is
+The master is written through write_intermediate(), which picks Parquet when arrow is
 installed and CSV otherwise, so no report ever hard-codes an extension. This is the file
 every report from 11 onward reads, and nothing downstream re-reads the raw loaders.
 
 
-`attend_master_joined` is the contract every later report builds on, so a broken join
+attend_master_joined is the contract every later report builds on, so a broken join
 should fail **here and loudly** rather than surfacing as a strange survival curve three
-reports later. This asserts the structural invariants of the join: `pid` exists, is never
+reports later. This asserts the structural invariants of the join: pid exists, is never
 null, and is unique — one row per patient. Guarded and warn-level, so it never halts a
 knit.
 
@@ -320,7 +320,7 @@ if (requireNamespace("pointblank", quietly = TRUE)) {
 
 Each raw table is additionally written to its own intermediate next to the master, so
 every input is preserved individually and downstream reports that need raw rows (rather
-than the collapsed master) can read them back through `read_intermediate()`.
+than the collapsed master) can read them back through read_intermediate().
 
 
 ## Part 2 — what the join cost
@@ -373,7 +373,7 @@ unmapped_tbl |>
 
 #### What safe recovery actually reclaimed
 
-The master was built with `recover = TRUE`, so the near-misses above were acted on, not
+The master was built with recover = TRUE, so the near-misses above were acted on, not
 just counted. First table: records that are orphans under exact matching but resolve to a
 single patient once normalised. Second table: normalised keys that map to more than one
 patient, refused rather than guessed, because recovering them could attach a sample to the
@@ -457,10 +457,10 @@ ggplot(loss_long, aes(reorder(dataset, n), n, fill = status)) +
 
 ### Which patients have which modalities
 
-Patients per combination of datasets, from the `sets` built in setup by `build_sets()`:
+Patients per combination of datasets, from the sets built in setup by build_sets():
 horizontal bars are each dataset's patient count, the dot matrix names a combination, and
 the top bars count it. The intersections are **exclusive** — a column with dots on only
-`{imaging, ihc}` is patients with imaging and IHC and nothing else — so every patient falls
+{imaging, ihc} is patients with imaging and IHC and nothing else — so every patient falls
 in exactly one column and the top bars sum to the distinct-patient total.
 
 ```{r plot-upset, fig.width=10, fig.height=6}
@@ -491,7 +491,7 @@ ggplot(degree_tbl, aes(factor(k))) +
   theme_minimal(base_size = 12)
 ```
 
-The per-patient view of the same information, read off the master's `in_<dataset>` flags.
+The per-patient view of the same information, read off the master's in_<dataset> flags.
 One row per patient, ordered by how many modalities they have (least complete at the
 bottom); blue = present, beige = absent. Vertical beige stripes are the bottleneck
 modalities; the solid blue block at the top is the complete cohort.
@@ -516,9 +516,9 @@ ggplot(presence, aes(dataset, factor(pid, levels = pid_order), fill = present)) 
 
 #### Two datasets that are loaded but never joined
 
-`clinical_data` and `conversion_data` are saved but are not in `tables`, so neither is
-harmonised into the master — only `gianlu_clinical_data` supplies clinical fields. This
-checks whether `clinical_data`'s IDs are even in `pid` space, which decides how much work
+clinical_data and conversion_data are saved but are not in tables, so neither is
+harmonised into the master — only gianlu_clinical_data supplies clinical fields. This
+checks whether clinical_data's IDs are even in pid space, which decides how much work
 joining it would be.
 
 ```{r clinical-overlap}
@@ -529,7 +529,7 @@ cat("clinical_data IDs that are in the pid union:",
 
 ### Are the joined values sane?
 
-A patient can be flagged `in_tmb == TRUE` and still have a missing or impossible TMB
+A patient can be flagged in_tmb == TRUE and still have a missing or impossible TMB
 value, so presence and usability are checked separately.
 
 Fraction of missing values per column of the master, worst first. A payload column near
@@ -544,7 +544,7 @@ col_missing <- master |>
 print(col_missing, n = Inf)
 ```
 
-The same picture with a ranked plot (`naniar`) and a typed per-column summary (`skimr`).
+The same picture with a ranked plot (naniar) and a typed per-column summary (skimr).
 Both optional.
 
 ```{r eda-naniar-skimr}
@@ -558,7 +558,7 @@ if (requireNamespace("skimr", quietly = TRUE)) skimr::skim(master) else
   message("skimr not installed — skipping typed EDA summary.")
 ```
 
-Range sanity on the four genomic score tables (`data/`-side, read back from the
+Range sanity on the four genomic score tables (data/-side, read back from the
 intermediates), computed *before* collapsing so a bad input value is not masked by
 averaging. Per numeric column: missing/zero/negative rates, observed range, distinct-value
 count, and a robust outlier count at median ± 5·MAD. The MAF is excluded — its numeric
@@ -571,7 +571,7 @@ value_audit <- imap(score_tables, ~ numeric_audit(.x, .y)) |> bind_rows()
 print(value_audit, n = Inf)
 ```
 
-Optional **hard domain bounds** — anything outside `[lower, upper]` is flagged. Left
+Optional **hard domain bounds** — anything outside [lower, upper] is flagged. Left
 empty so it runs as-is; the commented rows are a template with plausible ranges to
 confirm against the real definitions.
 
@@ -624,8 +624,8 @@ if (nrow(score_long) > 0) {
 }
 ```
 
-The continuous WES MSI score (`msi__MSI_SCORE`, percent unstable sites, from
-`data/msi.20250831.csv`) against the clinical MSI status the clinical table calls
+The continuous WES MSI score (msi__MSI_SCORE, percent unstable sites, from
+data/msi.20250831.csv) against the clinical MSI status the clinical table calls
 independently. The two arrive through different ID spaces — score through the barcode
 crosswalk, status through the patient id — so clean separation is positive evidence that
 the barcode-to-pid mapping is right, and overlap points at a linkage fault rather than

@@ -36,20 +36,20 @@ master <- get_master() |> add_molecular_classes()
 
 > **Question.** Does the treatment comparison behave differently in different molecular subgroups?
 > **Cohort.** All `r nrow(master)` patients on the master; the immune-content panels are restricted to the imaged subset.
-> **Reads.** `attend_master_joined`, plus the FlowPath/imaging join for `immune_class`.
+> **Reads.** attend_master_joined, plus the FlowPath/imaging join for immune_class.
 > **Out of scope.** Everything that is not a survival model. Composition itself -> [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html); concordance -> [02_flowpath_concordance](02_flowpath_concordance.html).
 
 Every figure below has the same structure. The two coloured curves are always the same
-comparison, `attend_cols$km_group` (the treatment arm); what changes between figures is how
+comparison, attend_cols$km_group (the treatment arm); what changes between figures is how
 the cohort is split into panels — by aneuploidy and MMR status first, then TMB, HRD, MSI,
 and immune content. Each panel carries its own log-rank p-value, comparing the two arms
 *within* that panel only. A gap that is similar in every panel means the molecular axis
 does not modify the treatment effect; a gap that opens in one panel and closes in another
 might, and the interaction test after the headline figure puts a number on it.
 
-Continuous scores are binarised by `add_molecular_classes()` at the configured thresholds:
+Continuous scores are binarised by add_molecular_classes() at the configured thresholds:
 aneuploidy at `r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
-`r attend_thresholds$hrd`. Every chunk is guarded by `have_cols()`, so the report knits to a
+`r attend_thresholds$hrd`. Every chunk is guarded by have_cols(), so the report knits to a
 legible skeleton before those column names are set.
 
 ## Data
@@ -68,7 +68,7 @@ master |>
 
 ### Survival summary table
 
-A publication-style survival table (`gtsummary::tbl_survfit`) for the comparison
+A publication-style survival table (gtsummary::tbl_survfit) for the comparison
 group — survival at 1/2/3/5 years with confidence intervals. Guarded on the same
 columns as the curves below.
 
@@ -82,12 +82,12 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols
 ## Headline figure — aneuploidy x MMR status
 
 The main result. Curves are the two treatment arms; **columns** are MMR status
-(proficient / deficient, from `MMR_class`) and **rows** are aneuploidy high vs low
+(proficient / deficient, from MMR_class) and **rows** are aneuploidy high vs low
 (split at `r attend_thresholds$aneuploidy` on the ASCETS aneuploidy score). Each panel's
 log-rank p compares the two arms within that panel alone — it is *not* a test of
 aneuploidy or MMR.
 
-The table underneath gives each panel's N and event count, with a `small_n` flag
+The table underneath gives each panel's N and event count, with a small_n flag
 (n < 10 or fewer than 5 events). A panel carrying that flag can produce a dramatic-looking
 curve separation from a handful of patients; the flag is there so that is visible rather
 than inferred.
@@ -133,7 +133,7 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols
 } else message("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
 ```
 
-A three-way Cox model on the master, `treatment arm x aneuploidy class x MMR status`, so
+A three-way Cox model on the master, treatment arm x aneuploidy class x MMR status, so
 the subgroup Cox above can be read against a single formal test of whether the arms differ
 by subgroup rather than against a series of per-panel log-ranks.
 
@@ -183,18 +183,18 @@ germline variants inflate TMB. Because germline allele frequencies differ betwee
 ancestries, that inflation is ancestry-dependent (Nassar et al., *Cancer Cell* 2022).
 The pipeline therefore carries two definitions and never silently picks one:
 
-- **TMB (normal)** — `tmb__TMB_SCORE`, the upstream tumour-only score as delivered.
-- **TMB (ancestry corrected)** — `tmb__TMB_nassar`, the same score after the ancestry
+- **TMB (normal)** — tmb__TMB_SCORE, the upstream tumour-only score as delivered.
+- **TMB (ancestry corrected)** — tmb__TMB_nassar, the same score after the ancestry
   recalibration.
 
 Each definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
-`tmb_class_of()`, so the only thing differing between the two figures is the TMB value
+tmb_class_of(), so the only thing differing between the two figures is the TMB value
 itself. If a patient sits near the cutoff, the correction can move them across it — so
 comparing the two figures shows whether any survival signal is robust to the germline
 correction or is an artefact of it.
 
 The ancestry-corrected figure is skipped entirely (not drawn empty) until
-`attend_ancestry$clinical_col` is set, because the column is all-`NA` before then.
+attend_ancestry$clinical_col is set, because the column is all-NA before then.
 
 ```{r km-tmb, results='asis'}
 tmb_defs02 <- tmb_defs_present(master)          # normal + ancestry corrected
@@ -217,7 +217,7 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
 ## Split by HRD score (cutoff `r attend_thresholds$hrd`)
 
 Arms compared within panels of homologous-recombination-deficiency score (high vs low at
-`r attend_thresholds$hrd`, from `hrd__`) crossed with MMR status.
+`r attend_thresholds$hrd`, from hrd__) crossed with MMR status.
 
 ```{r km-hrd}
 if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
@@ -232,7 +232,7 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
 
 Arms compared within panels of microsatellite-instability status crossed with MMR status.
 MSI and MMR are biologically correlated — MMR loss is the usual cause of MSI — so the
-off-diagonal panels here are small by construction and often carry the `small_n`
+off-diagonal panels here are small by construction and often carry the small_n
 caveat.
 
 ```{r km-msi}
@@ -249,7 +249,7 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
 Survival by immune content on the imaged cohort, which is why this section carries a
 different denominator from every other section above. Immune content is the CD45+ fraction
 inside the annotated region, read per patient from the FlowPath tree by
-`ihc_patient_metrics()` (the same helper
+ihc_patient_metrics() (the same helper
 [02_flowpath_concordance](02_flowpath_concordance.html) validates) and binarised at its
 **median** — a data-driven split, not a pre-registered threshold, so it is descriptive.
 Panels are MMR status; curves are immune-high vs immune-low.

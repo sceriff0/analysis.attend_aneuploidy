@@ -49,7 +49,7 @@ cat('`maftools` is not installed, so the oncoplots are skipped. Install with',
 ## Part 1 — the mutation landscape
 
 Oncoplots follow the TCGA UCEC conventions (Kandoth et al., *Nature* 2013,
-`papers/nature12113.pdf`): patients on the horizontal axis, genes stacked vertically,
+papers/nature12113.pdf): patients on the horizontal axis, genes stacked vertically,
 covariates as annotation bars, and a per-subgroup frequency comparison matching their
 Fig. 2d. The rationale for each convention is in [00_methods](00_methods.html).
 
@@ -64,11 +64,11 @@ cat('`maftools` is not installed, so the mutation plots below are skipped. Insta
 
 ### Building the annotated MAF
 
-Every per-sample MAF in `data/variant_annotations/` is read into one object.
-`Tumor_Sample_Barcode` is taken from the file name and translated to `pid` through the
+Every per-sample MAF in data/variant_annotations/ is read into one object.
+Tumor_Sample_Barcode is taken from the file name and translated to pid through the
 same barcode crosswalk [01_data_integration](01_data_integration.html) used, then the
 per-patient covariate classes are attached
-as maftools `clinicalData` so they can be drawn as annotation tracks.
+as maftools clinicalData so they can be drawn as annotation tracks.
 
 Watch the mapped-sample count printed at the end: samples that fail to map carry no
 covariates and will appear with blank annotation bars.
@@ -163,7 +163,7 @@ Samples are **sorted by the annotation tracks** rather than by mutation burden, 
 shows up as a block of colour lining up with an annotation band — TP53 concentrating in
 aneuploidy-high, or hypermutation concentrating in MMR-deficient, for example.
 
-`removeNonMutated = FALSE` keeps unmutated patients in the figure, so the percentages
+removeNonMutated = FALSE keeps unmutated patients in the figure, so the percentages
 down the side are out of the **whole cohort**, not out of mutated patients only.
 
 ```{r oncoplot, eval=MAFTOOLS_OK, fig.height=9}
@@ -198,13 +198,13 @@ subgroups, and it offers no multiple-testing control.
 
 Following TCGA Fig. 2d, each gene's mutation frequency is computed **within each
 subgroup** and the subgroups are shown side by side. The subgroups are the four
-`scna_group` strata — MMR status crossed with aneuploidy class — which is the split the
+scna_group strata — MMR status crossed with aneuploidy class — which is the split the
 rest of this report and the classification report use.
 
 **The test.** For each gene, a Fisher exact test across the subgroups, then
 Benjamini–Hochberg FDR across the genes tested. Genes reaching **FDR < 0.05** are marked
 with an asterisk, exactly as TCGA marks them. Only genes mutated in at least
-`min_mut` patients are tested — testing a gene mutated once produces noise, not a result.
+min_mut patients are tested — testing a gene mutated once produces noise, not a result.
 
 Frequencies are *within-group*: the denominator is that subgroup's own patient count, so
 a small subgroup shows large jumps per patient. Group sizes are printed with the table.
@@ -291,17 +291,17 @@ recurrence significance and are not applied to these figures.
 Cohort frequency of whole-arm gains and losses from the **ASCETS arm-level calls** — the
 recurrent events that define endometrial subtypes, such as 1q and 8q gain in serous-like
 tumours. Gains extend right, losses left, and arms are shown in **genome order**
-(`order_arms_genomic()`), not sorted by frequency. Each arm's fraction is out of its own
+(order_arms_genomic()), not sorted by frequency. Each arm's fraction is out of its own
 **evaluable** samples — calls of LOWCOV/NC/NA are excluded from that arm's denominator,
-not counted as neutral — and that count is printed on the axis label (`arm (n=…)`) so a
+not counted as neutral — and that count is printed on the axis label (arm (n=…)) so a
 reduced denominator is visible rather than hidden. The bars below show the
 `r attend_cnv$arm_calls$n_barplot` most-altered *eligible* arms out of roughly 44 in the
 genome — not every arm — where eligible means evaluable in at least
 `r 100 * attend_cnv$arm_calls$min_evaluable_frac`% of samples, the identical rule
-`top_arms` applies to the arm annotation tracks on the oncoplots in
+top_arms applies to the arm annotation tracks on the oncoplots in
 [06_mutation_and_cna](06_mutation_and_cna.html), so neither figure can rank a
-poorly-covered arm ahead of a well-covered one. An uncallable arm's `CNV_<arm>` value on
-those oncoplots is `NA`, not `"neutral"`: missing data is not evidence of no alteration.
+poorly-covered arm ahead of a well-covered one. An uncallable arm's CNV_<arm> value on
+those oncoplots is NA, not "neutral": missing data is not evidence of no alteration.
 
 ```{r recurrent-cnv, fig.width=9, fig.height=6}
 arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
@@ -346,13 +346,13 @@ if (is.null(arm_freq)) {
 
 The TCGA Fig. 1a convention: alterations plotted **by position along the genome** rather
 than summarised per arm, split into two amplitude panels — **low-level** and **high-level**
-(`|log2 ratio| >= ` `r attend_cnv$pileup$high_abs_logratio`, the conventional
+(|log2 ratio| >=  `r attend_cnv$pileup$high_abs_logratio`, the conventional
 amplification/homozygous-deletion cutoff) — gain up/red, loss down/blue. Grey vertical
 lines are chromosome boundaries; dashed lines mark centromeres, read from the arm-boundary
 table. ChrY is dropped from the axis — the cohort is uterine and therefore all female, so
 it carries no calls and only an empty tail.
 
-Built from the ClassifyCNV altered segments (`data/cnv_annotations/`) in
+Built from the ClassifyCNV altered segments (data/cnv_annotations/) in
 `r attend_cnv$pileup$bin / 1e6` Mb bins; the figure caption states the sample denominator
 and whether it came from an explicit count, the profiled-sample attribute, or the segments
 observed. **These are descriptive frequencies with no significance testing** — GISTIC
@@ -437,12 +437,12 @@ per-peak test.
 
 ### Setup and the two ID spaces
 
-GISTIC and `.seg` sample ids are sequencing **barcodes**; the master is keyed on **pid**.
-Joining them directly gives an all-`NA` result *with no error*, so every lookup below goes
-through `group_of_barcode()`, built on the same crosswalk as everything else.
+GISTIC and .seg sample ids are sequencing **barcodes**; the master is keyed on **pid**.
+Joining them directly gives an all-NA result *with no error*, so every lookup below goes
+through group_of_barcode(), built on the same crosswalk as everything else.
 
-The grouping variable `scna_group` composes `is_mmrd()` (IHC-based, MSI deliberately not a
-criterion) with `aneuploidy_class` at the pre-registered cut
+The grouping variable scna_group composes is_mmrd() (IHC-based, MSI deliberately not a
+criterion) with aneuploidy_class at the pre-registered cut
 `r attend_thresholds$aneuploidy`, the same definition
 [06_mutation_and_cna](06_mutation_and_cna.html)'s frequency comparison uses.
 
@@ -478,15 +478,15 @@ if (!have_master) {
 ```
 
 Peaks come from five runs; per-sample calls come from one. Five GISTIC2 runs feed this
-report: the pooled cohort and the four `scna_group` strata. GISTIC's background model is
+report: the pooled cohort and the four scna_group strata. GISTIC's background model is
 cohort-specific, so the same tumour gets a different thresholded call depending on which
 cohort it was run in, and comparing calls across runs would compare five different null
 models. The two roles are therefore kept apart:
 
 - **Peak definition** uses the union of significant peaks across all five runs
-  (`gistic_peak_union()`), so a peak private to the small MMRd-high stratum, which the
+  (gistic_peak_union()), so a peak private to the small MMRd-high stratum, which the
   pooled run's genome-wide threshold would bury, is still discoverable.
-- **Per-sample calls** are read only from the pooled run's `all_lesions.conf_*.txt`. No
+- **Per-sample calls** are read only from the pooled run's all_lesions.conf_*.txt. No
   per-sample call here comes from a stratified run.
 
 The cohort this contrast conditions on. Fisher tests whether MMR status and aneuploidy class are
@@ -511,10 +511,10 @@ small produces false positives, not findings. A single composite score over a *f
 externally-specified* set of loci concentrates the evidence into one test.
 
 **Pre-specification is what makes this confirmatory.** The 12-locus panel
-(`attend_scna$panel`) is fixed *a priori* from the TCGA UCEC recurrent-peak list
+(attend_scna$panel) is fixed *a priori* from the TCGA UCEC recurrent-peak list
 (Kandoth et al. 2013). No locus was added, removed, or re-directioned after looking at
 ATTEND's own GISTIC output. Each locus is **directional** — a deletion at *MYC* does not
-count as serous-like — matched by `match_panel_peaks()`.
+count as serous-like — matched by match_panel_peaks().
 
 Loci with no matching pooled-run peak of the right direction **leave the denominator**
 rather than counting as unaltered, so the score is a fraction of *resolvable* loci.
@@ -522,7 +522,7 @@ rather than counting as unaltered, so the score is a fraction of *resolvable* lo
 The test is a **label permutation** (B = `r attend_scna$perm_B`), which makes no
 distributional assumption — appropriate at this n. A Wilcoxon is reported alongside.
 A permutation p is bounded below by 1/(B+1), so a floor-level result is reported as
-`p < …` rather than as an exact tiny value.
+p < … rather than as an exact tiny value.
 
 ```{r scna-panel-score, eval=have_master && have_gistic, fig.height=5}
 pooled <- load_gistic_lesions_at(run_dirs[["all"]])
@@ -572,7 +572,7 @@ The composite above is the primary endpoint; this breaks it into its 12 parts as
 within the 12-locus family**.
 
 Holm is applied over **all 12 pre-specified loci**, including any that did not resolve to
-a pooled-run peak (`p = NA`) — not just the testable ones. Shrinking the family to the
+a pooled-run peak (p = NA) — not just the testable ones. Shrinking the family to the
 loci that happened to resolve would inflate significance on the survivors.
 
 ```{r scna-locus-table, eval=have_master && have_gistic}

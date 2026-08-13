@@ -13,20 +13,20 @@ genomic features (TMB, MSI, HRD, aneuploidy, and a per-variant MAF) on the **sam
 patients**. These reports link the modalities onto a shared patient ID, assemble a
 per-patient master table, and analyse it.
 
-**There is no build order.** The join lives in `code/build_master.R`, and every report
-calls `get_master()`, which reads the master table when it exists and builds it when it
-does not. Any report can be the first one knitted, and `wflow_build()` with no arguments
+**There is no build order.** The join lives in code/build_master.R, and every report
+calls get_master(), which reads the master table when it exists and builds it when it
+does not. Any report can be the first one knitted, and wflow_build() with no arguments
 is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
 reads, and what it deliberately leaves to another report. They are numbered in reading
-order, `00` to `08`.
+order, 00 to 08.
 
 **[00 — Methods](00_methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
 aneuploidy classes, what "MMR-deficient only" means, the highlight groups, and how the
 master is built. Operational recipes — running GISTIC on the cluster, classification
-alternatives — live in `runbooks/`.
+alternatives — live in runbooks/.
 
 ### Build
 
@@ -66,7 +66,7 @@ alternatives — live in `runbooks/`.
   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
   thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
-  printed alongside and `[DISAGREE]` flagged when they differ.
+  printed alongside and [DISAGREE] flagged when they differ.
 
 ### Conventions
 
@@ -78,16 +78,16 @@ manuscript, where they can be revised as the data changes.
 Every chunk that produces a figure or table is preceded by a derivation note saying what is
 shown, where it comes from in the raw data, and which operations change its interpretation.
 
-`code/tests/test_rmd_style.R` enforces the structure and `code/tests/test_rmd_parse.R`
-checks every chunk parses. Both are base R, so they run without `tidyverse` or the cohort.
+code/tests/test_rmd_style.R enforces the structure and code/tests/test_rmd_parse.R
+checks every chunk parses. Both are base R, so they run without tidyverse or the cohort.
 
 ### Configuration lives in one place
 
-- `code/build_master.R` — the join, the crosswalk assembly, and `get_master()`.
-- `code/attend_harmonise.R` — ID spaces, the two crosswalks, the collapse-to-patient rule.
-- `code/attend_classes.R` — column names (`attend_cols`), thresholds, class derivation,
+- code/build_master.R — the join, the crosswalk assembly, and get_master().
+- code/attend_harmonise.R — ID spaces, the two crosswalks, the collapse-to-patient rule.
+- code/attend_classes.R — column names (attend_cols), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
-- `code/attend_plots.R` — shared palettes, `attend_theme()`, the highlight overlay.
-- `code/attend_ihc.R` — FlowPath IHC metric definitions (reports 02, 04, 05).
-- `code/attend_scna.R` — GISTIC peak union, panel score, permutation and LOO stability.
-- `code/attend_bimodality.R` — `tmb_long()`, `tmb_battery()`, and the bimodality measures.
+- code/attend_plots.R — shared palettes, attend_theme(), the highlight overlay.
+- code/attend_ihc.R — FlowPath IHC metric definitions (reports 02, 04, 05).
+- code/attend_scna.R — GISTIC peak union, panel score, permutation and LOO stability.
+- code/attend_bimodality.R — tmb_long(), tmb_battery(), and the bimodality measures.

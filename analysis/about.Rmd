@@ -11,7 +11,7 @@ ATTEND is a reproducible multi-omic QC and analysis pipeline built with
 [workflowr](https://workflowr.github.io/workflowr/) and
 [renv](https://rstudio.github.io/renv/).
 
-- **R 4.3.2**, **Bioconductor 3.18** (pinned in `renv.lock`).
-- Restore the environment with `renv::restore()` before building.
+- **R 4.3.2**, **Bioconductor 3.18** (pinned in renv.lock).
+- Restore the environment with renv::restore() before building.
 
-See `CLAUDE.md` in the repository root for the architecture and command reference.
+See CLAUDE.md in the repository root for the architecture and command reference.

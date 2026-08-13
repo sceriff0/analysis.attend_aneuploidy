@@ -33,7 +33,7 @@ imaging_data <- load_imaging_data()    # pathologist annotations, keyed by image
 
 > **Question.** Does FlowPath's automated quantification agree with the pathologist's eye?
 > **Cohort.** All patients with IHC data (`r dplyr::n_distinct(ihc_data$image_id)` images); no molecular restriction.
-> **Reads.** The FlowPath export and the imaging annotation sheet, via `load_ihc_data()` and `load_imaging_data()`.
+> **Reads.** The FlowPath export and the imaging annotation sheet, via load_ihc_data() and load_imaging_data().
 > **Out of scope.** What composition means biologically -> [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html). Survival by immune content -> [04_survival](04_survival.html).
 
 FlowPath counts individual cells on each IHC slide and turns them into positivity and
@@ -43,9 +43,9 @@ a molecular subgroup would only make it noisier.
 
 ## Loading and mapping to patients
 
-The FlowPath export is keyed by `image_id`, the imaging annotation sheet carries both
-`image_id` and the patient id, and the master is keyed by `pid`. Everything is put onto
-`pid` through the image crosswalk built in `code/attend_harmonise.R` — the same one
+The FlowPath export is keyed by image_id, the imaging annotation sheet carries both
+image_id and the patient id, and the master is keyed by pid. Everything is put onto
+pid through the image crosswalk built in code/attend_harmonise.R — the same one
 [01_data_integration](01_data_integration.html) used, so this report's cohort cannot drift
 from the master's. The two counts below are the ceiling for everything that follows: rows
 that fail to map are invisible to every figure in this report.
@@ -66,7 +66,7 @@ cat("imaging rows mapped to a patient:", sum(!is.na(imaging_pid$pid)), "/", nrow
 ## The imaged cohort
 
 Per-image FlowPath counts joined to the pathologist annotations, with the
-positivity/composition ratios derived by `ihc_image_metrics()` (`code/attend_ihc.R`). The
+positivity/composition ratios derived by ihc_image_metrics() (code/attend_ihc.R). The
 summary table describes the cohort the IHC slides came from — not the whole ATTEND
 cohort, which is the relevant denominator here.
 
@@ -85,7 +85,7 @@ if (requireNamespace("gtsummary", quietly = TRUE)) {
 
 For these three, the pathologist also gave a **number**, so the two methods can be
 plotted against each other directly. Each point is one image. The dashed red line is
-`x = y`, perfect agreement: points systematically above it mean the pathologist scored
+x = y, perfect agreement: points systematically above it mean the pathologist scored
 higher than FlowPath, below it the reverse. Spearman's rho measures whether the two
 **rank** images the same way, which is the weaker but more robust claim — a high rho with
 points far off the diagonal means consistent but miscalibrated.
@@ -147,7 +147,7 @@ if (nrow(ii) > 2) {
 ### PD-1 on immune cells
 
 FlowPath PD-1+ immune = PD-1+ CD45 cells / CD45 cells inside the annotation. A linear
-trend line replaces the `x = y` line here, because the pathologist's PD-1 score is not on
+trend line replaces the x = y line here, because the pathologist's PD-1 score is not on
 the same scale as the FlowPath fraction — only the ranking is comparable.
 
 ```{r concordance-pd1}
@@ -243,7 +243,7 @@ if ("Tumor_cells_PDL1" %in% names(ihc_img)) {
 
 Everything above is per **image**. A patient can contribute several images, so the
 metrics are collapsed to one row per patient (mean across that patient's images) before
-being used against patient-level variables. `ihc_patient_metrics()` is the entry point
+being used against patient-level variables. ihc_patient_metrics() is the entry point
 [04_survival](04_survival.html) and [05_aneuploidy_mmrd](05_aneuploidy_mmrd.html) call to
 get the same per-patient values.
 

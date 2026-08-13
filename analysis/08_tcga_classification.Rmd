@@ -35,12 +35,12 @@ source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(),
 ```
 > **Question.** Which copy-number cluster is enriched for aneuploidy, i.e. which one is the copy-number-high / serous-like group?
 > **Cohort.** All patients with GISTIC output; the cascade itself is drawn on the full master.
-> **Reads.** GISTIC thresholded peaks in `data/gistic/` (produced per `runbooks/gistic.md`), ASCETS scores in `data/ascets/`, and `attend_master_joined`.
-> **Out of scope.** Why 1 - Pearson / Ward.D2, and how the serous-like call is made directional -> [00_methods](00_methods.html). Options beyond this reproduction -> `runbooks/classification_options.md`.
+> **Reads.** GISTIC thresholded peaks in data/gistic/ (produced per runbooks/gistic.md), ASCETS scores in data/ascets/, and attend_master_joined.
+> **Out of scope.** Why 1 - Pearson / Ward.D2, and how the serous-like call is made directional -> [00_methods](00_methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
 
 
 Reproduces the TCGA integrated genomic classification of endometrial carcinoma (Kandoth et
-al., *Nature* 2013, `papers/nature12113.pdf`) on the ATTEND cohort, and asks which
+al., *Nature* 2013, papers/nature12113.pdf) on the ATTEND cohort, and asks which
 copy-number cluster is enriched for aneuploidy — the hallmark of the **copy-number-high /
 serous-like** group. Turning an unlabelled cluster into a serous-like call is inferred from
 the copy-number data and is not part of TCGA's methodology; how, and why it is directional,
@@ -51,29 +51,29 @@ is in [00_methods](00_methods.html).
 A priority cascade (TCGA Fig. 2b). POLE is omitted — ATTEND has no POLE-ultramutated
 cases — so it starts at MMRd:
 
-1. **MMRd** — MMR-protein loss by **IHC** (`gianlu__MMR_STATUS` Deficient). This is the
+1. **MMRd** — MMR-protein loss by **IHC** (gianlu__MMR_STATUS Deficient). This is the
    top of the cascade and overwrites the CN split. The split is **MMRd vs MMRp by IHC
    alone**; MSI-high by the NGS caller is a **correlate**, not a criterion.
 2. **Copy-number high (serous-like)** — many broad SCNAs, **extensive aneuploidy**.
-   How the call is made is set by `attend_tcga_serous_rule`, defaulting to the **faithful
-   TCGA rule `"cluster_only"`**: serous-like = membership in the high-aneuploidy CNV
+   How the call is made is set by attend_tcga_serous_rule, defaulting to the **faithful
+   TCGA rule "cluster_only"**: serous-like = membership in the high-aneuploidy CNV
    cluster, exactly as TCGA defined it (Fig. 2b, "serous-like ... copy-number cluster 4").
    *TP53* is **not** required here — it is a **property** of the cluster (~90% mutant),
-   which we **validate** below rather than gate on. Alternatives: `"and"` (also require
-   TP53 — higher precision), `"or"` (union), `"tp53_only"` (portable).
+   which we **validate** below rather than gate on. Alternatives: "and" (also require
+   TP53 — higher precision), "or" (union), "tp53_only" (portable).
 3. **Copy-number low (endometrioid)** — MMR-proficient, few broad SCNAs, everything not
    in the high-aneuploidy cluster.
 
 The copy-number split comes from **clustering copy-number profiles** (their Fig. 1a;
-cluster 4 = serous-like), then resolving the serous-like call per `attend_tcga_serous_rule`.
-Because the default is `"cluster_only"`, the serous call is earned from copy number alone;
+cluster 4 = serous-like), then resolving the serous-like call per attend_tcga_serous_rule.
+Because the default is "cluster_only", the serous call is earned from copy number alone;
 the **TP53-enrichment QC** below then confirms the cluster is genuinely ~90% *TP53*-mutant,
 i.e. that it corresponds to TCGA's serous-like group — a non-circular validation.
 
 ## Data
 
 The master for the cascade and its covariates, and the barcode crosswalk, because GISTIC
-and `.seg` sample ids are sequencing barcodes while the master is keyed on `pid`. Both are
+and .seg sample ids are sequencing barcodes while the master is keyed on pid. Both are
 wrapped so a missing input degrades to a skipped section rather than an error.
 
 ```{r data}
@@ -99,18 +99,18 @@ This report clusters **exactly what TCGA clustered** (Kandoth et al., Suppl. Met
 *"thresholded relative copy number data in significantly reoccurring amplifications or
 deletions regions identified by GISTIC 2.0."* There is **one** clustering feature and no
 fallbacks — the arm-level / bin-level proxies have been removed. The matrix is built by
-`load_gistic_thresholded()` from GISTIC output in `data/gistic/`:
+load_gistic_thresholded() from GISTIC output in data/gistic/:
 
-- input `all_thresholded.by_genes.txt` — genes × samples, values in **{−2,−1,0,+1,+2}**;
-- restricted to the genes inside the **significant amp/del peaks** (`amp_genes`/`del_genes.conf`);
+- input all_thresholded.by_genes.txt — genes × samples, values in **{−2,−1,0,+1,+2}**;
+- restricted to the genes inside the **significant amp/del peaks** (amp_genes/del_genes.conf);
 - result: a sample × peak-gene **thresholded** matrix — TCGA's exact feature space.
 
-**Producing it requires running GISTIC on the DRAGEN `.seg`** — the recipe is
-`runbooks/gistic.md`. Until `data/gistic/` is populated, every CNV/cascade section renders
+**Producing it requires running GISTIC on the DRAGEN .seg** — the recipe is
+runbooks/gistic.md. Until data/gistic/ is populated, every CNV/cascade section renders
 as scaffolding.
 
-**Computational steps.** (1) `load_gistic_thresholded()` reads GISTIC's
-`all_thresholded.by_genes.txt` and keeps only genes in the significant peaks. (2) The
+**Computational steps.** (1) load_gistic_thresholded() reads GISTIC's
+all_thresholded.by_genes.txt and keeps only genes in the significant peaks. (2) The
 per-sample aneuploidy **score** (external, for the enrichment check only) is loaded
 separately (ASCETS if present, else the master). The clustering never sees the aneuploidy
 score — that keeps the enrichment plot non-circular.
@@ -151,25 +151,25 @@ What this gets right vs the old arm/bin proxies (now removed):
 - **Thresholded, not continuous** — {−2..+2} discretised calls, exactly S2.
 - **GISTIC significant peaks, not genome-wide** — the feature space is the recurrent
   amp/del peak genes (MYC 8q24, ERBB2 17q12, CCNE1 19q12, 1q, …), exactly S2.
-- **Residual differences from TCGA** — platform (DRAGEN WES `.seg` vs SNP 6.0), cohort
+- **Residual differences from TCGA** — platform (DRAGEN WES .seg vs SNP 6.0), cohort
   (metastatic vs primary), N, and the unspecified CN metric/linkage (here **1 − Pearson /
-  Ward.D2**, S2's mRNA/methylation choice; switch via `cluster_arm_matrix(..., method=,
-  dist_method=)`).
+  Ward.D2**, S2's mRNA/methylation choice; switch via cluster_arm_matrix(..., method=,
+  dist_method=)).
 
 ## CNV clustering (GISTIC thresholded peaks)
 
 **Computational steps.** (1) Cluster the sample × peak-gene **thresholded** GISTIC matrix
-`cnv_mat` with `cluster_arm_matrix()`, taking k, method and distance from the configured
+cnv_mat with cluster_arm_matrix(), taking k, method and distance from the configured
 values in attend_classes.R — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
 mRNA/methylation choice). (2) Label the **copy-number-high**
 cluster by intrinsic SCNA burden = mean |thresholded value| per cluster
-(`cnv_high_cluster_burden()`), independent of the aneuploidy score. (3) Heatmap: peak
+(cnv_high_cluster_burden()), independent of the aneuploidy score. (3) Heatmap: peak
 genes (rows) × samples (columns by dendrogram), annotated by CN cluster, the **integrated
-TCGA class** (POLE [no cases] > MMRd > CN-high > CN-low, from the `add_tcga_class()` cascade
+TCGA class** (POLE [no cases] > MMRd > CN-high > CN-low, from the add_tcga_class() cascade
 shown below — the same call, drawn here on the Fig-1a clustering), MMR, TP53, **and the
 per-sample aneuploidy score**. That aneuploidy bar is the external ASCETS aneuploidy value
-(`data/ascets/`, `load_ascets_aneuploidy()`) or — when ASCETS is absent — the master's
-`aneu__aneuploidy_score` (from `data/aneu_scores.csv` via report 1) mapped from `pid` back
+(data/ascets/, load_ascets_aneuploidy()) or — when ASCETS is absent — the master's
+aneu__aneuploidy_score (from data/aneu_scores.csv via report 1) mapped from pid back
 onto sequencing barcodes through the report-01 crosswalk. It is a **continuous annotation,
 not a clustering feature**: the clustering never sees it, so visible alignment between the
 high-burden cluster and the high-aneuploidy samples is corroboration, not circularity.
@@ -291,10 +291,10 @@ against the same chromosomal SCNA background. This makes the choice of k a **vis
 question** — at which k do the chromosome blocks stop corresponding to coherent SCNA
 patterns — rather than a number fixed in advance.
 
-**Computational steps.** (1) Reuse the Pearson/Ward `cl$hclust` from the clustering chunk.
-(2) `fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = `r paste0(min(k_sweep), ":", max(k_sweep))`)`
+**Computational steps.** (1) Reuse the Pearson/Ward cl$hclust from the clustering chunk.
+(2) fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = `r paste0(min(k_sweep), ":", max(k_sweep))`)
 draws the matrix once (columns in dendrogram order, no per-k re-clustering) and adds one
-`cutree(hc, k)` cluster bar per k, plus the same top annotation bars (integrated class,
+cutree(hc, k) cluster bar per k, plus the same top annotation bars (integrated class,
 MMR, TP53, aneuploidy score) as the single-k Fig-1a heatmap above. (3) The average
 silhouette across k (next chunk) is the quantitative companion to this visual sweep.
 
@@ -309,7 +309,7 @@ if (!is.null(cl) && exists("feat_pos") && exists("ann")) {
 
 Average silhouette width against k over the same Pearson/Ward dendrogram, which is the
 quantitative companion to the visual sweep above: a peak flags the most internally coherent
-cut, and the cascade's configured cut k_cnv is marked for reference. Needs the optional `cluster`
+cut, and the cascade's configured cut k_cnv is marked for reference. Needs the optional cluster
 package.
 
 ```{r cnv-ksweep-silhouette, fig.height=5}
@@ -338,8 +338,8 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
 ```
 
 **TCGA Fig. 1b — progression-free survival by copy-number cluster.** KM of clinical
-PFS (`gianlu__PFS_MONTHS`/`_EVENT` via `recode_event()`) for the raw copy-number clusters,
-barcodes mapped to `pid` through the report-01 crosswalk. Log-rank P as in the paper.
+PFS (gianlu__PFS_MONTHS/_EVENT via recode_event()) for the raw copy-number clusters,
+barcodes mapped to pid through the report-01 crosswalk. Log-rank P as in the paper.
 
 ```{r cnv-km-pfs, fig.height=5}
 if (!is.null(cl) && have_master && have_cw) {
@@ -383,9 +383,9 @@ tautology you'd get by labelling the cluster with the very score you then plot. 
 burden table shows why the cluster was chosen; the boxplot (Kruskal–Wallis,
 red/turquoise palette) is the cross-check.
 
-**Computational steps.** (1) `cluster_scna_burden()` — mean |arm log2| per sample,
+**Computational steps.** (1) cluster_scna_burden() — mean |arm log2| per sample,
 averaged per cluster (the table). (2) Join the **external** per-sample aneuploidy score
-(ASCETS if present, else the master's `aneu__aneuploidy_score` via the crosswalk) to the
+(ASCETS if present, else the master's aneu__aneuploidy_score via the crosswalk) to the
 cluster assignment. (3) Boxplot aneuploidy by cluster; **Kruskal–Wallis** across clusters.
 
 ```{r cnv-burden-table}
@@ -398,7 +398,7 @@ if (!is.null(cl) && !is.null(burden_tbl)) {
 ```
 
 The independent check on that label: the external per-sample aneuploidy score
-(`data/ascets/` when present, else the master's `aneu__aneuploidy_score`) by cluster. The
+(data/ascets/ when present, else the master's aneu__aneuploidy_score) by cluster. The
 clustering never saw this value, so alignment between the high-burden cluster and the
 high-aneuploidy samples is corroboration rather than circularity.
 
@@ -429,9 +429,9 @@ if (!is.null(cl) && exists("aneu_id") && !is.null(aneu_id)) {
 
 ## Integrated classification cascade
 
-**Computational steps.** (1) Per patient, collapse barcode → `pid` and take the
-**dominant** CNV cluster (multi-sample patients), then flag `cnv_high` = membership in
-the CN-high cluster. (2) Join to the master and apply `add_tcga_class()`, a **priority
+**Computational steps.** (1) Per patient, collapse barcode → pid and take the
+**dominant** CNV cluster (multi-sample patients), then flag cnv_high = membership in
+the CN-high cluster. (2) Join to the master and apply add_tcga_class(), a **priority
 cascade**: **MMRd** (MSI-high by NGS **OR** MMR-protein loss by IHC) > **CN-high**
 (serous rule = `r attend_tcga_serous_rule`) > **CN-low**; the first positive test wins.
 (3) Tabulate patients per class.
@@ -470,7 +470,7 @@ if (have_master && have_cw) {
 
 ### TP53-enrichment QC — is the CN-high cluster really serous-like?
 
-With the faithful `"cluster_only"` rule, the serous-like call is made **from copy number
+With the faithful "cluster_only" rule, the serous-like call is made **from copy number
 alone**. TCGA's serous-like cluster 4 was **~90% *TP53*-mutant** — so if our CN-high
 cluster genuinely corresponds to it, it should come out **independently** enriched for
 *TP53* pathogenic mutations. This is the validation that replaces the TP53 *gate*: TP53
@@ -478,8 +478,8 @@ is checked as a **property**, not required as a **criterion**. A high fraction h
 confirms the cluster is serous-like; a low fraction is a red flag that the copy-number
 cluster does **not** map to TCGA's group (reconsider k_cnv, the CNV input, or purity).
 
-**Computational steps.** (1) Split patients by `cnv_high` (CN-high cluster vs the rest).
-(2) Per group, count `TP53_pathogenic` and compute the mutant fraction. (3) **Fisher exact
+**Computational steps.** (1) Split patients by cnv_high (CN-high cluster vs the rest).
+(2) Per group, count TP53_pathogenic and compute the mutant fraction. (3) **Fisher exact
 test** on the 2×2 (cluster × TP53) for enrichment; stacked bar with a dashed **90%** line.
 
 ```{r tp53-enrichment}
@@ -522,10 +522,10 @@ if (exists("classed") && all(c("cnv_high", "TP53_pathogenic") %in% names(classed
 }
 ```
 
-**Computational steps (next two panels).** (1) Take the per-patient `tcga_class` from the
+**Computational steps (next two panels).** (1) Take the per-patient tcga_class from the
 cascade. (2) **Aneuploidy panel:** aneuploidy score by class, Kruskal–Wallis. (3) **TMB
-panel:** loop over every TMB definition on the master (`tmb_defs_present()` — baseline
-`tmb__TMB_SCORE` and the ancestry-corrected column) and box TMB by class, one facet per
+panel:** loop over every TMB definition on the master (tmb_defs_present() — baseline
+tmb__TMB_SCORE and the ancestry-corrected column) and box TMB by class, one facet per
 definition.
 
 ```{r cascade-panels, fig.height=6}

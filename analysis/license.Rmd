@@ -8,5 +8,5 @@ editor_options:
 ---
 
 No license has been chosen yet. Until one is added, all rights are reserved by the
-ATTEND authors. Add a license here (and a `LICENSE` file at the repository root) before
+ATTEND authors. Add a license here (and a LICENSE file at the repository root) before
 sharing.

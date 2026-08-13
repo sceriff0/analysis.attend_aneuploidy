@@ -35,7 +35,7 @@ n_mmrd <- length(mmrd_pids)
 
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
 > **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
-> **Reads.** The master (built on demand by `get_master()`), the long MAF, and the FlowPath annotation tree.
+> **Reads.** The master (built on demand by get_master()), the long MAF, and the FlowPath annotation tree.
 > **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [07_tmb](07_tmb.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
@@ -64,25 +64,25 @@ frequently mutated. Two groups, kept deliberately separate:
 | **Wnt / b-catenin** | `r paste(attend_gene_panel_wnt, collapse = ", ")` | An independent oncogenic pathway, not an MMR mechanism. |
 | **TP53** | TP53 | Handled separately: it is already a first-class column on the master. |
 
-The MMR union (`panel-altered` = at least one pathogenic variant in any MMR panel gene) is
-shown last, after the per-gene panels. `CTNNB1` and `APC` are deliberately excluded from
+The MMR union (panel-altered = at least one pathogenic variant in any MMR panel gene) is
+shown last, after the per-gene panels. CTNNB1 and APC are deliberately excluded from
 that union, because folding them in would change what "panel-altered" means everywhere else
 in the pipeline. There is no Wnt union: with two genes the per-gene panels already show
 everything a union would.
 
-P-values come from `stat_compare_means()`, Wilcoxon rank-sum for two groups and
+P-values come from stat_compare_means(), Wilcoxon rank-sum for two groups and
 Kruskal-Wallis for more, uncorrected across panels. With one test per gene, treat them as
 descriptive.
 
 ### Data
 
-Two sources, joined on `pid`. The aneuploidy score and its derived classes come from
-`attend_master_joined`. The mutation status is recomputed here directly from the long MAF
+Two sources, joined on pid. The aneuploidy score and its derived classes come from
+attend_master_joined. The mutation status is recomputed here directly from the long MAF
 rather than taken from the master's collapsed columns, because the average of a variant row
-is meaningless; `pathogenic_by_patient()` and `mutation_status_long()` are the same helpers
+is meaningless; pathogenic_by_patient() and mutation_status_long() are the same helpers
 [01_data_integration](01_data_integration.html) used, so the two cannot drift. Crossing the
 crosswalk against the full gene list guarantees every gene gets a column even when it never
-appears in the MAF, with unmutated patients `FALSE` rather than `NA`.
+appears in the MAF, with unmutated patients FALSE rather than NA.
 
 ```{r data}
 cw  <- build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg())
@@ -130,7 +130,7 @@ if (have_mmr && nrow(dat) == 0)
           "') — every figure below is skipped.")
 ```
 
-Which of the manually highlighted patients actually resolve to a `pid` in this restricted
+Which of the manually highlighted patients actually resolve to a pid in this restricted
 cohort. Printed so that a silent ID mismatch shows up as a number here rather than as
 "the gold points just aren't drawn".
 
@@ -178,12 +178,12 @@ group_counts <- function(d, vars) {
 ### 1. Aneuploidy by gene — MMR panel, one gene at a time
 
 Each panel is one MMR gene: patients carrying a pathogenic variant in that gene
-(`<GENE>-mut`) versus those who do not (`<GENE>-wt`), within the MMRd cohort only.
-Pathogenicity is decided by `attend_pathogenic_classes` on the MAF's
-`Variant_Classification`.
+(<GENE>-mut) versus those who do not (<GENE>-wt), within the MMRd cohort only.
+Pathogenicity is decided by attend_pathogenic_classes on the MAF's
+Variant_Classification.
 
 Read the group sizes first. Some of these genes are mutated in very few patients, and a
-panel with a handful of `-mut` patients will show a wide box and an unstable p-value.
+panel with a handful of -mut patients will show a wide box and an unstable p-value.
 
 ```{r mmr-gene-counts}
 mmr_gene_vars <- paste0(attend_gene_panel, "_class")
@@ -192,8 +192,8 @@ if (nrow(dat) > 0)
                caption = "Patients per group, MMR panel genes (MMR-deficient cohort)")
 ```
 
-Aneuploidy score (`aneu__aneuploidy_score`, ASCETS arm-level burden from `data/ascets/`)
-in mutated versus wild-type patients, one panel per MMR gene, over the `dat` cohort above.
+Aneuploidy score (aneu__aneuploidy_score, ASCETS arm-level burden from data/ascets/)
+in mutated versus wild-type patients, one panel per MMR gene, over the dat cohort above.
 
 ```{r mmr-gene-box, fig.height=7}
 if (nrow(dat) > 0)
@@ -229,7 +229,7 @@ if (nrow(dat) > 0)
 
 ### 3. TP53 and the MMR union
 
-`TP53` on its own, then the MMR panel **union** — at least one pathogenic variant in any
+TP53 on its own, then the MMR panel **union** — at least one pathogenic variant in any
 of `r paste(attend_gene_panel, collapse = ", ")`. The union is the last mutation view
 rather than the first: it is the least specific, and the per-gene panels above are what
 say which gene any union signal came from.
@@ -253,7 +253,7 @@ if (nrow(dat) > 0)
 
 ### 4. Aneuploidy by the other molecular classes
 
-The non-mutation axes, still within MMRd: TMB, HRD, and MSI status. `MMR_class` is
+The non-mutation axes, still within MMRd: TMB, HRD, and MSI status. MMR_class is
 omitted because it is constant here by construction — every patient in this report is
 MMR-deficient.
 
@@ -275,8 +275,8 @@ if (nrow(dat) > 0) {
 
 #### Cell types and normalization
 
-"Cell type" is `phenotype_clean`, the parenthetical phenotype label in the FlowPath export
-(changeable in `code/load_phenotypes.R`). Every count is taken inside the annotated region
+"Cell type" is phenotype_clean, the parenthetical phenotype label in the FlowPath export
+(changeable in code/load_phenotypes.R). Every count is taken inside the annotated region
 and expressed as a fraction, but the denominator changes the question, so all three are
 shown:
 
@@ -294,10 +294,10 @@ cell type per normalization that is many comparisons, so every p-value here is d
 
 ### Building the restricted cohort
 
-Three things are joined on `pid`: the aneuploidy class from the master, the per-patient
-cell-type composition read from the FlowPath tree by `ihc_celltype_metrics()`, and the
-continuous covariates. MMR status comes from `add_scna_group()`, so it is the same
-`is_mmrd()` call the copy-number and classification reports use. The counts printed here
+Three things are joined on pid: the aneuploidy class from the master, the per-patient
+cell-type composition read from the FlowPath tree by ihc_celltype_metrics(), and the
+continuous covariates. MMR status comes from add_scna_group(), so it is the same
+is_mmrd() call the copy-number and classification reports use. The counts printed here
 are the cohort for every figure below.
 
 ```{r data}
@@ -380,7 +380,7 @@ box_by_aneu_arcsin <- function(df, frac_col, denom_label) {
 
 ### Cell-type composition by aneuploidy class
 
-One panel per cell type, aneuploidy-high vs -low, within MMRd, from the `ct` table built
+One panel per cell type, aneuploidy-high vs -low, within MMRd, from the ct table built
 above. Each normalization is shown as a raw-fraction/Wilcoxon figure followed by its
 arcsine/t-test companion.
 
@@ -437,7 +437,7 @@ associated with an immune-cold phenotype?
 
 Two leukocyte metrics counted inside the annotation — **CD45+ total** (all leukocytes)
 and **CD3+CD45+** (double-positive T cells) — under each normalization. CD3+CD45+
-requires a `CD3_sign` column in the FlowPath export; without it those rows are `NA` and
+requires a CD3_sign column in the FlowPath export; without it those rows are NA and
 their facets drop out on their own.
 
 ```{r immune-data}
@@ -472,7 +472,7 @@ box_immune <- function(df, arcsin = FALSE) {
 }
 ```
 
-CD45+ total and CD3+CD45+ fractions from `imm_metrics`, by aneuploidy class, one facet per
+CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy class, one facet per
 normalization, within MMRd.
 
 ```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
@@ -539,8 +539,8 @@ if (!is.null(res_primary)) {
 The single exception to this report's MMRd restriction, and it has to be: an interaction
 asks whether the aneuploidy effect *differs between* MMRd and MMRp, which cannot be
 estimated inside one stratum. The model is
-`arcsin(sqrt(CD45+/all cells inside)) ~ aneuploidy_class * mmr_group`, fitted on both
-groups from `imm_all`. The interaction row is the one of interest: a large coefficient
+arcsin(sqrt(CD45+/all cells inside)) ~ aneuploidy_class * mmr_group, fitted on both
+groups from imm_all. The interaction row is the one of interest: a large coefficient
 there is what justifies restricting everything else to MMRd. No correction is applied.
 
 ```{r immune-interaction}
@@ -623,7 +623,7 @@ if (nrow(cb) > 2) {
 ### Aneuploidy by TP53 status
 
 Within MMRd, aneuploidy score in TP53-abnormal versus TP53-normal tumours. TP53 status is
-`TP53_pathogenic` from the master, derived from the MAF in report 01. TP53 loss is the
+TP53_pathogenic from the master, derived from the MAF in report 01. TP53 loss is the
 canonical driver of chromosomal instability, so this is the expected-positive control for
 the aneuploidy score itself: if aneuploidy does not separate on TP53 here, the score is
 suspect before any of the immune results are interpreted.
@@ -700,7 +700,7 @@ if (nrow(icc) > 2) {
 
 Categorical calls as stacked proportions — how each call distributes within aneuploidy
 high vs low. Bars are proportions, so the **group sizes are not visible in this figure**;
-read them from the count printed above. `MMR_Status` is omitted because it is constant
+read them from the count printed above. MMR_Status is omitted because it is constant
 here by construction.
 
 ```{r imaging-covars-cat, fig.width=11, fig.height=4}
