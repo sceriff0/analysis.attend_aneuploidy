@@ -31,6 +31,22 @@ master <- get_master() |> add_molecular_classes() |>
                                    levels = c("aneuploidy-high", "aneuploidy-low")))
 mmrd_pids <- add_scna_group(master) |> filter(mmr_group == "MMRd") |> pull(pid)
 n_mmrd <- length(mmrd_pids)
+
+# --- manual highlight overlay: OFF for now -----------------------------------------
+# Switches off the two attend_highlight groups in THIS report only -- polipo (21S188,
+# magenta) and cohort (gold). Points still carry the aneuploidy blue/red; only the
+# hand-picked overlay and its legend go away.
+#
+# Done as a wrapper rather than as `attend_highlight <- NULL`, and rather than by editing
+# ten call sites. source() puts attend_plots.R's functions in the GLOBAL environment while
+# chunk code runs in the knit environment, so a chunk-level assignment would not shadow the
+# name those functions read -- but a chunk-level function definition does shadow the call,
+# because the call is made from chunk code.
+#
+# To restore the overlay: delete this block. Nothing else in the report refers to it.
+.hp_orig <- highlight_points
+highlight_points   <- function(...) .hp_orig(..., highlight = NULL)
+highlight_coverage <- function(...) "highlight overlay is switched off in this report\n"
 ```
 
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
@@ -130,9 +146,9 @@ if (have_mmr && nrow(dat) == 0)
           "') — every figure below is skipped.")
 ```
 
-Which of the manually highlighted patients actually resolve to a pid in this restricted
-cohort. Printed so that a silent ID mismatch shows up as a number here rather than as
-"the gold points just aren't drawn".
+The manual highlight overlay (the magenta polipo point and the gold multi-modal cohort) is
+switched off in this report for now, in the setup chunk. This line states that, so a reader
+does not go looking for coloured points that were deliberately not drawn.
 
 ```{r highlight-coverage}
 if (nrow(dat) > 0) cat(highlight_coverage(dat))

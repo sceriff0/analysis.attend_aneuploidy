@@ -101,6 +101,14 @@ tmb_long <- function(master, min_finite = 10L) {
       dplyr::select(pid, definition, tmb)
   }
   attr(out, "finite_n") <- finite_n
+  # The FILTERED key -> column map, exposed because reports need it and cannot rebuild it:
+  # tmb_defs_present(master) returns every definition, this one has already dropped those
+  # under min_finite. levels(out$definition) is the label vector for exactly THIS set, in
+  # exactly this order, so a report pairing the two (setNames(names(def_cols), levels(...)))
+  # is only correct against the filtered map. Rebuilding it from tmb_defs_present() instead
+  # silently misaligns the moment one definition is dropped -- which is the normal state
+  # while tmb__TMB_nassar is all-NA.
+  attr(out, "def_cols") <- def_cols
   out
 }
 

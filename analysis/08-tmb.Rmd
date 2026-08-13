@@ -30,8 +30,9 @@ master <- get_master()
 # Shared derivations, computed here from the master rather than read from a file another
 # report had to write first. Same values, no build order.
 long       <- tmb_long(master)
-finite_n   <- attr(long, "finite_n")
-def_labels <- levels(long$definition)
+finite_n   <- attr(long, "finite_n")          # per definition, BEFORE the min_finite filter
+def_cols   <- attr(long, "def_cols")          # key -> column, AFTER it
+def_labels <- levels(long$definition)         # labels for def_cols, same order
 ```
 
 > **Question.** Does TMB split the cohort into two populations, does that split track aneuploidy within each MMR stratum, and does it reproduce in a paired-sequencing cohort?
