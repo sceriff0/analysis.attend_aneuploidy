@@ -44,6 +44,8 @@ data/gistic/
 data/nassar/
 data/tcga/
 data/tcga_2013/
+data/*
+output/*
 # ...but the small bundled reference tables (config, not raw data) ARE tracked:
 !data/arm_boundaries_*.tsv
 # TCGA 2013 published GISTIC peaks (Suppl. Data File S2.1), converted to TSV — a small

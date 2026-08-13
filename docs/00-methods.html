@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-11" />
+
+<title>ATTEND — 0. Methods</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 0. Methods</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-11</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-13
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree1592d06f7d7925c78f7e90bbaab80e03a8832a40targetblank1592d06a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/attend_aneuploidy/tree/1592d06f7d7925c78f7e90bbaab80e03a8832a40" target="_blank">1592d06</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree1592d06f7d7925c78f7e90bbaab80e03a8832a40targetblank1592d06a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/attend_aneuploidy/tree/1592d06f7d7925c78f7e90bbaab80e03a8832a40" target="_blank">1592d06</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    output/clean_data/
+
+Untracked files:
+    Untracked:  data/attend_data.xlsx
+    Untracked:  data/old_gistic/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/00-methods.Rmd</code>) and HTML
+(<code>docs/00-methods.html</code>) files. If you’ve configured a remote
+Git repository (see <code>?wflow_git_remote</code>), click on the
+hyperlinks in the table below to view the files as they were in that
+past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/attend_aneuploidy/blob/1592d06f7d7925c78f7e90bbaab80e03a8832a40/analysis/00-methods.Rmd" target="_blank">1592d06</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:sparkles: Add report 06-response, fix duplicate chunk labels, renumber
+07-09
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/attend_aneuploidy/blob/809ba92c6af69a523dff367051ad745a616c2825/analysis/00-methods.Rmd" target="_blank">809ba92</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:recycle: Hyphenate every report filename and fix the source-code link
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Why is each analysis choice in this
+pipeline the choice it is? <strong>Cohort.</strong> None of its own; the
+fitted panels below use all patients on the master.
+<strong>Reads.</strong> attend_master_joined, plus data/nassar/ when a
+reference cohort is present. <strong>Out of scope.</strong> Results.
+Every figure that answers a biological question lives in a numbered
+report; this file carries only the justification behind how those
+figures are made.</p>
+</blockquote>
+<p>This file collects every <strong>justification</strong> in the
+pipeline: why a distance metric, why a correction, why a threshold. It
+is read once, not once per report. Operational recipes — how to run a
+tool on the cluster — live in runbooks/ instead, and the derivation of
+any individual figure stays inline in the report that draws it.</p>
+<p>The master is loaded here only because two of the justifications
+below are quantitative: the ancestry correction is <em>fitted</em>, so
+its coefficients and effect are shown rather than asserted.</p>
+<pre class="r"><code>master &lt;- get_master() |&gt; add_molecular_classes()
+have_master &lt;- !is.null(master)</code></pre>
+<div
+id="copy-number-clustering-why-1-pearson-distance-with-ward.d2-linkage"
+class="section level2">
+<h2>Copy-number clustering — why 1 − Pearson distance with Ward.D2
+linkage</h2>
+<p>Kandoth et al. (<em>Nature</em> 2013) Suppl. Methods S2 names no
+metric or linkage for the <em>copy-number</em> clustering, though it
+names 1 − Pearson / Ward for its mRNA and methylation clusterings. This
+pipeline applies that same pair to the copy-number matrix, set via
+cnv_method / cnv_dist in attend_classes.R and passed to
+cluster_arm_matrix(). It is the only distance/linkage combination the
+pipeline uses.</p>
+<p>Euclidean with complete linkage is the obvious alternative. Comparing
+the two shows how sensitive the copy-number groups are to a metric
+choice the source paper never fixed.</p>
+</div>
+<div
+id="how-the-serous-like-cluster-is-chosen-and-why-it-is-directional"
+class="section level2">
+<h2>How the serous-like cluster is chosen, and why it is
+directional</h2>
+<p>Clustering copy-number profiles produces k unlabelled clusters. TCGA
+never had to decide which one was serous-like: with 373 tumours and
+histology in hand, cluster 4 was visibly 94% serous. ATTEND has no such
+label, so the call has to be <strong>inferred from the copy-number data
+itself</strong> — and that inference step is <strong>not part of TCGA’s
+methodology</strong>. Nothing about the clustering below departs from
+TCGA; only this labelling step is ours.</p>
+<p>The obvious rule — pick the cluster with the largest <strong>mean
+|value|</strong>, i.e. the most altered one — turns out to answer the
+wrong question. “Most altered” is not “most serous-like”, and on
+<em>thresholded</em> features the two come apart: an undirected score
+rewards a deletion-dominated cluster just as much as the
+amplification-driven profile that actually characterises serous-like
+disease.</p>
+<p>This report therefore scores clusters <strong>directionally</strong>:
+only <em>concordant</em> events count — <strong>gains at amplification
+peaks, losses at deletion peaks</strong>. It is the same principle
+attend_scna$panel already applies to the pre-specified locus panel in <a
+href="07-mutation-and-cna.html">07-mutation-and-cna</a> (<em>a deletion
+at MYC must not score as serous-like</em>).</p>
+<p>⚠️ <strong>Both calls are computed and printed, and a [DISAGREE] flag
+is raised when they differ.</strong> If they agree on ATTEND, the
+directional correction changed nothing here and the result is a
+confirmation. Read that flag before drawing any conclusion from the
+cluster labels.</p>
+</div>
+<div id="where-this-reproduction-follows-tcga-and-where-it-departs"
+class="section level2">
+<h2>Where this reproduction follows TCGA, and where it departs</h2>
+<p>Each subsection names one step of <a
+href="09-tcga-classification.html">09-tcga-classification</a> and states
+what it takes from Kandoth et al. Suppl. Methods S2 and what is an
+ATTEND addition. Read it once; the reports themselves carry only their
+own derivations.</p>
+<div id="the-clustering" class="section level3">
+<h3>The clustering</h3>
+<p><em>Follows:</em> Suppl. Methods S2 exactly — thresholded CN in
+GISTIC significant peaks, hierarchical clustering. <em>Differs:</em>
+DRAGEN WES .seg rather than SNP6; 1 − Pearson / Ward.D2 (S2 leaves the
+CN metric unspecified but uses this pair for mRNA/methylation); the
+cascade reads a single cut (k_cnv in attend_classes.R), while the
+k-sweep heatmap shows a range of cuts around it; and the
+integrated-class and aneuploidy-score annotation bars are ATTEND
+additions, not Fig. 1a elements.</p>
+</div>
+<div id="the-k-sweep" class="section level3">
+<h3>The k-sweep</h3>
+<p>TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it
+exposes the whole cut spectrum on the Fig-1a canvas so the k = 4 parity
+cut used by the cascade can be judged against its neighbours, under the
+Pearson/Ward metric.</p>
+</div>
+<div id="the-aneuploidy-enrichment-cross-check" class="section level3">
+<h3>The aneuploidy-enrichment cross-check</h3>
+<p>This is an ATTEND <strong>QC</strong>, not a TCGA figure: TCGA
+<em>characterised</em> cluster 4 as the highest-SCNA/aneuploidy group
+but did not run this label-vs-independent-score check. It exists to
+prove our burden-based CN-high label isn’t circular with the aneuploidy
+score.</p>
+</div>
+<div id="the-cascade" class="section level3">
+<h3>The cascade</h3>
+<p><em>Follows:</em> the per-sample priority stratification of their
+Fig. 2b — substitution/POLE → MSI → copy-number cluster; CN-high =
+cluster membership. <em>Differs:</em> <strong>POLE omitted</strong>
+(ATTEND has no POLE-ultramutated cases), so the cascade starts at MMRd;
+and MMRd is called by <strong>MMR IHC</strong> alone (TCGA used
+MSI/MLH1).</p>
+</div>
+<div id="the-tp53-enrichment-qc" class="section level3">
+<h3>The TP53-enrichment QC</h3>
+<p>This <em>validates</em> the property Kandoth et al. reported (cluster
+4 ≈ 90% <em>TP53</em>-mutant) rather than assuming it. We do
+<strong>not</strong> gate the serous call on TP53 (that would be the
+“and” rule); TP53 enrichment is the independent confirmation the cluster
+maps to TCGA’s serous-like group.</p>
+</div>
+<div id="the-per-class-panels" class="section level3">
+<h3>The per-class panels</h3>
+<p><em>Follows:</em> their finding that CN-high/serous-like carries the
+highest SCNA burden and lowest mutation rate, MSI the highest TMB (Fig.
+1–2). <em>Differs:</em> per-definition TMB panels are an ATTEND addition
+(ancestry-aware recompute), absent from TCGA.</p>
+</div>
+</div>
+<div id="ancestry-corrected-tmb-how-it-works" class="section level2">
+<h2>Ancestry-corrected TMB — how it works</h2>
+<p>Tumour-only TMB is inflated by residual germline variants, and —
+because gnomAD’s reference is Euro-skewed — the inflation is
+<strong>ancestry-dependent</strong> (Nassar et al., <em>Cancer Cell</em>
+2022). The ATTEND MAFs carry gnomAD v4.1
+<strong>per-sub-population</strong> allele frequencies, which is what
+makes a correction possible without matched normals.</p>
+<p>ATTEND is sequenced tumour-only, so leftover germline variants
+inflate TMB, and because germline allele frequencies differ between
+ancestries that inflation is ancestry-dependent (Nassar et al.,
+<em>Cancer Cell</em> 2022). The pipeline therefore carries two
+definitions and never silently picks one:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Reported name</th>
+<th>Column</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>TMB (normal)</strong></td>
+<td>tmb__TMB_SCORE</td>
+<td>the upstream tumour-only score, as delivered</td>
+</tr>
+<tr class="even">
+<td><strong>TMB (ancestry corrected)</strong></td>
+<td>tmb__TMB_nassar</td>
+<td>the same score after the ancestry recalibration</td>
+</tr>
+</tbody>
+</table>
+<p>Two further columns, tmb__TMB_robust and tmb__TMB_matched, exist on
+the master because the recalibration is fitted on top of robust. They
+are intermediates: tmb_defs_present() cannot return them, so no figure
+can show them. How the recalibration works is in <a
+href="00-methods.html">00-methods</a>.</p>
+<p>Every definition is re-binarised at the same 10 mut/Mb cutoff by
+tmb_class_of(), so panels that differ only in definition differ only in
+who crossed the cut. The ancestry-corrected column stays all-NA until
+attend_ancestry$clinical_col is set, and panels that would be empty are
+skipped rather than drawn blank.</p>
+<p>Getting from the delivered score to the reported corrected one passes
+through two intermediates, computed in <a
+href="01-data-integration.html">01-data-integration</a> and living on
+the master, but never plotted, faceted, or labelled anywhere:</p>
+<ul>
+<li><strong>robust</strong> — drop variants common in
+<strong>any</strong> population (grpmax ≥ 0.001). This is Nassar’s
+germline filter, and it needs no ancestry label.</li>
+<li><strong>matched</strong> — drop variants common in the
+<strong>patient’s own</strong> sub-population, from the self-reported
+clinical ancestry (attend_ancestry).</li>
+</ul>
+<p>The reported ancestry-corrected column is then the paper’s actual
+method: an <strong>ancestry-specific regression recalibration</strong>
+TMB = m·TMB_robust + b (European vs non-European), applied on top of
+robust. Its coefficients (attend_tmb_nassar$coef) <strong>default to
+identity</strong>, so until values fit on TCGA WES are supplied this
+column equals robust — the published Oncopanel numbers are
+panel-specific and do not transfer to exome data.</p>
+<p>tmb_defs_present() cannot return the intermediates, so no report can
+reintroduce them into a figure by accident. An unfiltered recompute is
+also used internally to calibrate the exome denominator; it is not
+emitted, because it would simply duplicate the baseline. The whole
+recompute lives in R with no upstream re-run — see
+attend_classes.R::tmb_variant_table() and
+apply_nassar_recalibration().</p>
+<div id="how-the-nassar-et-al.-recalibration-actually-works"
+class="section level3">
+<h3>How the Nassar et al. recalibration actually works</h3>
+<p>It helps to be precise about what Nassar et al. (<em>Cancer Cell</em>
+2022) did, because our nassar column reproduces it and the distinction
+from the other variants is subtle.</p>
+<p><strong>The problem.</strong> In tumor-only sequencing there is no
+matched normal, so inherited (germline) variants are mixed in with
+somatic ones. TMB should count only somatic mutations, so pipelines
+remove germline by filtering out variants that are <strong>common in the
+population</strong> (looked up in gnomAD). But gnomAD is
+<strong>ancestry-skewed</strong> — its v2.1 exomes are ~57k European vs
+~8k African. A variant that is common in African ancestry but rare in
+the (Euro-heavy) reference is <em>not recognised as germline</em>,
+survives the filter, and is <strong>miscounted as a somatic
+mutation</strong>. The net effect: tumor-only TMB is <strong>inflated,
+and the inflation is larger for non-European patients</strong> — who
+were then <strong>over-classified as TMB-high</strong>, a label that (in
+their data) did <strong>not</strong> predict immunotherapy response
+outside European ancestry.</p>
+<p><strong>Their method has two distinct steps.</strong> Do not conflate
+them:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Germline filter (variant level).</strong> Exclude any
+variant whose <strong>maximum population allele frequency across all
+gnomAD sub-populations</strong> (maxPOPAF, i.e. grpmax) exceeds
+<strong>0.1%</strong>. This is a <em>fixed, ancestry-agnostic</em>
+filter — it drops a variant if it is common in <em>any</em> population.
+<strong>This step is exactly our robust variant</strong> (grpmax ≥
+0.001). It removes most, but not all, of the ancestry-driven
+inflation.</p></li>
+<li><p><strong>Ancestry regression recalibration (sample level) — the
+headline contribution.</strong> This is <strong>not another
+filter</strong>. Using cohorts that had <em>both</em> tumor-only and
+matched tumor-normal (“paired”) TMB as ground truth, they fit a
+<strong>linear regression of the true paired TMB on the tumor-only TMB,
+separately for European and non-European patients</strong>: <span
+class="math display">\[\text{TMB}_{\text{paired}} \;=\; m_{\text{group}}
+\cdot \text{TMB}_{\text{tumor-only}} \;+\; b_{\text{group}}\]</span> The
+slope <span class="math inline">\(m\)</span> and intercept <span
+class="math inline">\(b\)</span> therefore encode, <em>per ancestry
+group</em>, how much the tumor-only estimate over- (or under-) shoots
+the truth. To recalibrate a new sample you apply its group’s
+coefficients: <span class="math inline">\(\text{TMB}_{\text{corrected}}
+= m_{\text{group}} \cdot \text{TMB}_{\text{tumor-only}} +
+b_{\text{group}}\)</span>. Because <span class="math inline">\((m,
+b)\)</span> differ between European and non-European, the <em>same</em>
+tumor-only TMB is corrected by a <em>different</em> amount depending on
+ancestry — that is precisely how the method removes the residual
+ancestry bias that the fixed filter (step 1) leaves behind.</p></li>
+</ol>
+<p><strong>Two supporting details.</strong> (a) <strong>Ancestry was
+inferred <em>genetically</em></strong> — principal- component analysis
+of common germline SNPs called from the sequencing reads — not from
+self-reported race. (b) The coefficients were <strong>fit and validated
+against matched tumor-normal</strong> as the gold standard.</p>
+<p><strong>How our nassar column maps to this — and where it
+differs.</strong></p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Nassar step</th>
+<th>Our implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>germline filter maxPOPAF ≤ 0.1%</td>
+<td><strong>robust</strong> (grpmax ≥ 0.001) — identical in spirit</td>
+</tr>
+<tr class="even">
+<td>regression TMB = m·TMB + b, per ancestry, on top of the filtered
+TMB</td>
+<td><strong>apply_nassar_recalibration()</strong> on top of robust</td>
+</tr>
+<tr class="odd">
+<td>ancestry via <strong>genetic PCA</strong></td>
+<td><strong>self-reported clinical</strong> ancestry (attend_ancestry) —
+a coarser proxy; swap in EthSEQ/somalier genetic ancestry later</td>
+</tr>
+<tr class="even">
+<td>coefficients fit on <strong>paired tumor-normal</strong>,
+panel-specific (e.g. Oncopanel v3 European m=1.094, b=−1.94)</td>
+<td><strong>default identity (m=1, b=0)</strong> — those published
+numbers are <strong>panel-specific and do NOT transfer to
+whole-exome</strong>, so nassar == robust until you fit WES
+coefficients</td>
+</tr>
+<tr class="odd">
+<td>gnomAD v2.1 + TOPMED</td>
+<td>gnomAD <strong>v4.1</strong> (newer, larger, less Euro-biased)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>To make nassar genuinely faithful for ATTEND
+(whole-exome):</strong> fit the regression on <strong>TCGA WES</strong>
+— compute paired-WES TMB and tumor-only-WES TMB (tumor-only simulated by
+dropping the normal and applying the same robust filter), label European
+vs non-European, then</p>
+<pre class="r"><code>coefs &lt;- fit_nassar_coefficients(tcga_ref)   # ref has paired_tmb, tumor_only_tmb, group
+attend_tmb_nassar$coef &lt;- coefs              # paste into code/attend_classes.R</code></pre>
+<p>Until then, nassar deliberately equals robust rather than showing a
+spurious correction. (Sources: Nassar et al., <em>Cancer Cell</em> 2022,
+<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9559771/">full
+text</a>.)</p>
+<pre class="r"><code>tmb_recomp &lt;- if (have_master) tmb_defs_present(master) else character(0)
+
+if (have_master &amp;&amp; length(tmb_recomp) &gt;= 2) {
+  # Per-patient TMB across recomputed definitions + reclassification vs the cutoff.
+  long &lt;- master |&gt;
+    select(pid, all_of(unname(tmb_recomp))) |&gt;
+    pivot_longer(all_of(unname(tmb_recomp)), names_to = &quot;tmb_col&quot;, values_to = &quot;tmb&quot;) |&gt;
+    mutate(def = factor(names(tmb_recomp)[match(tmb_col, tmb_recomp)], levels = names(tmb_recomp)),
+           tmb = suppressWarnings(as.numeric(tmb))) |&gt;
+    filter(!is.na(tmb))
+
+  print(
+    ggplot(long, aes(def, tmb)) +
+      geom_boxplot(outlier.shape = NA, fill = &quot;#FDBF6F&quot;, width = 0.6) +
+      geom_line(aes(group = pid), alpha = 0.15) +
+      geom_point(size = 0.7, alpha = 0.4) +
+      geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = &quot;grey40&quot;) +
+      labs(title = &quot;Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions&quot;,
+           subtitle = &quot;lines connect the same patient; dashed = TMB-high cutoff&quot;,
+           x = &quot;TMB definition&quot;, y = &quot;TMB (mut/Mb)&quot;) +
+      theme_minimal(base_size = 12)
+  )
+
+  # How many patients are TMB-high under each definition (the reclassification).
+  reclass &lt;- long |&gt; group_by(def) |&gt;
+    summarise(n = sum(!is.na(tmb)),
+              tmb_high = sum(tmb &gt;= attend_thresholds$tmb, na.rm = TRUE),
+              pct_high = round(100 * tmb_high / n, 1), .groups = &quot;drop&quot;)
+  knitr::kable(reclass, caption = paste0(&quot;TMB-high (&gt;= &quot;, attend_thresholds$tmb,
+               &quot; mut/Mb) count per definition — the ancestry-driven reclassification&quot;))
+} else {
+  message(&quot;Ancestry-corrected TMB not on the master yet — rebuild report 1 with &quot;,
+          &quot;the gnomAD-annotated MAFs synced into data/variant_annotations/.&quot;)
+}</code></pre>
+<p><img src="figure/00-methods.Rmd/ancestry-tmb-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<table>
+<caption>TMB-high (&gt;= 10 mut/Mb) count per definition — the
+ancestry-driven reclassification</caption>
+<thead>
+<tr class="header">
+<th align="left">def</th>
+<th align="right">n</th>
+<th align="right">tmb_high</th>
+<th align="right">pct_high</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">upstream</td>
+<td align="right">234</td>
+<td align="right">219</td>
+<td align="right">93.6</td>
+</tr>
+<tr class="even">
+<td align="left">nassar</td>
+<td align="right">234</td>
+<td align="right">123</td>
+<td align="right">52.6</td>
+</tr>
+</tbody>
+</table>
+<p>The diagnostic the whole correction exists for: <strong>how much TMB
+the correction removes, broken down by ancestry</strong>. Each point is
+one patient’s TMB (normal) − TMB (ancestry corrected) in mut/Mb — the
+amount attributed to residual germline contamination.</p>
+<p>This is the plot that shows whether the bias is real <em>in this
+cohort</em>. Nassar et al. predict systematically
+<strong>larger</strong> removals in non-European groups, because
+gnomAD’s non-European allele-frequency reference is sparser and more
+germline variants survive an undifferentiated filter. A flat
+distribution across sub-populations means either the cohort is too
+homogeneous to show it, or the correction is not doing anything.</p>
+<p>Sub-populations come from mapping the self-reported clinical ancestry
+column onto gnomAD codes (attend_ancestry); patients whose label does
+not map are NA and dropped, so group sizes here can be much smaller than
+the cohort.</p>
+<pre class="r"><code>anc &lt;- if (have_master) ancestry_by_pid(master) else NULL
+if (!is.null(anc) &amp;&amp; all(c(&quot;tmb__TMB_SCORE&quot;,&quot;tmb__TMB_nassar&quot;) %in% names(master))) {
+  g &lt;- master |&gt;
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`)),
+              removed   = normal - corrected) |&gt;
+    inner_join(anc, by = &quot;pid&quot;) |&gt;
+    filter(!is.na(removed))
+  if (nrow(g) &gt; 0) {
+    ggplot(g, aes(subpop, removed)) +
+      geom_boxplot(outlier.shape = NA, fill = &quot;#CAB2D6&quot;) +
+      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      geom_hline(yintercept = 0, linetype = 2, colour = &quot;grey50&quot;) +
+      labs(title = &quot;TMB removed by the ancestry correction, by ancestry&quot;,
+           subtitle = &quot;TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed&quot;,
+           x = &quot;gnomAD sub-population (from self-reported ancestry)&quot;,
+           y = &quot;mut/Mb removed&quot;) +
+      theme_minimal(base_size = 12)
+  } else message(&quot;No patients with both TMB definitions and a mapped ancestry.&quot;)
+} else {
+  message(&quot;Need the clinical ancestry column (attend_ancestry$clinical_col = &#39;&quot;,
+          attend_ancestry$clinical_col, &quot;&#39;) and tmb__TMB_nassar on the master &quot;,
+          &quot;for the by-ancestry view.&quot;)
+}</code></pre>
+<p><img src="figure/00-methods.Rmd/ancestry-tmb-by-group-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="nassar-recalibration-coefficients" class="section level2">
+<h2>Nassar recalibration coefficients</h2>
+<p>tmb__TMB_nassar = m_group · tmb__TMB_robust + b_group, with (m, b)
+<strong>per ancestry group</strong> (European vs non-European). Which
+coefficients are applied is set by attend_tmb_nassar$active_source:</p>
+<ul>
+<li><strong>“identity” (default)</strong> — m=1, b=0, so nassar equals
+robust.</li>
+<li>**“oncopanel_v3” / “_v2” / “_v1”** — the <strong>published Nassar et
+al. 2022</strong> coefficients (STAR Methods, “TMB Recalibration”). ⚠️
+These were fit on <strong>OncoPanel</strong> (targeted-panel) tumor-only
+TMB with TCGA WES as ground truth, <strong>not</strong> on WES input —
+so applied to ATTEND’s exome robust TMB they are an <strong>off-scale
+approximation</strong> (the slope maps OncoPanel→WES-truth, not
+WES→WES-truth). Available on request; use knowingly.</li>
+<li><strong>“custom”</strong> — your own values in
+attend_tmb_nassar$coef.</li>
+</ul>
+<p>The published values (per OncoPanel version): European v3 m=1.094,
+b=−1.94 (v2 0.994, −2.12; v1 0.989, −2.18); Non-European v3 m=0.895,
+b=−1.29 (v2 0.840, −1.71; v1 0.821, −1.71). To use them, set
+attend_tmb_nassar$active_source &lt;- “oncopanel_v3” and re-knit.</p>
+<p><strong>To fit your own (the WES-correct path):</strong> build a
+reference cohort with matched <strong>paired (tumor-normal)
+TMB</strong>, <strong>tumor-only TMB</strong> (simulated with the same
+robust/grpmax 0.1% filter), and an ancestry group column, drop it in
+data/nassar/ (any <em>reference</em>.tsv/.csv), re-knit to fit, paste
+the printed coefficients into attend_tmb_nassar$coef, and set
+active_source = “custom”. The panels below render the recalibration
+effect whenever the active coefficients are non-identity.</p>
+<pre class="r"><code>nc      &lt;- nassar_coef_table()               # active coefficients + identity flag
+ref_cfg &lt;- attend_tmb_nassar$reference
+ref_dir &lt;- here(&quot;data&quot;, ref_cfg$dir)
+ref_f   &lt;- if (dir.exists(ref_dir))
+  list.files(ref_dir, pattern = utils::glob2rx(ref_cfg$glob), full.names = TRUE, recursive = TRUE) else character(0)
+
+if (length(ref_f) &gt; 0) {
+  ref &lt;- tryCatch(
+    if (grepl(&quot;\\.csv$&quot;, ref_f[1])) readr::read_csv(ref_f[1], show_col_types = FALSE)
+    else                            readr::read_tsv(ref_f[1], show_col_types = FALSE),
+    error = function(e) { message(&quot;nassar reference unreadable: &quot;, conditionMessage(e)); NULL })
+  if (!is.null(ref)) {
+    fitted &lt;- fit_nassar_coefficients(ref, paired = ref_cfg$paired,
+                                      tumor_only = ref_cfg$tumor_only, group = ref_cfg$group)
+    cat(&quot;Fitted from&quot;, basename(ref_f[1]), &quot;— paste into attend_tmb_nassar$coef:\n&quot;)
+    cat(sprintf(&quot;  european     = list(m = %.4f, b = %.4f)\n&quot;, fitted$european$m, fitted$european$b))
+    cat(sprintf(&quot;  non_european = list(m = %.4f, b = %.4f)\n&quot;, fitted$non_european$m, fitted$non_european$b))
+  }
+} else {
+  message(&quot;No reference cohort in &quot;, ref_dir, &quot; — reporting the active coefficients only.&quot;)
+}
+
+if (grepl(&quot;^oncopanel&quot;, nc$source)) {
+  cat(&quot;WARNING: active_source = &#39;&quot;, nc$source, &quot;&#39; — OncoPanel-derived published coefficients\n&quot;,
+      &quot;applied to WES robust TMB. Off-scale approximation (slope maps OncoPanel-&gt;WES-truth,\n&quot;,
+      &quot;not WES-&gt;WES-truth); prefer fitting on WES via the reference path.\n&quot;, sep = &quot;&quot;)
+}</code></pre>
+<pre><code>WARNING: active_source = &#39;oncopanel_v3&#39; — OncoPanel-derived published coefficients
+applied to WES robust TMB. Off-scale approximation (slope maps OncoPanel-&gt;WES-truth,
+not WES-&gt;WES-truth); prefer fitting on WES via the reference path.</code></pre>
+<pre class="r"><code>knitr::kable(nc$table, digits = 4,
+             caption = paste0(&quot;Active Nassar coefficients — source: &quot;, nc$source,
+                              &quot; (identity = &quot;, nc$identity, &quot;; identity means nassar == robust)&quot;))</code></pre>
+<table>
+<caption>Active Nassar coefficients — source: oncopanel_v3 (identity =
+FALSE; identity means nassar == robust)</caption>
+<thead>
+<tr class="header">
+<th align="left">group</th>
+<th align="right">m</th>
+<th align="right">b</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">european</td>
+<td align="right">1.094</td>
+<td align="right">-1.94</td>
+</tr>
+<tr class="even">
+<td align="left">non_european</td>
+<td align="right">0.895</td>
+<td align="right">-1.29</td>
+</tr>
+</tbody>
+</table>
+<p>What the correction actually does to each patient, on the two
+reported definitions. <strong>TMB (normal)</strong> on the x-axis,
+<strong>TMB (ancestry corrected)</strong> on the y-axis, one point per
+patient, coloured by ancestry group.</p>
+<p>How to read it: the <strong>dashed diagonal</strong> is no change — a
+point on it was unaffected. Points <strong>below</strong> it had TMB
+removed. The <strong>dotted lines</strong> are the 10 mut/Mb TMB-high
+cutoff on each axis, so the off-diagonal quadrants they carve out are
+the patients whose <strong>TMB-high/low call changed</strong>. Those are
+the only patients for whom the choice of definition changes any
+downstream figure, and the table counts them per ancestry group.</p>
+<p>If the recalibration coefficients are still identity, this plot still
+shows the effect of the germline filter itself — the correction chain
+from the delivered score to the reported corrected one — which is the
+comparison every other report is drawing.</p>
+<pre class="r"><code>need &lt;- c(&quot;tmb__TMB_SCORE&quot;, &quot;tmb__TMB_nassar&quot;)
+anc  &lt;- if (have_master) ancestry_by_pid(master) else NULL
+
+if (have_master &amp;&amp; all(need %in% names(master)) &amp;&amp; !is.null(anc)) {
+  grp &lt;- anc |&gt;
+    mutate(group = ifelse(subpop %in% attend_tmb_nassar$european_subpops,
+                          &quot;european&quot;, &quot;non_european&quot;)) |&gt;
+    distinct(pid, group)
+  eff &lt;- master |&gt;
+    transmute(pid,
+              normal    = suppressWarnings(as.numeric(`tmb__TMB_SCORE`)),
+              corrected = suppressWarnings(as.numeric(`tmb__TMB_nassar`))) |&gt;
+    inner_join(grp, by = &quot;pid&quot;) |&gt;
+    filter(!is.na(normal), !is.na(corrected))
+
+  if (nrow(eff) &gt; 0) {
+    print(
+      ggplot(eff, aes(normal, corrected, colour = group)) +
+        geom_abline(slope = 1, intercept = 0, linetype = 2, colour = &quot;grey50&quot;) +
+        geom_point(alpha = 0.6) +
+        geom_hline(yintercept = attend_thresholds$tmb, linetype = 3, colour = &quot;grey40&quot;) +
+        geom_vline(xintercept = attend_thresholds$tmb, linetype = 3, colour = &quot;grey40&quot;) +
+        labs(title = &quot;Effect of the ancestry correction, by ancestry group&quot;,
+             subtitle = paste0(&quot;dashed = no change; dotted = the &quot;, attend_thresholds$tmb,
+                               &quot; mut/Mb TMB-high cutoff on each axis&quot;,
+                               if (nc$identity) &quot; | recalibration coefficients are identity, so this is the germline filter alone&quot; else &quot;&quot;),
+             x = &quot;TMB (normal), mut/Mb&quot;, y = &quot;TMB (ancestry corrected), mut/Mb&quot;,
+             colour = NULL) +
+        theme_minimal(base_size = 12)
+    )
+    reclass_n &lt;- eff |&gt; group_by(group) |&gt;
+      summarise(n = n(),
+                high_normal    = sum(normal    &gt;= attend_thresholds$tmb),
+                high_corrected = sum(corrected &gt;= attend_thresholds$tmb),
+                changed_call   = sum((normal &gt;= attend_thresholds$tmb) !=
+                                     (corrected &gt;= attend_thresholds$tmb)),
+                .groups = &quot;drop&quot;)
+    knitr::kable(reclass_n, caption = paste0(
+      &quot;TMB-high (&gt;= &quot;, attend_thresholds$tmb, &quot; mut/Mb) reclassification between the two &quot;,
+      &quot;definitions, by ancestry group. changed_call = patients whose high/low call differs.&quot;))
+  } else message(&quot;No patients with both TMB definitions and a mapped ancestry group.&quot;)
+} else {
+  message(&quot;Need tmb__TMB_SCORE, tmb__TMB_nassar and an ancestry column on the master &quot;,
+          &quot;to show the correction effect.&quot;)
+}</code></pre>
+<p><img src="figure/00-methods.Rmd/nassar-effect-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<table>
+<caption>TMB-high (&gt;= 10 mut/Mb) reclassification between the two
+definitions, by ancestry group. changed_call = patients whose high/low
+call differs.</caption>
+<thead>
+<tr class="header">
+<th align="left">group</th>
+<th align="right">n</th>
+<th align="right">high_normal</th>
+<th align="right">high_corrected</th>
+<th align="right">changed_call</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">european</td>
+<td align="right">209</td>
+<td align="right">194</td>
+<td align="right">103</td>
+<td align="right">91</td>
+</tr>
+<tr class="even">
+<td align="left">non_european</td>
+<td align="right">25</td>
+<td align="right">25</td>
+<td align="right">20</td>
+<td align="right">5</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="where-the-configuration-lives" class="section level2">
+<h2>Where the configuration lives</h2>
+<p>Every threshold and column name the reports read is declared in
+code/attend_classes.R, never inline in a report. The entries that govern
+the copy-number and TMB methods above:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Object</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>attend_cnv</td>
+<td>CNV sources, the arm table, and the pileup amplitude split</td>
+</tr>
+<tr class="even">
+<td>attend_tcga_levels</td>
+<td>integrated-class labels and their display order</td>
+</tr>
+<tr class="odd">
+<td>attend_tmb_recompute</td>
+<td>germline-filter threshold, gnomAD columns, counted variant
+classes</td>
+</tr>
+<tr class="even">
+<td>attend_tmb_nassar</td>
+<td>recalibration coefficients, the active source, the reference-cohort
+glob</td>
+</tr>
+<tr class="odd">
+<td>attend_ancestry</td>
+<td>self-reported ancestry to gnomAD sub-population map; set
+clinical_col</td>
+</tr>
+<tr class="even">
+<td>attend_pole</td>
+<td>POLE hotspots and TMB cutoff, kept unwired (ATTEND has no POLE
+cases)</td>
+</tr>
+</tbody>
+</table>
+<p>The arm-boundary table is data/arm_boundaries_hg38.tsv, derived from
+UCSC hg38 cytoBand centromeres; set attend_cnv<span
+class="math inline">\(build and attend_cnv\)</span>arm_table to work in
+hg19. The clustering parameters cnv_method, cnv_dist, k_cnv and k_sweep
+are declared there too rather than at the top of report 08 — a parameter
+this file <em>discusses</em> and another file <em>applies</em> has to be
+visible to both.</p>
+</div>
+<div id="the-aneuploidy-classes" class="section level2">
+<h2>The aneuploidy classes</h2>
+<p>Aneuploidy score is the ASCETS arm-level SCNA burden read from
+data/ascets/: the fraction of evaluable chromosome arms called altered,
+with arms below ASCETS’ breadth-of-coverage threshold (LOWCOV) excluded
+from the denominator rather than counted as unaltered.</p>
+<p>Patients are split at attend_thresholds$aneuploidy = 0.1 into
+<strong>aneuploidy-high</strong> and <strong>aneuploidy-low</strong> by
+aneuploidy_class_of(). The cut is a configured constant, not a cohort
+quantile, so it does not move when the cohort grows. Patients without an
+ASCETS score are NA and are dropped from class comparisons.</p>
+</div>
+<div id="highlighted-patients" class="section level2">
+<h2>Highlighted patients</h2>
+<p>Two overlay groups are drawn on top of the base colouring by
+highlight_points(), which partitions the data so no patient is plotted
+twice:</p>
+<ul>
+<li><strong>polipo</strong> — sample 21S188, in magenta.</li>
+<li><strong>cohort</strong> — the multi-modal subset, in gold: patients
+who also have IHC or imaging data, and so appear in the concordance and
+composition reports.</li>
+</ul>
+<p>polipo is declared first in attend_highlight, and matching is
+first-match-wins, so 21S188 is never absorbed into cohort.</p>
+</div>
+<div id="what-mmr-deficient-only-means" class="section level2">
+<h2>What “MMR-deficient only” means</h2>
+<p>The cohort restriction is is_mmrd(), which reads the
+<strong>IHC</strong> MMR call: loss of one or more mismatch-repair
+proteins on staining. That is the criterion the TCGA cascade puts at the
+top, and the one used throughout this pipeline.</p>
+<p>MSI-high by NGS is a <strong>correlate, not a criterion</strong>. It
+agrees with the IHC call in most patients and is reported alongside it,
+but it never defines the cohort — restricting on it instead would
+silently swap the population between reports. Patients with no MMR IHC
+call are excluded rather than assumed proficient.</p>
+</div>
+<div id="where-the-data-comes-from" class="section level2">
+<h2>Where the data comes from</h2>
+<p>Everything below is read from attend_master_joined, the
+one-row-per-patient table written by <a
+href="01-data-integration.html">01-data-integration</a> and loaded here
+through read_intermediate() — never by a hard-coded .csv or .parquet
+path.</p>
+<p>That report translates each modality’s native identifier onto pid,
+collapses to one row per patient (numeric columns averaged, others
+first-non-NA), and prefixes columns with the source dataset: gianlu__
+clinical, aneu__ ASCETS, tmb__ TMB, hrd__, msi<strong>, ihc</strong>.
+Mutation status is the exception — the MAF is never mean-collapsed, so
+TP53_pathogenic and panel_pathogenic are derived per patient by
+pathogenic_by_patient() and joined on.</p>
+<p>Column names and thresholds are read from attend_cols and
+attend_thresholds (code/attend_classes.R); chunks guarded by have_cols()
+skip themselves when a name is still a placeholder.</p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     stringi_1.8.7      hms_1.1.4         
+ [5] digest_0.6.39      magrittr_2.0.5     timechange_0.4.0   evaluate_1.0.5    
+ [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
+[13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
+[17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.2       
+[25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
+[29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
+[33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         
+[37] vroom_1.7.1        pkgconfig_2.0.3    pillar_1.11.1      bslib_0.9.0       
+[41] later_1.4.8        gtable_0.3.6       glue_1.8.1         Rcpp_1.1.1-1.1    
+[45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
+[49] dichromat_2.0-0.1  farver_2.1.2       htmltools_0.5.9    labeling_0.4.3    
+[53] rmarkdown_2.31     compiler_4.3.2     S7_0.2.2          </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     stringi_1.8.7      hms_1.1.4         
+ [5] digest_0.6.39      magrittr_2.0.5     timechange_0.4.0   evaluate_1.0.5    
+ [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
+[13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
+[17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.2       
+[25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
+[29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
+[33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         
+[37] vroom_1.7.1        pkgconfig_2.0.3    pillar_1.11.1      bslib_0.9.0       
+[41] later_1.4.8        gtable_0.3.6       glue_1.8.1         Rcpp_1.1.1-1.1    
+[45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
+[49] dichromat_2.0-0.1  farver_2.1.2       htmltools_0.5.9    labeling_0.4.3    
+[53] rmarkdown_2.31     compiler_4.3.2     S7_0.2.2          </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
