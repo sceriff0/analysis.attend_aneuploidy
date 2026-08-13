@@ -25,7 +25,7 @@ master <- get_master()
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
 > **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
 > **Reads.** `attend_master_joined` only.
-> **Out of scope.** Anything conditioned on aneuploidy class -> the 3x reports. Survival -> [30_survival](30_survival.html).
+> **Out of scope.** Anything conditioned on aneuploidy class -> reports [05](05_aneuploidy_mmrd.html) to [07](07_tmb.html). Survival -> [04_survival](04_survival.html).
 
 Whole distributions, not group averages. The expected differences here are tail phenomena:
 MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than
@@ -150,7 +150,7 @@ the ECDF alone gives no effect size or p-value. Aneuploidy score is
 `aneu__aneuploidy_score` (ASCETS arm-level SCNA burden from `data/ascets/`, LOWCOV arms
 excluded from each sample's denominator); the dashed line is the
 `r attend_thresholds$aneuploidy` class cutoff, drawn so the boxes can be read against the
-split every 3x report uses. Wilcoxon rank-sum on the two groups, uncorrected.
+split the later reports use. Wilcoxon rank-sum on the two groups, uncorrected.
 
 ```{r aneu-by-mmr, fig.width=6, fig.height=5}
 aneu_col <- attend_cols$aneuploidy

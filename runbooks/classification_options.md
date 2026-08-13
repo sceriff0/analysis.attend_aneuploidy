@@ -1,6 +1,6 @@
 # Runbook — classification options beyond the current GISTIC reproduction
 
-**Status:** backlog, not implemented. **Relates to:** `analysis/40_tcga_classification.Rmd`.
+**Status:** backlog, not implemented. **Relates to:** `analysis/08_tcga_classification.Rmd`.
 
 Where the copy-number classification could go beyond reproducing Kandoth et al. Suppl.
 Methods S2, given the tools this project already runs (DRAGEN, ASCETS, variantalker).
@@ -14,7 +14,7 @@ Ordered by effort-to-payoff:
    an **independent** per-sample aneuploidy value for the enrichment cross-check; it does
    not enter the clustering.
 2. **Metric/linkage — this variant uses 1 − Pearson / Ward.D2.** S2 leaves the CN
-   metric/linkage unstated; report 40 applies the mRNA/methylation pair (`cnv_dist =
+   metric/linkage unstated; report 08 applies the mRNA/methylation pair (`cnv_dist =
    "correlation"`, `cnv_method = "ward.D2"`). The k = 2..8 sweep and the
    silhouette-vs-k panel make the cut choice inspectable; compare against base 09 (Euclidean/complete) for robustness.
 3. **POLE branch removed.** ATTEND has no POLE-ultramutated cases, so the cascade now
@@ -30,7 +30,7 @@ Ordered by effort-to-payoff:
    `add_tcga_class()` sets the CN-high call via `attend_tcga_serous_rule`, now defaulting
    to **`"cluster_only"`** — serous-like = the high-aneuploidy CNV cluster, exactly as TCGA
    defined it (Fig. 2b, cluster 4). *TP53* is checked as a **property** (the TP53-enrichment
-   QC in report 40 should show ~90% mutant), not required. Alternatives remain: `"and"`
+   QC in report 08 should show ~90% mutant), not required. Alternatives remain: `"and"`
    (also require TP53, higher precision), `"or"`, `"tp53_only"`. The top of the cascade is
    **MMRd = MMR-loss by IHC (MMRd vs MMRp)**; MSI-high (NGS) is a correlate, not a criterion.
    Remaining focal-CNV upgrade is note 2 (GISTIC).

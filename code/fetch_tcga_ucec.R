@@ -2,7 +2,7 @@
 # =============================================================================
 # fetch_tcga_ucec.R — R-native fetch of the TCGA UCEC clinical table (legacy
 # PanCanAtlas export; the 2013 publication cohort fetched by fetch_tcga_ucec_2013.R
-# is what report 41 actually uses)
+# is what report 07 actually uses)
 #
 # Cohort B (PRIMARY tumours) for the ATTEND-vs-TCGA MMRd aneuploidy contrast. Pulls ONLY
 # the clinical attributes needed from the cBioPortal REST API — a few hundred KB,
@@ -11,7 +11,7 @@
 #
 # Run from the repo root:   Rscript code/fetch_tcga_ucec.R
 # Deps: tidyverse + jsonlite (jsonlite is the only extra; renv::install("jsonlite")).
-# load_tcga_ucec() is the fallback TCGA source; report 41 prefers load_tcga_ucec_2013().
+# load_tcga_ucec() is the fallback TCGA source; report 07 prefers load_tcga_ucec_2013().
 #
 # Attributes fetched (confirmed present for this study, 2026-07):
 #   SAMPLE-level : ANEUPLOIDY_SCORE, MSI_SCORE_MANTIS, MSI_SENSOR_SCORE,

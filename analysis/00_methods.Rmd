@@ -47,7 +47,7 @@ have_master <- !is.null(master)
 Kandoth et al. (*Nature* 2013) Suppl. Methods S2 names no metric or linkage for the
 *copy-number* clustering, though it names 1 − Pearson / Ward for its mRNA and methylation
 clusterings. This pipeline applies that same pair to the copy-number matrix, set via
-`cnv_method`/`cnv_dist` at the top of `40_tcga_classification.Rmd` and passed to
+`cnv_method`/`cnv_dist` at the top of `08_tcga_classification.Rmd` and passed to
 `cluster_arm_matrix()`. It is the only distance/linkage combination the pipeline uses.
 
 Euclidean with complete linkage is the obvious alternative. Comparing the two shows how
@@ -69,7 +69,7 @@ that actually characterises serous-like disease.
 
 This report therefore scores clusters **directionally**: only *concordant* events count —
 **gains at amplification peaks, losses at deletion peaks**. It is the same principle
-`attend_scna$panel` already applies to the pre-specified locus panel in [33_mutation_and_cna](33_mutation_and_cna.html)
+`attend_scna$panel` already applies to the pre-specified locus panel in [06_mutation_and_cna](06_mutation_and_cna.html)
 (*a deletion at MYC must not score as serous-like*).
 
 ⚠️ **Both calls are computed and printed, and a `[DISAGREE]` flag is raised when they
@@ -79,7 +79,7 @@ cluster labels.
 
 ## Where this reproduction follows TCGA, and where it departs
 
-Each subsection names one step of [40_tcga_classification](40_tcga_classification.html)
+Each subsection names one step of [08_tcga_classification](08_tcga_classification.html)
 and states what it takes from Kandoth et al. Suppl. Methods S2 and what is an ATTEND
 addition. Read it once; the reports themselves carry only their own derivations.
 
@@ -151,7 +151,7 @@ cut. The ancestry-corrected column stays all-`NA` until `attend_ancestry$clinica
 set, and panels that would be empty are skipped rather than drawn blank.
 
 Getting from the delivered score to the reported corrected one passes through two
-intermediates, computed in [10_data_integration](10_data_integration.html) and living on
+intermediates, computed in [01_data_integration](01_data_integration.html) and living on
 the master, but never plotted, faceted, or labelled anywhere:
 
 - **robust** — drop variants common in **any** population (`grpmax` ≥
@@ -493,7 +493,7 @@ are excluded rather than assumed proficient.
 
 ## Where the data comes from
 Everything below is read from `attend_master_joined`, the one-row-per-patient table written
-by [10_data_integration](10_data_integration.html) and loaded here through
+by [01_data_integration](01_data_integration.html) and loaded here through
 `read_intermediate()` — never by a hard-coded `.csv` or `.parquet` path.
 
 That report translates each modality's native identifier onto `pid`, collapses to one row

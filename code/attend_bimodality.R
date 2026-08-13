@@ -1,6 +1,6 @@
 # ATTEND — bimodality measures for the TMB distribution reports
 #
-# Extracted from the former report 08 when it split into 36_tmb_distribution and
+# Extracted from the former report 08 when it split into 07_tmb_distribution and
 # 41_tcga_tmb_replication: both run the same three-criterion battery (dip test, Sarle's
 # coefficient, BIC-selected mixture), 41 on the TCGA reference row, so keeping the
 # definitions in one report would have meant copying them into the other.
@@ -60,9 +60,9 @@ have_mclust  <- requireNamespace("mclust",  quietly = TRUE)
 if (!have_diptest) message("`diptest` not installed — dip-test columns render as NA.")
 if (!have_mclust)  message("`mclust` not installed — mixture columns render as NA.")
 
-# --- shared derivations for reports 36, 37 and 41 -----------------------------
+# --- shared derivations for report 07, 37 and 41 -----------------------------
 #
-# These were briefly written to disk by report 36 and read back by 37 and 41. That worked,
+# These were briefly written to disk by report 07 and read back by 37 and 41. That worked,
 # but it imposed a BUILD ORDER on the reports for no reason: a shared derivation belongs in
 # a function, not in an intermediate file. Both are pure — no I/O, no side effects — so the
 # three reports can be built in any order and still get identical values.

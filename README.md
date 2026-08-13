@@ -29,21 +29,20 @@ Rscript code/tests/test_rmd_parse.R   # every chunk parses
 
 ## The pipeline
 
-Nine documents. The number states the stage: `1x` build, `2x` QC, `3x` findings,
-`4x` external. Each opens with a four-line scope contract — Question / Cohort / Reads /
-Out of scope.
+Nine documents, numbered in reading order `00` to `08`. Each opens with a four-line scope
+contract — Question / Cohort / Reads / Out of scope.
 
 | # | Report | Cohort |
 |---|---|---|
 | 00 | Methods — every justification and shared definition, once | — |
-| 10 | Data integration — the join, and what it cost | all |
-| 20 | FlowPath vs the pathologist | all imaged |
-| 21 | Covariate distributions by MMR status | all |
-| 30 | Survival — every KM and Cox in the pipeline | all |
-| 31 | Aneuploidy in MMR-deficient tumours — mutations, then composition | **MMR-deficient only** |
-| 33 | Mutation landscape and copy number — oncoplots, recurrent CNA, subgroup contrast | all |
-| 36 | Tumour mutational burden — bimodality, by aneuploidy x MMR, TCGA replication | all |
-| 40 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
+| 01 | Data integration — the join, and what it cost | all |
+| 02 | FlowPath vs the pathologist | all imaged |
+| 03 | Covariate distributions by MMR status | all |
+| 04 | Survival — every KM and Cox in the pipeline | all |
+| 05 | Aneuploidy in MMR-deficient tumours — mutations, then composition | **MMR-deficient only** |
+| 06 | Mutation landscape and copy number — oncoplots, recurrent CNA, subgroup contrast | all |
+| 07 | Tumour mutational burden — bimodality, by aneuploidy x MMR, TCGA replication | all |
+| 08 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
 
 Shared definitions live once in `analysis/00_methods.Rmd` and are **linked** from the
 reports, not rendered into each one. Operational recipes live in `runbooks/`. Reports carry

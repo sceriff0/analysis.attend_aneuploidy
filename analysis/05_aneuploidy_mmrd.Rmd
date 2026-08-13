@@ -32,7 +32,7 @@ n_mmrd <- length(mmrd_pids)
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
 > **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
 > **Reads.** The master (built on demand by `get_master()`), the long MAF, and the FlowPath annotation tree.
-> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [36_tmb](36_tmb.html).
+> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [07_tmb](07_tmb.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
 in the whole cohort any variable that tracks MMR status will also appear to track
@@ -76,7 +76,7 @@ Two sources, joined on `pid`. The aneuploidy score and its derived classes come 
 `attend_master_joined`. The mutation status is recomputed here directly from the long MAF
 rather than taken from the master's collapsed columns, because the average of a variant row
 is meaningless; `pathogenic_by_patient()` and `mutation_status_long()` are the same helpers
-[10_data_integration](10_data_integration.html) used, so the two cannot drift. Crossing the
+[01_data_integration](01_data_integration.html) used, so the two cannot drift. Crossing the
 crosswalk against the full gene list guarantees every gene gets a column even when it never
 appears in the MAF, with unmutated patients `FALSE` rather than `NA`.
 
@@ -619,7 +619,7 @@ if (nrow(cb) > 2) {
 ### Aneuploidy by TP53 status
 
 Within MMRd, aneuploidy score in TP53-abnormal versus TP53-normal tumours. TP53 status is
-`TP53_pathogenic` from the master, derived from the MAF in report 10. TP53 loss is the
+`TP53_pathogenic` from the master, derived from the MAF in report 01. TP53 loss is the
 canonical driver of chromosomal instability, so this is the expected-positive control for
 the aneuploidy score itself: if aneuploidy does not separate on TP53 here, the score is
 suspect before any of the immune results are interpreted.
@@ -639,7 +639,7 @@ if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
     attend_theme() + theme(legend.position = "none")
 } else {
   message("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",
-          "is missing from the master (rebuild report 10).")
+          "is missing from the master (rebuild report 01).")
 }
 ```
 

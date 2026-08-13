@@ -53,7 +53,7 @@ is really whether TMB by itself cleanly identifies the hypermutators.
 
 Four steps: describe each distribution, test for bimodality under three independent
 criteria, validate any second mode against MMR status, and — in
-[36_tmb](36_tmb.html) — reproduce the whole thing in
+[07_tmb](07_tmb.html) — reproduce the whole thing in
 TCGA UCEC, where the answer is externally known.
 
 Comparing the two definitions is a second question this report answers. Tumour-only TMB
@@ -297,7 +297,7 @@ if (exists("battery") && nrow(battery) > 0 && sum(is.finite(battery$dip_D)) >= 2
 ```
 
 The battery is written to an intermediate for
-[36_tmb](36_tmb.html), which appends TCGA as one more
+[07_tmb](07_tmb.html), which appends TCGA as one more
 row of this same table.
 
 
@@ -329,7 +329,7 @@ have_aneu_tmb <- nrow(long) > 0 &&
 
 if (have_aneu_tmb) {
   # Per-patient aneuploidy class + MMR group, joined onto the per-(patient, definition)
-  # TMB rows read back from report 36.
+  # TMB rows read back from report 07.
   meta <- master |>
     transmute(
       pid,

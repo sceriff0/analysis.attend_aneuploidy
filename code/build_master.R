@@ -3,7 +3,7 @@
 # WHY THIS IS NOT ONLY IN A REPORT
 # --------------------------------
 # Every report needs the master table, and until now the only thing that could produce it
-# was report 10. That imposed a build order: knit 10 first, or everything else renders as
+# was report 01. That imposed a build order: knit 10 first, or everything else renders as
 # scaffolding. Moving the join here removes that constraint entirely — get_master() reads
 # the intermediate when it exists and builds it when it does not, so ANY report can be the
 # first one built and `wflow_build()` with no arguments is always correct.
@@ -44,7 +44,7 @@ load_raw_inputs <- function() {
     maf_data             = load_maf_data(),
     # The canonical barcode map. Absent in a fresh checkout, so this is guarded: the join
     # itself does not need it (the crosswalk is derived from the clinical table); only
-    # report 10's validation section does.
+    # report 01's validation section does.
     conversion_data      = tryCatch(
       utils::read.csv(here::here("data", "attend_barcodes.csv")),
       error = function(e) NULL)
@@ -57,7 +57,7 @@ build_crosswalks <- function(raw) {
   cw_barcode_pid <- build_barcode_pid(raw$gianlu_clinical_data, id_cfg)
   cw_image_pid   <- build_image_pid(raw$imaging_data, id_cfg)
   # recover = TRUE promotes an orphaned id when its normalised key (upper-cased, trimmed)
-  # maps to exactly ONE patient. Ambiguous keys are refused, never guessed — report 10's
+  # maps to exactly ONE patient. Ambiguous keys are refused, never guessed — report 01's
   # recovery ledger shows precisely who is reclaimed and who is refused.
   pid_vector <- make_pid_vector(cw_barcode_pid, cw_image_pid, recover = TRUE)
   tables <- list(
@@ -75,7 +75,7 @@ build_crosswalks <- function(raw) {
 #' @param raw output of load_raw_inputs(); loaded here when NULL
 #' @param cw output of build_crosswalks(); built here when NULL
 #' @param write write the result (and each raw table) to output/clean_data/
-#' @param verbose narrate, for report 10
+#' @param verbose narrate, for report 01
 #' @return the master tibble, one row per patient
 build_master <- function(raw = NULL, cw = NULL, write = TRUE, verbose = FALSE) {
   if (is.null(raw)) raw <- load_raw_inputs()

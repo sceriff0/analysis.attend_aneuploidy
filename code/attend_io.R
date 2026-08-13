@@ -1,7 +1,7 @@
 # =============================================================================
 # attend_io.R  —  format-agnostic on-disk I/O for pipeline intermediates.
 #
-# Sourced by report 10 (writes) and every report from 11 on (reads).
+# Sourced by report 01 (writes) and every report from 11 on (reads).
 #
 # Prefers Apache Parquet via `arrow` — typed, columnar, compressed (~10x smaller
 # than CSV), and immune to the schema drift that bites a CSV re-read across six
@@ -39,7 +39,7 @@ read_intermediate <- function(name, dir = .attend_clean_dir()) {
     readr::read_csv(csv, show_col_types = FALSE)
   } else {
     stop("No intermediate '", name, "' in ", dir, " (looked for .parquet and .csv). ",
-         "Run 10_data_integration.Rmd first.")
+         "Run 01_data_integration.Rmd first.")
   }
 }
 

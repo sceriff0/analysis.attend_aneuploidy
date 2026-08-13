@@ -1,13 +1,13 @@
 # Runbook — producing GISTIC output for the TCGA cascade
 
 **Reads:** DRAGEN `.seg` files on HPC. **Writes:** `data/gistic/`.
-**Consumed by:** `analysis/40_tcga_classification.Rmd`.
+**Consumed by:** `analysis/08_tcga_classification.Rmd`.
 
 This is an operational recipe, run once per cohort freeze, not per knit. The rationale for
 using GISTIC thresholded peaks as the clustering feature is in `analysis/00_methods.Rmd`.
 
 
-The copy-number clustering in `40_tcga_classification.Rmd` **requires GISTIC output in
+The copy-number clustering in `08_tcga_classification.Rmd` **requires GISTIC output in
 `data/gistic/`** and has no fallback. GISTIC is a compiled MATLAB binary that runs
 **outside R**, so you produce its output once, then knit. The recipe reproduces Kandoth et
 al. Suppl. Methods S2: SNP6 to tangent-normalisation to CBS to GISTIC 2.0 there, DRAGEN
@@ -39,7 +39,7 @@ root, and checks the seg + refgene exist. It writes `data/gistic/`:
 `all_thresholded.by_genes.txt` (the clustering input), `amp_genes`/`del_genes.conf_*.txt`
 (the significant peaks), `all_lesions.conf_*.txt` (the report-40 oncoplot overlay).
 
-**Step 3 — knit `analysis/40_tcga_classification.Rmd`.** `load_gistic_thresholded()`
+**Step 3 — knit `analysis/08_tcga_classification.Rmd`.** `load_gistic_thresholded()`
 reads `all_thresholded.by_genes.txt`, restricts to the significant-peak genes, and the CNV
 sections populate automatically.
 

@@ -11,7 +11,7 @@
 # Earlier: report 09 used GISTIC output for TCGA integration. It runs OUTSIDE R (a
 # compiled MATLAB binary) on per-group seg files R writes via write_gistic_seg().
 # Outputs land in data/gistic/<group>/, where report 15 and find_gistic_files()
-# (report 33 oncoplot) pick them up.
+# (report 06 oncoplot) pick them up.
 #
 # Runs BOTH ways:
 #   local :  ./code/run_gistic.sh

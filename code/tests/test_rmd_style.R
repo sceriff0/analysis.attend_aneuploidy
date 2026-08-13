@@ -6,10 +6,10 @@
 # exactly as it does on the cluster. Base R only.
 #
 # Six rules:
-#   [1] every analysis/[0-4]*.Rmd opens with a scope contract in its first 20 lines
+#   [1] every analysis/0N_*.Rmd opens with a scope contract in its first 20 lines
 #   [2] every chunk with visible output has a prose line directly above it
 #   [3] no analysis/*.Rmd exceeds MAX_LINES
-#   [4] no blockquote in analysis/[1-4]*.Rmd outside the scope contract
+#   [4] no blockquote outside the scope contract (00_methods excepted)
 #   [5] no takeaway/interpretation/notes sections anywhere
 #   [6] the "two TMB definitions" table lives in exactly one file, an explainer
 
@@ -24,13 +24,13 @@ MAX_LINES <- 800L
 BOILERPLATE <- c("setup", "session-info")
 
 analysis_dir <- file.path("analysis")
-reports <- sort(list.files(analysis_dir, pattern = "^[0-4][0-9]_.*\\.Rmd$", full.names = TRUE))
+reports <- sort(list.files(analysis_dir, pattern = "^0[0-9]_.*\\.Rmd$", full.names = TRUE))
 stopifnot(length(reports) > 0)
 
-# [1-4] apply to the numbered reports; the scope contract also covers 00_methods.Rmd
-# (spec §7 globs [0-4]*), whereas the blockquote ban starts at 1x because every
-# justification blockquote is *supposed* to land in 00_methods.
-banded <- reports[!grepl("^00_", basename(reports))]
+# Rules [1]-[4] apply to every numbered report. The scope contract covers 00_methods too;
+# the blockquote ban does not, because every justification blockquote is *supposed* to end
+# up there.
+numbered <- reports[!grepl("^00_", basename(reports))]
 
 fail <- character(0)
 note <- function(...) fail <<- c(fail, paste0(...))
@@ -153,7 +153,7 @@ for (f in list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE)) {
 
 # ---- [4] no blockquotes outside the scope contract -------------------------
 
-for (f in banded) {
+for (f in numbered) {
   lines <- readLines(f, warn = FALSE)
   fenced <- in_any_fence(lines)
   quoted <- which(grepl("^>", lines) & !fenced)
@@ -195,7 +195,7 @@ if (length(carriers) != 1L) {
 
 # ---- [7] no report re-inlines a shared explainer ---------------------------
 
-for (f in banded) {
+for (f in numbered) {
   lines <- readLines(f, warn = FALSE)
   hits <- grep("child\\s*=\\s*'_explainers/", lines)
   if (length(hits)) {

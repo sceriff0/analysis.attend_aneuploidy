@@ -1,4 +1,4 @@
-# Task 2: genome ordering and amplitude tiers for the recurrent-CNA figures (report 34).
+# Task 2: genome ordering and amplitude tiers for the recurrent-CNA figures (report 06).
 # Field convention (Beroukhim 2010; Zack 2013; GenVisR::cnFreq) is that recurrence is
 # displayed ALONG THE GENOME, and that low-level gain/loss is separated from high-level
 # amplification/homozygous deletion. Two new pieces:

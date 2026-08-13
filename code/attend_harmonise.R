@@ -3,8 +3,8 @@
 # Shared harmonisation logic for the ATTEND QC pipeline.
 #
 # Sourced by BOTH:
-#   analysis/10_data_integration.Rmd  (dataset assembly)
-#   analysis/11_join_audit.Rmd        (linkage diagnostics + content QC)
+#   analysis/01_data_integration.Rmd  (dataset assembly)
+#   analysis/01_data_integration.Rmd  (Part 2: linkage diagnostics + content QC)
 #
 # Keeping these definitions in one place guarantees the two reports use
 # identical ID spaces, crosswalks and collapsing rules — they cannot drift
@@ -33,7 +33,7 @@ barcode_datasets <- c("tmb", "msi", "maf", "hrd", "aneu")
 # --- Crosswalk builders -----------------------------------------------------
 # barcode -> pid, reverse-engineered from gianlu_clinical_data (which carries
 # both TUMOR_BARCODE and the patient ID). NOTE: the canonical map is
-# attend_barcodes.csv; 10_data_integration.Rmd validates this derived crosswalk
+# attend_barcodes.csv; 01_data_integration.Rmd validates this derived crosswalk
 # against it.
 build_barcode_pid <- function(gianlu_clinical_data, cfg) {
   gianlu_clinical_data |>
@@ -53,7 +53,7 @@ build_image_pid <- function(imaging_data, cfg) {
 }
 
 # --- Normalisation for safe ID recovery -------------------------------------
-# IDENTICAL to report 11's near-miss norm() so the recovery and the ledger that
+# IDENTICAL to report 01's near-miss norm() so the recovery and the ledger that
 # reports it cannot drift. Upper-cases and trims; nothing else (suffixes are
 # already stripped by the loaders before linkage).
 norm_id <- function(x) toupper(trimws(as.character(x)))
@@ -109,7 +109,7 @@ build_sets <- function(tables, id_cfg, pid_vector) {
 # --- Collapsing rule --------------------------------------------------------
 # When a patient has several rows (multiple samples/images, or many MAF
 # variants), numeric columns are averaged and non-numeric take the first
-# non-missing value. This is LOSSY by design — 11_join_audit.Rmd reports
+# non-missing value. This is LOSSY by design — 01_data_integration.Rmd Part 2 reports
 # exactly how many patients are affected.
 num_or_first <- function(x)
   if (is.numeric(x)) mean(x, na.rm = TRUE) else x[which(!is.na(x))][1]

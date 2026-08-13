@@ -19,9 +19,8 @@ does not. Any report can be the first one knitted, and `wflow_build()` with no a
 is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
-reads, and what it deliberately leaves to another report. The number states the stage —
-`1x` build, `2x` QC, `3x` findings, `4x` external — and the gaps absorb future reports
-without renumbering.
+reads, and what it deliberately leaves to another report. They are numbered in reading
+order, `00` to `08`.
 
 **[00 — Methods](00_methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
@@ -29,41 +28,41 @@ aneuploidy classes, what "MMR-deficient only" means, the highlight groups, and h
 master is built. Operational recipes — running GISTIC on the cluster, classification
 alternatives — live in `runbooks/`.
 
-### 1x — Build
+### Build
 
-- **[10 — Data integration](10_data_integration.html)** · all patients
+- **[01 — Data integration](01_data_integration.html)** · all patients
   Part 1 translates three ID spaces onto one patient key, collapses each modality to one
   row per patient, and writes the master. Part 2 audits what that cost: unmapped records,
   coverage per dataset, the UpSet of who has which modality, and value sanity.
 
-### 2x — QC and validation
+### QC and validation
 
-- **[20 — FlowPath vs the pathologist](20_flowpath_concordance.html)** · all imaged
+- **[02 — FlowPath vs the pathologist](02_flowpath_concordance.html)** · all imaged
   Does the automated quantification agree with the pathologist's eye, on continuous
   measures and categorical calls.
-- **[21 — Covariate distributions by MMR status](21_covariates_by_mmr.html)** · all patients
+- **[03 — Covariate distributions by MMR status](03_covariates_by_mmr.html)** · all patients
   ECDF and Kolmogorov–Smirnov per continuous covariate, plus the aneuploidy score itself
   contrasted between MMR-deficient and -proficient tumours.
 
-### 3x — Findings
+### Findings
 
-- **[30 — Survival](30_survival.html)** · all patients
+- **[04 — Survival](04_survival.html)** · all patients
   Every Kaplan–Meier and Cox model in the pipeline: treatment arm within panels defined by
   aneuploidy × MMR, then TMB, HRD, MSI, and immune content.
-- **[31 — Aneuploidy in MMR-deficient tumours](31_aneuploidy_mmrd.html)** · MMRd only
+- **[05 — Aneuploidy in MMR-deficient tumours](05_aneuploidy_mmrd.html)** · MMRd only
   Part 1 takes aneuploidy against mutation status, one gene at a time. Part 2 takes it
   against cell-type composition under three normalizations.
-- **[33 — Mutation landscape and copy number](33_mutation_and_cna.html)** · all patients
+- **[06 — Mutation landscape and copy number](06_mutation_and_cna.html)** · all patients
   Part 1 oncoplots and the TCGA Fig. 2d subgroup frequency comparison. Part 2 recurrent
   copy number at arm and genome-wide resolution. Part 3 the aneuploidy × MMR peak contrast.
-- **[36 — Tumour mutational burden](36_tmb.html)** · all patients
+- **[07 — Tumour mutational burden](07_tmb.html)** · all patients
   Part 1 asks whether TMB resolves the hypermutator population as a genuine second mode.
   Part 2 draws TMB by aneuploidy once per MMR stratum. Part 3 replicates the whole battery
   in TCGA UCEC, which is tumour-normal paired.
 
-### 4x — External
+### External
 
-- **[40 — TCGA integrated classification](40_tcga_classification.html)** · all patients
+- **[08 — TCGA integrated classification](08_tcga_classification.html)** · all patients
   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
   thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
@@ -89,6 +88,6 @@ checks every chunk parses. Both are base R, so they run without `tidyverse` or t
 - `code/attend_classes.R` — column names (`attend_cols`), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
 - `code/attend_plots.R` — shared palettes, `attend_theme()`, the highlight overlay.
-- `code/attend_ihc.R` — FlowPath IHC metric definitions (reports 20, 30, 31).
+- `code/attend_ihc.R` — FlowPath IHC metric definitions (reports 02, 04, 05).
 - `code/attend_scna.R` — GISTIC peak union, panel score, permutation and LOO stability.
 - `code/attend_bimodality.R` — `tmb_long()`, `tmb_battery()`, and the bimodality measures.

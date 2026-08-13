@@ -1,8 +1,8 @@
 # Report reorganization — design
 
 **Date:** 2026-08-11
-**Status:** implemented 2026-08-11, then **partly superseded 2026-08-13** — see §13.
-The layout in §3 and the fragments in §6 no longer describe the repo.
+**Status:** implemented 2026-08-11, then **partly superseded 2026-08-13** — see §13 and §14.
+The layout in §3, the numbering in D2, and the fragments in §6 no longer describe the repo.
 **Scope:** `analysis/*.Rmd` structure and prose. No change to `code/*.R` behaviour.
 
 ---
@@ -572,3 +572,33 @@ reading an intermediate Part 1 had to write.
 that one report writes and another reads is a build order wearing a disguise. The one
 legitimate intermediate is the master itself, and `get_master()` is what makes even that
 one order-free.
+
+
+---
+
+## 14. Superseded 2026-08-13 — D2 dropped, consecutive numbering
+
+The banded scheme (`1x` build / `2x` QC / `3x` findings / `4x` external) was chosen so the
+number would state the stage and gaps would absorb new reports without renumbering. With
+fifteen reports that reads as a system; with nine it reads as arbitrary gaps — a list that
+jumps 10, 20, 21, 30, 31, 33, 36, 40 makes a reader wonder what happened to 32.
+
+Reports are now numbered **consecutively in reading order**:
+
+| Now | Was |
+|---|---|
+| `00_methods` | `00_methods` |
+| `01_data_integration` | `10_data_integration` (+ `11_join_audit`) |
+| `02_flowpath_concordance` | `20_flowpath_concordance` |
+| `03_covariates_by_mmr` | `21_covariates_by_mmr` |
+| `04_survival` | `30_survival` |
+| `05_aneuploidy_mmrd` | `31_aneuploidy_mutations` + `32_cell_composition` |
+| `06_mutation_and_cna` | `33` + `34` + `35` |
+| `07_tmb` | `36` + `37` + `41` |
+| `08_tcga_classification` | `40_tcga_classification` |
+
+The cost D2 was avoiding is real and accepted: inserting a report between two others now
+means renumbering everything after it. At nine documents that is a `git mv` and one pass of
+find-and-replace, which is cheaper than asking every reader to decode a scheme.
+
+`test_rmd_style.R` matches `^0[0-9]_` and its `banded` variable is now `numbered`.

@@ -327,7 +327,7 @@ counted here rather than discovered downstream. "Unmapped" means three different
 at record level, at patient level, and at cohort level — and each is reported separately.
 
 Presence is not the same as usable, so the last section checks the *contents* of the table
-report 10 wrote. That file is the contract every later report inherits, and a bad value is
+report 01 wrote. That file is the contract every later report inherits, and a bad value is
 cheapest to catch here.
 
 ### Records that never reached a patient
