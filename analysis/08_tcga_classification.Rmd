@@ -159,8 +159,8 @@ What this gets right vs the old arm/bin proxies (now removed):
 ## CNV clustering (GISTIC thresholded peaks)
 
 **Computational steps.** (1) Cluster the sample × peak-gene **thresholded** GISTIC matrix
-`cnv_mat` with `cluster_arm_matrix(k = `r k_cnv`, method = "`r cnv_method`", dist_method =
-"`r cnv_dist`")` — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
+`cnv_mat` with `cluster_arm_matrix()`, taking k, method and distance from the configured
+values in attend_classes.R — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
 mRNA/methylation choice). (2) Label the **copy-number-high**
 cluster by intrinsic SCNA burden = mean |thresholded value| per cluster
 (`cnv_high_cluster_burden()`), independent of the aneuploidy score. (3) Heatmap: peak
@@ -309,13 +309,13 @@ if (!is.null(cl) && exists("feat_pos") && exists("ann")) {
 
 Average silhouette width against k over the same Pearson/Ward dendrogram, which is the
 quantitative companion to the visual sweep above: a peak flags the most internally coherent
-cut, and the cascade's k = `r k_cnv` is marked for reference. Needs the optional `cluster`
+cut, and the cascade's configured cut k_cnv is marked for reference. Needs the optional `cluster`
 package.
 
 ```{r cnv-ksweep-silhouette, fig.height=5}
 # Average silhouette width vs k over the SAME Pearson/Ward dendrogram — the quantitative
 # read on "how many clusters". Peaks flag the most internally-coherent cut(s); the cascade's
-# k = `r k_cnv` is marked for reference. Optional dependency `cluster`.
+# the cascade's configured cut k_cnv is marked for reference. Optional dependency `cluster`.
 if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
   D  <- if (identical(cnv_dist, "correlation"))
           stats::as.dist(1 - stats::cor(t(cl$matrix), use = "pairwise.complete.obs"))
@@ -347,7 +347,7 @@ if (!is.null(cl) && have_master && have_cw) {
 } else message("KM skipped — need CNV clusters + master + crosswalk.")
 ```
 
-Per-sample silhouette at the cascade cut k = `r k_cnv`, computed on the same 1 - Pearson
+Per-sample silhouette at the cascade cut k_cnv, computed on the same 1 - Pearson
 distance the clustering used rather than Euclidean, so the widths are consistent with the
 tree the clusters came from.
 
@@ -476,7 +476,7 @@ cluster genuinely corresponds to it, it should come out **independently** enrich
 *TP53* pathogenic mutations. This is the validation that replaces the TP53 *gate*: TP53
 is checked as a **property**, not required as a **criterion**. A high fraction here
 confirms the cluster is serous-like; a low fraction is a red flag that the copy-number
-cluster does **not** map to TCGA's group (reconsider `k_cnv`, the CNV input, or purity).
+cluster does **not** map to TCGA's group (reconsider k_cnv, the CNV input, or purity).
 
 **Computational steps.** (1) Split patients by `cnv_high` (CN-high cluster vs the rest).
 (2) Per group, count `TP53_pathogenic` and compute the mutant fraction. (3) **Fisher exact

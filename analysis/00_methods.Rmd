@@ -91,7 +91,7 @@ addition. Read it once; the reports themselves carry only their own derivations.
 *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
 hierarchical clustering. *Differs:* DRAGEN WES `.seg` rather than SNP6; 1 − Pearson /
 Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
-cascade reads a single cut (`k_cnv` in `attend_classes.R`), while the k-sweep heatmap
+cascade reads a single cut (k_cnv in attend_classes.R), while the k-sweep heatmap
 shows a range of cuts around it; and the integrated-class and aneuploidy-score annotation
 bars are ATTEND additions, not Fig. 1a elements.
 
@@ -461,7 +461,7 @@ never inline in a report. The entries that govern the copy-number and TMB method
 
 The arm-boundary table is `data/arm_boundaries_hg38.tsv`, derived from UCSC hg38 cytoBand
 centromeres; set `attend_cnv$build` and `attend_cnv$arm_table` to work in hg19. The clustering parameters
-`cnv_method`, `cnv_dist`, `k_cnv` and `k_sweep` are declared there too rather than at the
+cnv_method, cnv_dist, k_cnv and k_sweep are declared there too rather than at the
 top of report 08 — a parameter this file *discusses* and another file *applies* has to be
 visible to both.
 
