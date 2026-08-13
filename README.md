@@ -10,26 +10,51 @@ with [workflowr](https://workflowr.github.io/workflowr/) and
 ## Quick start
 
 ```r
-renv::restore()              # once renv.lock exists
-workflowr::wflow_build()     # knit every report into docs/
-workflowr::wflow_build("analysis/30_survival.Rmd")               # knit one
+renv::restore()                                    # once renv.lock exists
+workflowr::wflow_build("analysis/10_data_integration.Rmd")  # FIRST: writes the master
+workflowr::wflow_build()                           # then knit the rest into docs/
+workflowr::wflow_build("analysis/30_survival.Rmd") # knit one
+
+Rscript code/tests/test_rmd_style.R                # report structure (base R, no deps)
+Rscript code/tests/test_rmd_parse.R                # every chunk parses
 ```
 
 ## The pipeline
 
-Reports run **in order**. Report 1 builds the per-patient master table
-(`output/clean_data/attend_master_joined`); reports 2–8 read it back and analyse it.
+Reports run **in order**, and the number states the stage: `1x` build, `2x` QC, `3x`
+findings, `4x` external. Report 10 builds the per-patient master table
+(`output/clean_data/attend_master_joined`); every later report reads it back.
+
+Each report answers **one question on one cohort** and opens with a four-line scope
+contract — Question / Cohort / Reads / Out of scope.
 
 | # | Report | Cohort |
 |---|---|---|
-| 1 | Data integration — the join, and who it leaves behind | all |
-| 2 | Survival, stratified by molecular axis | all |
-| 3 | Aneuploidy vs mutations, one gene at a time | **MMR-deficient only** |
-| 4 | IHC/imaging concordance + cell-type composition | Pt 1 all imaged; **Pt 2 MMRd only** |
-| 5 | Mutation landscape + recurrent copy number + aneuploidy×MMR contrast | all |
-| 6 | Covariate distributions by MMR status | all |
-| 7 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
-| 8 | Is the TMB distribution split? (and does TCGA agree) | all |
+| 00 | Methods — every justification in the pipeline, once | — |
+| 10 | Data integration — the join, the collapse, the TMB recompute | all |
+| 11 | Join audit — unmapped records, coverage, value sanity | all |
+| 20 | FlowPath vs the pathologist | all imaged |
+| 21 | Covariate distributions by MMR status | all |
+| 30 | Survival — every KM and Cox in the pipeline | all |
+| 31 | Aneuploidy vs mutation status, one gene at a time | **MMR-deficient only** |
+| 32 | Cell-type composition vs aneuploidy | **MMR-deficient only** |
+| 33 | Mutation landscape — oncoplots + subgroup frequency | all |
+| 34 | Recurrent copy number — arm level + genome-wide | all profiled |
+| 35 | Aneuploidy x MMR copy-number contrast | MMRd-high vs MMRp-high |
+| 36 | Is the TMB distribution split? | all |
+| 37 | TMB by aneuploidy, once per MMR stratum | by MMR stratum |
+| 40 | TCGA integrated classification (Pearson/Ward, directional serous call) | all |
+| 41 | TCGA UCEC replication of the TMB split | TCGA |
+
+Three reports write intermediates others read, so build order matters on a cold start:
+**10** writes the master, and **36** writes `attend_tmb_long` / `attend_tmb_battery`,
+which **37** and **41** read back. Alphabetical order satisfies this, except that `00`
+sorts first and reads the master — so build `10` before the rest.
+
+Shared explanations live once in `analysis/_explainers/` and are rendered into every
+report that needs them via `child=`. Justification lives in `analysis/00_methods.Rmd`;
+operational recipes live in `runbooks/`. Reports carry no takeaway sections — conclusions
+belong in the manuscript.
 
 Two conventions hold everywhere: **TMB is always exactly two definitions** — *normal*
 (`tmb__TMB_SCORE`) and *ancestry corrected* (`tmb__TMB_nassar`) — and **highlighted
