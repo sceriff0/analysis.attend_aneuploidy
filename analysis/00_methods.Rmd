@@ -18,6 +18,10 @@ editor_options:
 # Nassar recalibration, so it loads the master like any other report.
 library(tidyverse)
 library(here)
+# Headless-safe raster device. The cluster's compute nodes have no X11, so R's default
+# png() fails with "unable to open connection to X11 display" and every figure dies. cairo
+# needs no display; the guard keeps this working on a machine built without it.
+if (capabilities("cairo")) options(bitmapType = "cairo")
 
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 5)
