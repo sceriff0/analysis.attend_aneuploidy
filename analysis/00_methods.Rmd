@@ -85,11 +85,12 @@ addition. Read it once; the reports themselves carry only their own derivations.
 
 ### The clustering
 
-*Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant
-peaks, hierarchical clustering. *Differs:* DRAGEN WES `.seg` vs SNP6; **1 − Pearson / Ward.D2**
-(S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the cascade
-below reads a single k = `r k_cnv`, while the k-sweep heatmap shows k = 2..8; the
-integrated-class and aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
+*Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
+hierarchical clustering. *Differs:* DRAGEN WES `.seg` rather than SNP6; 1 − Pearson /
+Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
+cascade reads a single cut, `k_cnv` at the top of `08_tcga_classification.Rmd`, while the
+k-sweep heatmap shows the whole range around it; and the integrated-class and
+aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a elements.
 
 ### The k-sweep
 
