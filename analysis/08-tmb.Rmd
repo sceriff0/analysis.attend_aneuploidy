@@ -57,7 +57,7 @@ is really whether TMB by itself cleanly identifies the hypermutators.
 
 Four steps: describe each distribution, test for bimodality under three independent
 criteria, validate any second mode against MMR status, and — in
-[07-tmb](07-tmb.html) — reproduce the whole thing in
+[08-tmb](08-tmb.html) — reproduce the whole thing in
 TCGA UCEC, where the answer is externally known.
 
 Comparing the two definitions is a second question this report answers. Tumour-only TMB
@@ -301,7 +301,7 @@ if (exists("battery") && nrow(battery) > 0 && sum(is.finite(battery$dip_D)) >= 2
 ```
 
 The battery is written to an intermediate for
-[07-tmb](07-tmb.html), which appends TCGA as one more
+[08-tmb](08-tmb.html), which appends TCGA as one more
 row of this same table.
 
 

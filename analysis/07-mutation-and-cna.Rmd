@@ -33,7 +33,7 @@ n_mmrd_high <- sum(master$scna_group == "MMRd-high", na.rm = TRUE)
 > **Question.** What is altered across this cohort — in genes, in chromosome arms, and along the genome — and does recurrence differ between aneuploidy-high MMRd and MMRp tumours?
 > **Cohort.** All `r nrow(master)` patients for Parts 1 and 2; Part 3 is a contrast, MMRd-high (n = `r n_mmrd_high`) against MMRp-high.
 > **Reads.** The per-sample MAFs, ASCETS arm calls, ClassifyCNV segments, and GISTIC peaks.
-> **Out of scope.** The TCGA cascade -> [08-tcga-classification](08-tcga-classification.html). Aneuploidy within MMRd -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html).
+> **Out of scope.** The TCGA cascade -> [09-tcga-classification](09-tcga-classification.html). Aneuploidy within MMRd -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html).
 
 Three resolutions of one question, coarsest last. Plot conventions follow TCGA UCEC
 (Kandoth et al., *Nature* 2013); the rationale for each is in
@@ -57,7 +57,7 @@ The oncoplot annotation carries exactly those two TMB tracks, so reading the two
 against each other shows directly whether the germline correction moves any patient across
 the TMB-high/low boundary.
 
-```{r maftools-missing, eval=!MAFTOOLS_OK, echo=FALSE, results='asis'}
+```{r maftools-missing-part1, eval=!MAFTOOLS_OK, echo=FALSE, results='asis'}
 cat('`maftools` is not installed, so the mutation plots below are skipped. Install with',
     '`renv::install("bioc::maftools")` (Bioconductor 3.18) and re-knit.\n')
 ```
@@ -299,7 +299,7 @@ reduced denominator is visible rather than hidden. The bars below show the
 genome — not every arm — where eligible means evaluable in at least
 `r 100 * attend_cnv$arm_calls$min_evaluable_frac`% of samples, the identical rule
 top_arms applies to the arm annotation tracks on the oncoplots in
-[06-mutation-and-cna](06-mutation-and-cna.html), so neither figure can rank a
+[07-mutation-and-cna](07-mutation-and-cna.html), so neither figure can rank a
 poorly-covered arm ahead of a well-covered one. An uncallable arm's CNV_<arm> value on
 those oncoplots is NA, not "neutral": missing data is not evidence of no alteration.
 
@@ -444,7 +444,7 @@ through group_of_barcode(), built on the same crosswalk as everything else.
 The grouping variable scna_group composes is_mmrd() (IHC-based, MSI deliberately not a
 criterion) with aneuploidy_class at the pre-registered cut
 `r attend_thresholds$aneuploidy`, the same definition
-[06-mutation-and-cna](06-mutation-and-cna.html)'s frequency comparison uses.
+[07-mutation-and-cna](07-mutation-and-cna.html)'s frequency comparison uses.
 
 ```{r scna-gate}
 have_master <- exists("master") && !is.null(master) && nrow(master) > 0

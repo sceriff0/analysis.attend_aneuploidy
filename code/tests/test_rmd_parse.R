@@ -6,6 +6,12 @@
 # without needing the cohort data or any package.
 #
 # It does NOT evaluate anything, so it says nothing about whether a chunk *works*.
+#
+# It also checks that chunk LABELS are unique within a file. knitr keys its cache and figure
+# filenames on the label, so a duplicate is not a warning — it aborts the knit with
+# "Duplicate chunk label". That is invisible to the body-parsing loop above (the label lives
+# on the fence line, which is never parsed) and to test_rmd_style.R, so a renumbering or a
+# copy-pasted guard chunk reached a cluster build twice before this rule existed.
 
 rmd <- sort(c(list.files("analysis", pattern = "\\.Rmd$", full.names = TRUE),
               list.files(file.path("analysis", "_explainers"), pattern = "\\.Rmd$",
@@ -33,8 +39,31 @@ for (f in rmd) {
   }
 }
 
+# ---- chunk labels are unique within a file ---------------------------------
+
+# The label is the first comma-separated field of the fence header, and only when it is a
+# bare name: ```{r, echo=FALSE} is unlabelled (knitr auto-names it), so it can never collide.
+chunk_label <- function(header) {
+  inner <- sub("^```\\{[rR][ ,]?", "", sub("\\}\\s*$", "", header))
+  first <- trimws(strsplit(inner, ",")[[1]][1])
+  if (length(first) == 0 || is.na(first) || grepl("=", first)) "" else first
+}
+
+for (f in rmd) {
+  lines  <- readLines(f, warn = FALSE)
+  open   <- grep("^```\\{[rR][ ,}]", lines)
+  labels <- vapply(lines[open], chunk_label, character(1), USE.NAMES = FALSE)
+  named  <- nzchar(labels)
+  dups   <- unique(labels[named][duplicated(labels[named])])
+  for (d in dups) {
+    at <- open[named][labels[named] == d]
+    fail <- c(fail, paste0(basename(f), ": duplicate chunk label '", d, "' at line(s) ",
+                           paste(at, collapse = ", "), " — knitr aborts the build on this"))
+  }
+}
+
 if (length(fail)) {
-  cat("test_rmd_parse: ", length(fail), " chunk(s) failed to parse\n", sep = "")
+  cat("test_rmd_parse: ", length(fail), " violation(s)\n", sep = "")
   cat(paste0("  - ", fail, collapse = "\n"), "\n", sep = "")
 } else {
   cat("test_rmd_parse: OK (", length(rmd), " files)\n", sep = "")

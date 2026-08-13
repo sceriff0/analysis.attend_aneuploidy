@@ -593,9 +593,10 @@ Reports are now numbered **consecutively in reading order**:
 | `03-covariates-by-mmr` | `21_covariates_by_mmr` |
 | `04-survival` | `30_survival` |
 | `05-aneuploidy-mmrd` | `31_aneuploidy_mutations` + `32_cell_composition` |
-| `06-mutation-and-cna` | `33` + `34` + `35` |
-| `07-tmb` | `36` + `37` + `41` |
-| `08-tcga-classification` | `40_tcga_classification` |
+| `06-response` | *new (2026-08-13)* — the `32_cell_composition` panels re-keyed on treatment response |
+| `07-mutation-and-cna` | `33` + `34` + `35` |
+| `08-tmb` | `36` + `37` + `41` |
+| `09-tcga-classification` | `40_tcga_classification` |
 
 The cost D2 was avoiding is real and accepted: inserting a report between two others now
 means renumbering everything after it. At nine documents that is a `git mv` and one pass of

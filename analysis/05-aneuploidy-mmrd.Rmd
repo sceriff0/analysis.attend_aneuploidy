@@ -36,7 +36,7 @@ n_mmrd <- length(mmrd_pids)
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
 > **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
 > **Reads.** The master (built on demand by get_master()), the long MAF, and the FlowPath annotation tree.
-> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [07-tmb](07-tmb.html).
+> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [08-tmb](08-tmb.html). The same composition panels keyed on treatment response -> [06-response](06-response.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
 in the whole cohort any variable that tracks MMR status will also appear to track
@@ -300,7 +300,7 @@ continuous covariates. MMR status comes from add_scna_group(), so it is the same
 is_mmrd() call the copy-number and classification reports use. The counts printed here
 are the cohort for every figure below.
 
-```{r data}
+```{r composition-data}
 master_grp <- add_scna_group(master)        # adds mmr_group ("MMRd"/"MMRp") + scna_group
 
 # per-patient cell-type composition inside the annotation (reads the FlowPath tree)

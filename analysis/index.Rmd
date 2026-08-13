@@ -52,17 +52,22 @@ alternatives — live in runbooks/.
 - **[05 — Aneuploidy in MMR-deficient tumours](05-aneuploidy-mmrd.html)** · MMRd only
   Part 1 takes aneuploidy against mutation status, one gene at a time. Part 2 takes it
   against cell-type composition under three normalizations.
-- **[06 — Mutation landscape and copy number](06-mutation-and-cna.html)** · all patients
+- **[06 — Treatment response and cell-type composition](06-response.html)** · all patients + MMRd
+  The composition panels of report 05 Part 2, re-keyed on treatment response — a 6-month
+  landmark on the survival endpoint, with patients censored before the landmark reported as
+  unclassifiable rather than counted as failures. Every figure is drawn for the whole cohort
+  and for the MMR-deficient stratum, and one interaction model tests whether they differ.
+- **[07 — Mutation landscape and copy number](07-mutation-and-cna.html)** · all patients
   Part 1 oncoplots and the TCGA Fig. 2d subgroup frequency comparison. Part 2 recurrent
   copy number at arm and genome-wide resolution. Part 3 the aneuploidy × MMR peak contrast.
-- **[07 — Tumour mutational burden](07-tmb.html)** · all patients
+- **[08 — Tumour mutational burden](08-tmb.html)** · all patients
   Part 1 asks whether TMB resolves the hypermutator population as a genuine second mode.
   Part 2 draws TMB by aneuploidy once per MMR stratum. Part 3 replicates the whole battery
   in TCGA UCEC, which is tumour-normal paired.
 
 ### External
 
-- **[08 — TCGA integrated classification](08-tcga-classification.html)** · all patients
+- **[09 — TCGA integrated classification](09-tcga-classification.html)** · all patients
   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
   thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
@@ -88,6 +93,6 @@ checks every chunk parses. Both are base R, so they run without tidyverse or the
 - code/attend_classes.R — column names (attend_cols), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
 - code/attend_plots.R — shared palettes, attend_theme(), the highlight overlay.
-- code/attend_ihc.R — FlowPath IHC metric definitions (reports 02, 04, 05).
+- code/attend_ihc.R — FlowPath IHC metric definitions (reports 02, 04, 05, 06).
 - code/attend_scna.R — GISTIC peak union, panel score, permutation and LOO stability.
 - code/attend_bimodality.R — tmb_long(), tmb_battery(), and the bimodality measures.

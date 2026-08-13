@@ -1,0 +1,565 @@
+---
+title: "ATTEND — 32. Treatment response and cell-type composition"
+author: "sceriff0"
+date: "2026-08-13"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here, ggpubr.
+library(tidyverse)
+library(here)
+library(ggpubr)
+# Headless-safe raster device. The cluster's compute nodes have no X11, so R's default
+# png() fails with "unable to open connection to X11 display" and every figure dies. cairo
+# needs no display; the guard keeps this working on a machine built without it.
+if (capabilities("cairo")) options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 6)
+
+source(here("code", "build_master.R"))       # get_master() — builds on demand, no build order
+source(here("code", "attend_classes.R"))     # add_response_class(), response_counts()
+source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
+source(here("code", "attend_plots.R"))       # highlight_points(), attend_theme(), attend_resp_cols
+source(here("code", "attend_ihc.R"))         # ihc_celltype_metrics(), ihc_immune_metrics()
+source(here("code", "load_clinical.R"))      # load_imaging_data()
+source(here("code", "load_phenotypes.R"))    # load_ihc_celltypes()
+
+master     <- get_master() |> add_molecular_classes() |> add_response_class()
+master_grp <- add_scna_group(master)         # adds mmr_group ("MMRd"/"MMRp")
+mmrd_pids  <- master_grp |> filter(mmr_group == "MMRd") |> pull(pid)
+
+resp_cut  <- attend_thresholds$response_months
+n_resp    <- sum(master$response_class == "responder",     na.rm = TRUE)
+n_nonresp <- sum(master$response_class == "non-responder", na.rm = TRUE)
+n_class   <- n_resp + n_nonresp
+n_lost    <- sum(is.na(master$response_class))
+n_mmrd_cl <- sum(master$pid %in% mmrd_pids & !is.na(master$response_class))
+```
+
+> **Question.** Does cell-type composition differ between responders and non-responders, and is the answer inside MMR-deficient tumours the same as across the whole cohort?
+> **Cohort.** Two, drawn side by side in every figure: all classifiable patients (n = `r n_class`) and the MMR-deficient subset of them (n = `r n_mmrd_cl`).
+> **Reads.** The master (built on demand by get_master()), the FlowPath annotation tree, and the survival endpoint the master carries.
+> **Out of scope.** Survival modelling itself -> [04-survival](04-survival.html). The same composition panels keyed on aneuploidy -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html).
+
+This report is the response-keyed counterpart of Part 2 of
+[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html). Every panel, normalization and test is the
+one used there; the only thing that changes is the grouping variable on the x-axis, which
+is treatment response rather than aneuploidy class. Keeping the two reports structurally
+identical is deliberate — it is what makes the two groupings comparable rather than two
+separate analyses that happen to use the same cells.
+
+Both cohorts are drawn for every figure, always in the same order (all patients first,
+MMR-deficient second). Report 05 restricts to MMRd because MMR deficiency is itself a route
+to genomic instability and would otherwise confound an aneuploidy contrast. Response has no
+such built-in confound with MMR status, so the whole cohort is the primary cohort here and
+the MMRd panel is the stratified check.
+
+## Defining response
+
+Response is a **landmark** on the survival endpoint the pipeline is already configured
+with: `attend_cols$surv_time` / `attend_cols$surv_event`, which currently point at
+progression-free survival in months. A patient still progression-free past
+`r resp_cut` months is a **responder**; one who progressed or died at or before
+`r resp_cut` months is a **non-responder**. The cut lives in
+`attend_thresholds$response_months`, so changing it changes every figure below and nothing
+else, and repointing `attend_cols$surv_time` at overall survival changes what "response"
+means here without touching this report.
+
+The third group is the one that decides whether the definition is honest. A patient whose
+follow-up simply stopped before the landmark — censored, no event recorded — has no
+observable response status at all. Counting them as non-responders would score lost
+follow-up as treatment failure and inflate the responder arm by comparison. `add_response_class()`
+returns them as NA instead, and the table below is where they are reported rather than
+quietly dropped: `r n_lost` of `r nrow(master)` patients cannot be classified.
+
+An event *after* the landmark does not demote a responder. The question is what had
+happened by month `r resp_cut`, not eventual outcome, so this is a binary contrast and not
+a survival model — the survival models themselves are all in
+[04-survival](04-survival.html).
+
+### How the cohort splits
+
+Every patient on the master, sorted into the two response arms and the two reasons a
+patient can fail to get an arm. The bottom two rows are the denominator this report cannot
+speak about; if they dominate, every p-value below is describing a minority of the cohort.
+
+```{r response-counts}
+have_resp <- have_cols(master, attend_cols$surv_time, attend_cols$surv_event)
+
+knitr::kable(response_counts(master),
+             caption = paste0("Response classification across the whole master (landmark = ",
+                              resp_cut, " months on ", attend_cols$surv_time, ")"))
+
+if (!have_resp)
+  message("Survival columns are still placeholders in attend_cols — every figure below ",
+          "is skipped. Set surv_time / surv_event and re-knit.")
+```
+
+The same split inside the MMR-deficient stratum, which is the second cohort every figure
+draws. MMR status comes from `add_scna_group()`, so it is the same `is_mmrd()` call the
+copy-number and classification reports use.
+
+```{r response-counts-mmrd}
+resp_mmrd <- master |> filter(pid %in% mmrd_pids)
+knitr::kable(response_counts(resp_mmrd),
+             caption = "Response classification within the MMR-deficient stratum")
+
+if (nrow(resp_mmrd) > 0)
+  cat("MMR-deficient patients:", nrow(resp_mmrd),
+      "| classifiable:", sum(!is.na(resp_mmrd$response_class)), "\n")
+```
+
+Which of the manually highlighted patients resolve to a pid that survives into the
+classified cohort. Printed so a silent ID mismatch shows up as a number here rather than as
+"the gold points just aren't drawn".
+
+```{r highlight-coverage}
+cat(highlight_coverage(master |> filter(!is.na(response_class))))
+```
+
+## Cell-type composition by response
+
+"Cell type" is `phenotype_clean`, the parenthetical phenotype label in the FlowPath export
+(changeable in `code/load_phenotypes.R`). Every count is taken inside the annotated region
+and expressed as a fraction, but the denominator changes the question, so all three are
+shown — this is the same three-way normalization report 05 uses:
+
+| Normalization | Denominator | The question it answers |
+|---|---|---|
+| **all cells inside** | every cell in the annotation | what fraction of the tissue is this cell type? |
+| **tumour cells inside** | tumour cells only | how much of this cell type per unit of tumour? |
+| **CD45+ cells inside** | leukocytes only | what is the composition *of the immune compartment*? |
+
+Each is drawn twice per cohort: the raw fraction with a Wilcoxon rank-sum test, and the
+arcsine-square-root-transformed fraction with a two-sample t-test. Agreement between the two
+is reassurance; disagreement means the result depends on the test rather than on the data.
+No multiple-testing correction is applied anywhere in this report, and with one test per
+cell type per normalization per cohort that is many comparisons, so every p-value here is
+descriptive.
+
+### Building the two cohorts
+
+Per-patient cell-type composition is read from the FlowPath tree by
+`ihc_celltype_metrics()` (which pools a patient's images by summing counts and denominators)
+and joined on pid to the response class derived above. `ct_all` keeps every classifiable
+patient; `ct_mmrd` is the same table restricted to the MMR-deficient pids. Patients with no
+response class are dropped here, which is why the counts below can be smaller than the
+imaged cohort.
+
+```{r composition-data}
+ct_all <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class))
+ct_mmrd <- ct_all |> filter(pid %in% mmrd_pids)
+
+ct_cohorts <- list(`all patients` = ct_all, `MMR-deficient` = ct_mmrd)
+
+cat("patients with cell-type metrics + a response class:", n_distinct(ct_all$pid), "\n")
+cat("  ... of them MMR-deficient                       :", n_distinct(ct_mmrd$pid), "\n")
+cat("cell types measured                               :", n_distinct(ct_all$cell_type), "\n\n")
+if (nrow(ct_all) > 0)
+  print(table(cohort = "all patients",
+              response = droplevels(ct_all |> distinct(pid, response_class) |> pull(response_class))))
+if (nrow(ct_mmrd) > 0)
+  print(table(cohort = "MMR-deficient",
+              response = droplevels(ct_mmrd |> distinct(pid, response_class) |> pull(response_class))))
+```
+
+```{r box-helpers, include=FALSE}
+# One boxplot per cell type, responder vs non-responder. Boxes are filled by response
+# class; the highlight overlay is drawn on top in its own colour scale (colour != fill, so
+# the two legends do not collide), partitioned so no patient is plotted twice. `arcsin`
+# switches BOTH the y variable and the test, so the raw/Wilcoxon and arcsin/t-test versions
+# can never drift apart the way two copied functions would.
+box_by_resp <- function(df, frac_col, denom_label, cohort_label, arcsin = FALSE) {
+  d <- df |> filter(is.finite(.data[[frac_col]]), !is.na(response_class)) |>
+    mutate(.y = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
+    droplevels()
+  # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
+  if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
+  method <- if (arcsin) "t.test"                             else "wilcox.test"
+  ylab   <- if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
+            else        paste0("fraction of ", denom_label)
+  sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
+            else        "raw fraction; Wilcoxon rank-sum"
+  ggplot(d, aes(response_class, .y, fill = response_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "response_class", ".y", base_size = 0.5, base_alpha = 0.35,
+                     base_const = "black") +
+    facet_wrap(~ cell_type, scales = "free_y") +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_resp_cols) +
+    labs(title = paste0("Cell-type presence by response (", cohort_label,
+                        ") — normalized by ", denom_label),
+         subtitle = sub, x = NULL, y = ylab) +
+    attend_theme() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+}
+
+# Draw one normalization for BOTH cohorts, in a fixed order, so the two are always adjacent
+# in the knitted page and a cohort that degrades to a skip says so instead of vanishing.
+draw_both <- function(frac_col, denom_label, arcsin = FALSE) {
+  for (nm in names(ct_cohorts)) {
+    p <- box_by_resp(ct_cohorts[[nm]], frac_col, denom_label, nm, arcsin)
+    if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
+                            " — no finite fractions, or only one response arm present.")
+    else print(p)
+  }
+}
+```
+
+### Normalized by all cells inside
+
+Each cell type as a fraction of every cell in the annotation, so a panel reads "how much of
+the tissue is this". Raw fractions with a Wilcoxon, drawn for all patients and then for the
+MMR-deficient subset.
+
+```{r box-inside, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_inside", "all cells inside")
+```
+
+The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
+variance-stabilised companion rather than an alternative answer.
+
+```{r box-inside-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_inside", "all cells inside", arcsin = TRUE)
+```
+
+### Normalized by tumour cells inside
+
+Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
+survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon, both
+cohorts.
+
+```{r box-tumor, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_tumor", "tumour cells inside")
+```
+
+The arcsine/t-test companion of the panels above.
+
+```{r box-tumor-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_tumor", "tumour cells inside", arcsin = TRUE)
+```
+
+### Normalized by CD45+ cells inside
+
+Composition *of the immune compartment*: the denominator is leukocytes, so differences in
+tumour content between patients cannot drive the contrast. Raw fractions, Wilcoxon, both
+cohorts.
+
+```{r box-cd45, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_cd45", "CD45+ cells inside")
+```
+
+The arcsine/t-test companion of the panels above.
+
+```{r box-cd45-arcsin, fig.width=15, fig.height=11, out.width="100%"}
+draw_both("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
+```
+
+## Immune content — the headline contrast
+
+Two leukocyte metrics counted inside the annotation by `ihc_immune_metrics()` — **CD45+
+total** (all leukocytes) and **CD3+CD45+** (double-positive T cells) — under each
+normalization, joined to the response class on pid. CD3+CD45+ requires a `CD3_sign` column
+in the FlowPath export; without it those rows are NA and their facets drop out on their own.
+
+```{r immune-data}
+imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class))
+imm_mmrd <- imm_all |> filter(pid %in% mmrd_pids)
+
+imm_cohorts <- list(`all patients` = imm_all, `MMR-deficient` = imm_mmrd)
+
+cat("patients with immune metrics + a response class:", n_distinct(imm_all$pid),
+    "| of them MMR-deficient:", n_distinct(imm_mmrd$pid), "\n")
+cat("metrics present:", paste(sort(unique(imm_all$metric)), collapse = ", "), "\n")
+```
+
+```{r immune-box-helper, include=FALSE}
+# Same construction as box_by_resp(), faceted by metric x normalization instead of by
+# cell type, so all six immune panels sit on one figure per cohort.
+box_immune_resp <- function(df, cohort_label, arcsin = FALSE) {
+  d <- df |> filter(is.finite(frac), !is.na(response_class)) |> droplevels()
+  if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
+  if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
+  method <- if (arcsin) "t.test"                 else "wilcox.test"
+  ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
+  ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
+  ggplot(d, aes(response_class, frac, fill = response_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
+                     base_const = "black") +
+    facet_wrap(~ metric + denom_label, scales = "free_y") +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_resp_cols) +
+    labs(title = paste0("Immune content by response (", cohort_label, ") — ", ttl),
+         x = NULL, y = ylab) +
+    attend_theme() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+CD45+ total and CD3+CD45+ fractions by response class, one facet per metric ×
+normalization, raw then arcsine, for each cohort in turn.
+
+```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
+for (nm in names(imm_cohorts)) {
+  for (tr in c(FALSE, TRUE)) {
+    p <- box_immune_resp(imm_cohorts[[nm]], nm, arcsin = tr)
+    if (is.null(p)) message("Skipped immune panel: ", nm, if (tr) " (arcsin)" else " (raw)",
+                            " — no finite metrics, or only one response arm present.")
+    else print(p)
+  }
+}
+```
+
+### The pre-specified primary contrast
+
+Of everything above, one comparison is designated **primary**: **CD45+ / all cells inside**,
+tested with the **arcsine-square-root transform and a two-sample t-test**, on the **whole
+cohort**. The Wilcoxon on the raw fraction is reported next to it as a companion, not a
+substitute, and the MMR-deficient version of the same contrast is **secondary** — it is the
+stratified check, and it can and does degrade to a skip when counts are missing.
+
+Naming one primary endpoint in advance is what keeps this from being a search across
+twelve panels for the smallest p-value. It mirrors the primary contrast in
+[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html), which is the same metric under the same test
+against the other grouping.
+
+```{r immune-primary-test}
+resp_arcsin_t_wilcox <- function(df, cohort_label, metric_, denom_) {
+  d <- df |> dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac),
+                           !is.na(response_class)) |>
+    droplevels()
+  tab <- table(d$response_class)
+  if (length(tab) < 2 || any(tab < 2)) {
+    message(cohort_label, " ", metric_, " / ", denom_,
+            ": insufficient n per response arm — skipping.")
+    return(invisible(NULL))
+  }
+  t_res <- t.test(arcsin_sqrt(frac) ~ response_class, data = d)     # primary
+  w_res <- wilcox.test(frac ~ response_class, data = d)             # companion
+  cat(sprintf("%-14s %-10s / %-20s  n=%d (resp=%d, non=%d)  arcsin-t p=%.3g  Wilcoxon p=%.3g\n",
+      cohort_label, metric_, denom_, nrow(d), tab[["responder"]], tab[["non-responder"]],
+      t_res$p.value, w_res$p.value))
+  list(d = d, t = t_res, w = w_res)
+}
+res_primary <- resp_arcsin_t_wilcox(imm_all,  "all patients",  "CD45+", "all cells inside")
+res_mmrd    <- resp_arcsin_t_wilcox(imm_mmrd, "MMR-deficient", "CD45+", "all cells inside")
+res_cd3     <- resp_arcsin_t_wilcox(imm_all,  "all patients",  "CD3+CD45+", "CD45+ cells inside")
+```
+
+The primary contrast on its own. The subtitle carries both p-values and the group size — at
+this n a single patient moving between arms can change the result, which is why the count is
+on the figure rather than in a caption.
+
+```{r immune-primary-box, fig.width=6, fig.height=5}
+if (!is.null(res_primary)) {
+  d <- res_primary$d
+  ggplot(d, aes(response_class, frac, fill = response_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(d, "response_class", "frac", base_size = 1.2, base_alpha = 0.5,
+                     base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    scale_fill_manual(values = attend_resp_cols) +
+    labs(title = "PRIMARY: CD45+ immune fraction (all cells inside) by response",
+         subtitle = paste0("landmark ", resp_cut, " mo | arcsin(sqrt) t p = ",
+                           signif(res_primary$t$p.value, 3),
+                           " | Wilcoxon p = ", signif(res_primary$w$p.value, 3),
+                           " (n = ", nrow(d), "; small-n — suggestive only)"),
+         x = NULL, y = "CD45+ fraction of all cells inside") +
+    attend_theme() + theme(legend.position = "none")
+} else message("Primary immune contrast skipped — see message above.")
+```
+
+### Does the response effect differ between MMR strata
+
+The two cohorts above are drawn side by side but never compared to each other, and looking
+at two p-values is not a test of whether they differ. This model is:
+`arcsin(sqrt(CD45+/all cells inside)) ~ response_class * mmr_group`, fitted on both MMR
+groups at once from `imm_all`. The interaction row is the one of interest — a large
+coefficient there means the response effect is not the same in MMRd and MMRp, which is what
+would justify reading the stratified panels separately rather than as one result. No
+correction is applied, and at this cohort size the interaction is expected to be
+underpowered.
+
+```{r immune-interaction}
+imm_int <- imm_all |>
+  dplyr::filter(metric == "CD45+", denom_label == "all cells inside", is.finite(frac)) |>
+  dplyr::left_join(master_grp |> dplyr::select(pid, mmr_group), by = "pid") |>
+  dplyr::filter(!is.na(mmr_group), !is.na(response_class)) |>
+  dplyr::mutate(y = arcsin_sqrt(frac)) |>
+  droplevels()
+
+if (nrow(imm_int) > 4 && dplyr::n_distinct(imm_int$response_class) == 2 &&
+    dplyr::n_distinct(imm_int$mmr_group) == 2) {
+  fit <- lm(y ~ response_class * mmr_group, data = imm_int)
+  coef_tbl <- if (requireNamespace("broom", quietly = TRUE)) broom::tidy(fit) else
+    as.data.frame(summary(fit)$coefficients)
+  print(knitr::kable(coef_tbl, digits = 3,
+        caption = "arcsin(sqrt(CD45+/all-cells-inside)) ~ response_class * mmr_group — BOTH MMR groups, no correction"))
+} else message("Not enough patients across both MMR groups and both response arms for the interaction model.")
+```
+
+## Response against the molecular covariates
+
+The aneuploidy score, both TMB definitions, HRD and MSI, compared between response arms.
+All are numeric columns on the master (`attend_cols`), read straight from it — the two TMB
+columns are added under their reader-facing labels so a facet never shows an internal column
+name. This is the check on whether response is confounded with the molecular axes the rest
+of the pipeline splits on.
+
+```{r covariate-data}
+numcol <- function(col) if (col %in% names(master)) suppressWarnings(as.numeric(master[[col]])) else NA_real_
+
+pt_all <- tibble(
+  pid              = master$pid,
+  response_class   = master$response_class,
+  aneuploidy_class = master$aneuploidy_class,
+  aneuploidy_score = numcol(attend_cols$aneuploidy),
+  HRD              = numcol(attend_cols$hrd),
+  MSI              = numcol("msi__MSI_SCORE")
+)
+
+tmb_defs06 <- tmb_defs_present(master)
+tmb_labs06 <- tmb_def_labels(tmb_defs06)
+for (i in seq_along(tmb_defs06)) pt_all[[tmb_labs06[i]]] <- numcol(tmb_defs06[[i]])
+covar_cols06 <- c("aneuploidy_score", tmb_labs06, "HRD", "MSI")
+
+pt_cohorts <- list(`all patients`  = pt_all |> filter(!is.na(response_class)),
+                   `MMR-deficient` = pt_all |> filter(!is.na(response_class), pid %in% mmrd_pids))
+
+cat("covariates plotted:", paste(covar_cols06, collapse = " | "), "\n")
+cat("classifiable patients — all:", nrow(pt_cohorts[["all patients"]]),
+    "| MMRd:", nrow(pt_cohorts[["MMR-deficient"]]), "\n")
+```
+
+One panel per covariate, responder vs non-responder, with a per-panel Wilcoxon; both
+cohorts in turn. The two TMB panels are the same patients under the two definitions, so a
+visible difference between them is the ancestry correction moving values, not new data.
+
+```{r covariate-box, fig.width=12, fig.height=7}
+for (nm in names(pt_cohorts)) {
+  cb <- pt_cohorts[[nm]] |>
+    pivot_longer(all_of(covar_cols06), names_to = "covariate", values_to = "value") |>
+    filter(!is.na(value)) |>
+    mutate(covariate = factor(covariate, levels = covar_cols06)) |>
+    droplevels()
+  if (nrow(cb) > 2 && n_distinct(cb$response_class) == 2) {
+    print(
+      ggplot(cb, aes(response_class, value, fill = response_class)) +
+        geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+        highlight_points(cb, "response_class", "value", base_size = 0.6, base_alpha = 0.4,
+                         base_const = "black") +
+        stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+        facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
+        scale_fill_manual(values = attend_resp_cols) +
+        labs(title = paste0("Molecular covariates by response (", nm, ")"),
+             x = NULL, y = "covariate value") +
+        attend_theme() + theme(legend.position = "none"))
+  } else message("Not enough ", nm, " with a response class and a covariate — skipping.")
+}
+```
+
+### Response against aneuploidy class
+
+The direct cross-tabulation of the two groupings — the one in
+[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) against the one used here — with a Fisher
+exact test on the 2×2. Everything in this report is drawn on the same cells report 05 draws,
+so if these two splits largely coincide then the two reports are describing one contrast
+under two names rather than two independent ones. The test is on patients, not images.
+
+```{r response-vs-aneuploidy}
+xt <- pt_all |> filter(!is.na(response_class), !is.na(aneuploidy_class)) |> droplevels()
+
+if (nrow(xt) > 0 && n_distinct(xt$response_class) == 2 && n_distinct(xt$aneuploidy_class) == 2) {
+  tab <- table(response = xt$response_class, aneuploidy = xt$aneuploidy_class)
+  print(knitr::kable(as.data.frame.matrix(tab),
+        caption = paste0("Response class vs aneuploidy class, all patients (n = ", nrow(xt), ")")))
+  cat("Fisher exact p =", signif(fisher.test(tab)$p.value, 3), "\n")
+} else message("Not enough patients with both a response class and an aneuploidy class.")
+```
+
+## Response against the pathologist's imaging calls
+
+The pathologist's per-patient scores compared between response arms. These come from the
+imaging sheet keyed by image -> pid, averaged over a patient's images for the continuous
+measures and taking the first non-missing value for the categorical calls — the same
+summarisation [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) applies before its aneuploidy
+contrast.
+
+```{r imaging-covars}
+first_nonNA <- function(x) { x <- x[!is.na(x)]; if (length(x)) x[1] else NA }
+
+imaging_pt <- load_imaging_data() |>
+  filter(!is.na(ID)) |>
+  group_by(pid = as.character(ID)) |>
+  summarise(
+    Immune_infiltrate      = mean(suppressWarnings(as.numeric(Immune_infiltrate)),     na.rm = TRUE),
+    Immune_infiltrate_PD1  = mean(suppressWarnings(as.numeric(Immune_infiltrate_PD1)), na.rm = TRUE),
+    ARID1A                 = first_nonNA(ARID1A),
+    Tumor_cells_PDL1       = first_nonNA(Tumor_cells_PDL1),
+    Immune_infiltrate_PDL1 = first_nonNA(Immune_infiltrate_PDL1),
+    .groups = "drop"
+  ) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class))
+
+cat("patients with imaging covariates + a response class:", n_distinct(imaging_pt$pid),
+    "| of them MMR-deficient:", n_distinct(filter(imaging_pt, pid %in% mmrd_pids)$pid), "\n")
+```
+
+Continuous pathologist scores (immune infiltrate and PD-1 infiltrate, as percentages) by
+response arm, Wilcoxon per panel. This is the pathologist's independent read of the same
+immune question the FlowPath contrast above asked, on the same patients.
+
+```{r imaging-covars-cont, fig.width=8, fig.height=4}
+icc <- imaging_pt |>
+  pivot_longer(c(Immune_infiltrate, Immune_infiltrate_PD1),
+               names_to = "covariate", values_to = "value") |>
+  filter(is.finite(value)) |> droplevels()
+
+if (nrow(icc) > 2 && n_distinct(icc$response_class) == 2) {
+  ggplot(icc, aes(response_class, value, fill = response_class)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    highlight_points(icc, "response_class", "value", base_size = 0.6, base_alpha = 0.4,
+                     base_const = "black") +
+    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    facet_wrap(~ covariate, scales = "free_y") +
+    scale_fill_manual(values = attend_resp_cols) +
+    labs(title = "Pathologist immune scores by response class (all patients)",
+         x = NULL, y = "pathologist %") +
+    attend_theme() + theme(legend.position = "none")
+} else message("Not enough patients with a pathologist score in both response arms.")
+```
+
+Categorical calls as stacked proportions — how each call distributes within the two
+response arms. Bars are proportions, so the **group sizes are not visible in this figure**;
+read them from the count printed above.
+
+```{r imaging-covars-cat, fig.width=11, fig.height=4}
+icat <- imaging_pt |>
+  select(response_class, ARID1A, Tumor_cells_PDL1, Immune_infiltrate_PDL1) |>
+  pivot_longer(-response_class, names_to = "covariate", values_to = "level") |>
+  filter(!is.na(level), level != "") |> droplevels()
+
+if (nrow(icat) > 0) {
+  ggplot(icat, aes(response_class, fill = level)) +
+    geom_bar(position = "fill") +
+    facet_wrap(~ covariate, scales = "free_x", nrow = 1) +
+    labs(title = "Pathologist categorical calls by response class (all patients)",
+         x = NULL, y = "proportion of patients", fill = NULL) +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}
+```
+
+```{r session-info}
+sessionInfo()
+```

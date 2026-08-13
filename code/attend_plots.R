@@ -108,6 +108,13 @@ attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = at
 attend_tp53_cols <- c(`TP53-normal` = "#AAAAAA", `TP53-abnormal` = "#B2182B",
                       wt = "#AAAAAA", mut = "#B2182B")
 
+# Treatment response (add_response_class): responder bluish-green, non-responder reddish
+# purple. Both are Okabe-Ito, and both are deliberately outside every palette above --
+# response is plotted on the same cell-type panels as aneuploidy, so reusing the aneuploidy
+# blue/red would make two different groupings look like the same one at a glance.
+attend_resp_cols <- c(`responder` = "#009E73", `non-responder` = "#CC79A7",
+                      `MMRd responder` = "#009E73", `MMRd non-responder` = "#CC79A7")
+
 # Project-wide ggplot theme. One base_size (11) and legend/caption conventions so
 # fonts and spacing stop drifting between reports (was theme_minimal(11|12) and
 # theme_bw()). Call sites still add theme(legend.position = ...) on top as needed.

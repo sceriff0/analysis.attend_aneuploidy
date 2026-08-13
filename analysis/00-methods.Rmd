@@ -72,7 +72,7 @@ that actually characterises serous-like disease.
 
 This report therefore scores clusters **directionally**: only *concordant* events count —
 **gains at amplification peaks, losses at deletion peaks**. It is the same principle
-attend_scna$panel already applies to the pre-specified locus panel in [06-mutation-and-cna](06-mutation-and-cna.html)
+attend_scna$panel already applies to the pre-specified locus panel in [07-mutation-and-cna](07-mutation-and-cna.html)
 (*a deletion at MYC must not score as serous-like*).
 
 ⚠️ **Both calls are computed and printed, and a [DISAGREE] flag is raised when they
@@ -82,7 +82,7 @@ cluster labels.
 
 ## Where this reproduction follows TCGA, and where it departs
 
-Each subsection names one step of [08-tcga-classification](08-tcga-classification.html)
+Each subsection names one step of [09-tcga-classification](09-tcga-classification.html)
 and states what it takes from Kandoth et al. Suppl. Methods S2 and what is an ATTEND
 addition. Read it once; the reports themselves carry only their own derivations.
 

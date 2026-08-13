@@ -68,7 +68,8 @@ attend_mut_positive <- c(
 attend_thresholds <- list(
   tmb        = 10,    # TMB-high if >= 10 mut/Mb
   hrd        = 50,    # HRD-high if >= 50
-  aneuploidy = 0.1    # aneuploidy-high if aneu__aneuploidy_score >= 0.1 (fixed cutoff; was median split)
+  aneuploidy = 0.1,   # aneuploidy-high if aneu__aneuploidy_score >= 0.1 (fixed cutoff; was median split)
+  response_months = 6 # responder if progression-free beyond 6 months (see add_response_class)
 )
 
 attend_levels <- list(
@@ -185,6 +186,56 @@ recode_event <- function(x, positive = attend_event_positive) {
   out <- as.integer(v %in% tolower(positive))
   out[is.na(x) | v %in% c("", "na", "nan", "none")] <- NA_integer_
   out
+}
+
+# --- 5b. Treatment response, as a landmark on the survival endpoint ---------
+# "Responder" is defined on time alone: still progression-free past
+# thr$response_months (attend_cols$surv_time / $surv_event, i.e. PFS by default).
+#
+# The third category is the one that matters. A patient who progressed at or before the
+# landmark is a NON-RESPONDER; a patient who passed it event-free is a RESPONDER; but a
+# patient whose follow-up merely STOPPED before the landmark (censored, no event) has no
+# observable response status at all. Coding those as non-responders counts lost follow-up
+# as treatment failure and biases the responder arm upward -- the standard failure of a
+# naive landmark split. They are returned as NA so a report can print how many were lost
+# rather than absorb them into a group.
+#
+# An event AFTER the landmark does not demote a responder: the question is what happened
+# by month `response_months`, not eventual outcome. Adds response_time / response_event /
+# response_class; missing source columns give an all-NA class, like add_molecular_classes().
+add_response_class <- function(df, cols = attend_cols, thr = attend_thresholds) {
+  n     <- nrow(df)
+  time  <- if (cols$surv_time  %in% names(df)) suppressWarnings(as.numeric(df[[cols$surv_time]]))
+           else rep(NA_real_, n)
+  event <- if (cols$surv_event %in% names(df)) recode_event(df[[cols$surv_event]])
+           else rep(NA_integer_, n)
+  cut   <- thr$response_months
+
+  cls <- rep(NA_character_, n)
+  cls[!is.na(time) & time >  cut] <- "responder"
+  cls[!is.na(time) & time <= cut & !is.na(event) & event == 1L] <- "non-responder"
+
+  df$response_time  <- time
+  df$response_event <- event
+  df$response_class <- factor(cls, levels = c("responder", "non-responder"))
+  df
+}
+
+# Why each patient did or did not get a response_class, as a one-row-per-reason table.
+# Reported next to every response figure so the denominator is never implicit: the
+# censored-early count is the cohort this definition cannot speak about.
+response_counts <- function(df, thr = attend_thresholds) {
+  cut <- thr$response_months
+  tibble::tibble(
+    status = c(paste0("responder (progression-free > ", cut, " mo)"),
+               paste0("non-responder (event <= ", cut, " mo)"),
+               paste0("unclassifiable (censored <= ", cut, " mo)"),
+               "unclassifiable (no survival time)"),
+    n = c(sum(df$response_class == "responder",     na.rm = TRUE),
+          sum(df$response_class == "non-responder", na.rm = TRUE),
+          sum(is.na(df$response_class) & !is.na(df$response_time)),
+          sum(is.na(df$response_time)))
+  )
 }
 
 # --- 6. Mutation-derived classes from the MAF -------------------------------
