@@ -119,13 +119,13 @@ if (nrow(long) > 0) {
   ggplot(long, aes(tmb)) +
     geom_histogram(aes(y = after_stat(density)), bins = 40,
                    fill = "grey85", colour = "grey65", linewidth = 0.2) +
-    geom_density(colour = "steelblue", linewidth = 0.8, adjust = 0.9, na.rm = TRUE) +
+    geom_density(colour = attend_pal(1), linewidth = 0.8, adjust = 0.9, na.rm = TRUE) +
     geom_rug(alpha = 0.25) +
     geom_vline(xintercept = attend_thresholds$tmb, linetype = "dashed",
-               colour = "firebrick") +
+               colour = "grey40") +
     facet_wrap(~ definition, scales = "free") +
     labs(title = "TMB distribution by definition (raw mut/Mb)",
-         subtitle = paste0("dashed red = TMB-high cut (", attend_thresholds$tmb,
+         subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb,
                            " mut/Mb). A distinct high-TMB hump = hypermutator mode."),
          x = "TMB (mut/Mb)", y = "density") +
     attend_theme()
@@ -267,7 +267,7 @@ if (have_syn) {
   if (nrow(syn) > 0) {
     ggplot(syn, aes(definition, value, group = 1)) +
       geom_line(colour = "grey60") +
-      geom_point(size = 3, colour = "steelblue") +
+      geom_point(size = 3, colour = attend_pal(1)) +
       facet_wrap(~ metric, scales = "free_y") +
       labs(title = "Separation strength along the germline-correction chain",
            subtitle = "left to right = normal -> ancestry corrected; up = more clearly bimodal",
@@ -382,11 +382,12 @@ patients (jittered), not group means.
 if (nrow(ta) > 0) {
   aneu_pal <- attend_aneu_cols
   ggplot(ta, aes(aneu_class, tmb)) +
-    geom_boxplot(aes(fill = aneu_class), outlier.shape = NA, width = 0.6,
-                 alpha = 0.5) +
-    geom_jitter(width = 0.15, height = 0, alpha = 0.4, size = 1) +
+    attend_box(ta, x = "aneu_class", y = "tmb", by = c("definition", "mmr_group"),
+               fill = NULL, point_size = 1, point_alpha = 0.4) +
+    # "firebrick" is a base R colour name from no palette, and every other cutoff line in
+    # the pipeline is a neutral dashed grey. A threshold is a reference, not a result.
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
-               colour = "firebrick") +
+               colour = "grey40") +
     scale_fill_manual(values = aneu_pal, name = "aneuploidy status") +
     # Short horizontal tick labels — the fill legend already spells out the full
     # aneuploidy status, so the x-axis needn't repeat it (frees per-panel width).
@@ -394,7 +395,7 @@ if (nrow(ta) > 0) {
                                 "aneuploidy-high" = "high")) +
     facet_grid(definition ~ mmr_group, scales = "free_y") +
     labs(title = "TMB by aneuploidy status, split by MMR group",
-         subtitle = paste0("dashed red = TMB-high cut (", attend_thresholds$tmb,
+         subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb,
                            " mut/Mb); aneuploidy-high = score ≥ ", aneu_cut),
          x = NULL, y = "TMB (mut/Mb)") +
     attend_theme() +
@@ -670,8 +671,10 @@ if (have_tcga) {
     print(knitr::kable(pv, caption = "MMRd vs MMRp Wilcoxon p, per cohort / definition"))
 
     ggplot(both, aes(MMR, tmb, fill = MMR)) +
-      geom_boxplot(outlier.shape = NA, alpha = 0.6) +
-      geom_jitter(width = 0.15, size = 0.5, alpha = 0.35) +
+      # expand_y = FALSE: this panel sets its own scale_y_log10() below, which would replace
+      # attend_box()'s expansion scale and emit a "Scale for y is already present" message.
+      attend_box(both, x = "MMR", y = "tmb", by = "cohort", fill = NULL,
+                 point_size = 0.5, point_alpha = 0.35, expand_y = FALSE) +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
       scale_y_log10() +
       facet_wrap(~ cohort, nrow = 1) +

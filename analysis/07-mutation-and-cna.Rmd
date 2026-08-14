@@ -269,8 +269,8 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
          subtitle = paste0("Fisher across subgroups, BH-adjusted across ",
                            nrow(fdr_tbl), " genes; * = FDR < 0.05. ",
                            "Frequencies are within-subgroup."),
-         x = NULL, y = "patients mutated", fill = NULL) +
-    theme_minimal(base_size = 11) +
+         x = NULL, y = "Patients mutated (% of subgroup)", fill = NULL) +
+    attend_theme() +
     theme(legend.position = "top"))
 
   print(knitr::kable(fdr_tbl |> arrange(fdr) |> mutate(across(c(p, fdr), ~ signif(.x, 3))),
@@ -332,7 +332,8 @@ if (is.null(arm_freq)) {
     geom_col(width = 0.8) +
     geom_hline(yintercept = 0, colour = "grey40", linewidth = 0.3) +
     coord_flip() +
-    scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
+    scale_fill_manual(values = c(gain = unname(ATTEND_OKABE_ITO["vermillion"]),
+                                 loss = unname(ATTEND_OKABE_ITO["blue"]))) +
     scale_x_discrete(labels = arm_labels) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
     labs(title = "Recurrent arm-level SCNAs across the cohort",
@@ -409,7 +410,8 @@ if (is.null(pile)) {
     geom_vline(data = centromeres, aes(xintercept = gpos), colour = "grey60",
               linewidth = 0.3, linetype = "dashed") +
     facet_grid(tier ~ ., scales = "free_y") +
-    scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
+    scale_fill_manual(values = c(gain = unname(ATTEND_OKABE_ITO["vermillion"]),
+                                 loss = unname(ATTEND_OKABE_ITO["blue"]))) +
     scale_x_continuous(breaks = offs$mid, labels = str_remove(offs$chrom, "^chr"),
                        expand = c(0, 0)) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +

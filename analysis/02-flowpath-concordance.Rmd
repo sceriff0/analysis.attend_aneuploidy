@@ -108,13 +108,13 @@ if (nrow(cc) > 2) {
   rho <- cor(cc$flowpath, cc$pathologist, method = "spearman", use = "complete.obs")
   ggplot(cc, aes(flowpath, pathologist)) +
     highlight_points(cc, "flowpath", "pathologist", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
-    geom_abline(slope = 1, linetype = "dashed", colour = "red") +
+    geom_abline(slope = 1, linetype = "dashed", colour = "grey40") +
     coord_equal() +
     annotate("text", x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
              label = paste0("Spearman = ", round(rho, 2))) +
     labs(title = "Neoplastic cellularity", x = "FlowPath tumour fraction",
          y = "Pathologist cellularity") +
-    theme_classic(base_size = 12)
+    attend_theme()
 }
 ```
 
@@ -134,13 +134,13 @@ if (nrow(ii) > 2) {
   rho <- cor(ii$flowpath, ii$pathologist, method = "spearman", use = "complete.obs")
   ggplot(ii, aes(flowpath, pathologist)) +
     highlight_points(ii, "flowpath", "pathologist", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
-    geom_abline(slope = 1, linetype = "dashed", colour = "red") +
+    geom_abline(slope = 1, linetype = "dashed", colour = "grey40") +
     coord_equal() +
     annotate("text", x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
              label = paste0("Spearman = ", round(rho, 2))) +
     labs(title = "Immune infiltrate", x = "FlowPath CD45 fraction (inside)",
          y = "Pathologist immune infiltrate") +
-    theme_classic(base_size = 12)
+    attend_theme()
 }
 ```
 
@@ -166,7 +166,7 @@ if (nrow(pd1) > 2) {
              label = paste0("Spearman = ", round(rho, 2))) +
     labs(title = "PD-1 on immune cells", x = "FlowPath PD-1+ / CD45 (inside)",
          y = "Pathologist PD-1 infiltrate") +
-    theme_classic(base_size = 12)
+    attend_theme()
 }
 ```
 
@@ -188,12 +188,16 @@ if ("ARID1A" %in% names(ihc_img)) {
   d <- ihc_img |>
     mutate(ARID1A = factor(ARID1A, levels = c("Complete loss", "Clonal loss", "Positive"))) |>
     filter(!is.na(ARID1A), !is.na(tumor_aridia_over_tumor_inside))
-  ggplot(d, aes(ARID1A, tumor_aridia_over_tumor_inside, colour = ARID1A)) +
-      geom_boxplot(outlier.shape = NA) +
-      highlight_points(d, "ARID1A", "tumor_aridia_over_tumor_inside", base_colour = "ARID1A",
-                       base_name = "Pathologist", jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
-      labs(title = "ARID1A on tumour cells", x = NULL, y = "FlowPath positivity (fraction)") +
-      theme_classic(base_size = 12)
+  # `colour = ARID1A` duplicated the x axis, spending the palette and a whole "Pathologist"
+  # legend on information the ticks already carry. Points come from highlight_points(); the
+  # pathologist categories are small (e.g. "Complete loss"), so attend_box() picks the mark.
+  ggplot(d, aes(ARID1A, tumor_aridia_over_tumor_inside)) +
+      attend_box(d, x = "ARID1A", y = "tumor_aridia_over_tumor_inside", points = FALSE) +
+      highlight_points(d, "ARID1A", "tumor_aridia_over_tumor_inside", base_const = "black",
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = "ARID1A on tumour cells", x = NULL,
+           y = "FlowPath ARID1A+ tumour cells (fraction)") +
+      attend_theme()
 }
 ```
 
@@ -210,13 +214,14 @@ if ("Immune_infiltrate_PDL1" %in% names(ihc_img)) {
     mutate(Immune_infiltrate_PDL1 = factor(Immune_infiltrate_PDL1,
              levels = c("", "IC0 (<1%)", "IC1 (>=1% and <5%)", "IC2 (>=5% and <10%)"))) |>
     filter(!is.na(Immune_infiltrate_PDL1), !is.na(cd45_pdl1_over_cd45_inside))
-  ggplot(d, aes(Immune_infiltrate_PDL1, cd45_pdl1_over_cd45_inside, colour = Immune_infiltrate_PDL1)) +
-      geom_boxplot(outlier.shape = NA) +
+  ggplot(d, aes(Immune_infiltrate_PDL1, cd45_pdl1_over_cd45_inside)) +
+      attend_box(d, x = "Immune_infiltrate_PDL1", y = "cd45_pdl1_over_cd45_inside", points = FALSE) +
       highlight_points(d, "Immune_infiltrate_PDL1", "cd45_pdl1_over_cd45_inside",
-                       base_colour = "Immune_infiltrate_PDL1", base_name = "Pathologist",
+                       base_const = "black",
                        jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
-      labs(title = "PD-L1 on immune cells", x = NULL, y = "FlowPath positivity (fraction)") +
-      theme_classic(base_size = 12)
+      labs(title = "PD-L1 on immune cells", x = NULL,
+           y = "FlowPath PD-L1+ CD45 cells (fraction)") +
+      attend_theme()
 }
 ```
 
@@ -228,13 +233,14 @@ FlowPath PD-L1+ tumour = PD-L1+ tumour cells / tumour cells inside the annotatio
 if ("Tumor_cells_PDL1" %in% names(ihc_img)) {
   d <- ihc_img |>
     filter(!is.na(Tumor_cells_PDL1), Tumor_cells_PDL1 != "", !is.na(tumor_pdl1_over_tumor_inside))
-  ggplot(d, aes(Tumor_cells_PDL1, tumor_pdl1_over_tumor_inside, colour = Tumor_cells_PDL1)) +
-      geom_boxplot(outlier.shape = NA) +
+  ggplot(d, aes(Tumor_cells_PDL1, tumor_pdl1_over_tumor_inside)) +
+      attend_box(d, x = "Tumor_cells_PDL1", y = "tumor_pdl1_over_tumor_inside", points = FALSE) +
       highlight_points(d, "Tumor_cells_PDL1", "tumor_pdl1_over_tumor_inside",
-                       base_colour = "Tumor_cells_PDL1", base_name = "Pathologist",
+                       base_const = "black",
                        jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
-      labs(title = "PD-L1 on tumour cells", x = NULL, y = "FlowPath positivity (fraction)") +
-      theme_classic(base_size = 12) +
+      labs(title = "PD-L1 on tumour cells", x = NULL,
+           y = "FlowPath PD-L1+ tumour cells (fraction)") +
+      attend_theme() +
       theme(axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```

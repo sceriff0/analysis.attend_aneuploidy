@@ -328,12 +328,13 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
   sil_df <- data.frame(k = ks, avg_sil = avg_sil)
   ggplot(sil_df, aes(k, avg_sil)) +
     geom_line(colour = "grey50") + geom_point(size = 2) +
-    geom_vline(xintercept = k_cnv, linetype = 2, colour = "#D62728") +
+    geom_vline(xintercept = k_cnv, linetype = 2,
+               colour = unname(ATTEND_OKABE_ITO["vermillion"])) +
     scale_x_continuous(breaks = ks) +
     labs(title = "Average silhouette width vs k (Pearson/Ward)",
          subtitle = paste0("dashed = cascade cut k = ", k_cnv, "; higher = more coherent partition"),
          x = "number of clusters (k)", y = "mean silhouette width") +
-    theme_minimal(base_size = 12)
+    attend_theme()
 } else message("Silhouette-vs-k skipped — install the optional `cluster` package.")
 ```
 
@@ -413,16 +414,20 @@ if (!is.null(cl) && exists("aneu_id") && !is.null(aneu_id)) {
 
   if (nrow(d) > 0) {
     ggplot(d, aes(cluster, aneuploidy_value)) +
-      geom_boxplot(outlier.shape = NA, aes(fill = is_high), width = 0.6, alpha = 0.5) +
+      # fill kept (is_high names which cluster is serous-like — the x tick does not), but
+      # alpha dropped: blending the fill against white means the rendered box never matches
+      # its own legend swatch. CN-high takes the aneuploidy-high vermillion, since that is
+      # the same "altered" end of the same biology one panel over.
+      geom_boxplot(outlier.shape = NA, aes(fill = is_high), width = 0.6) +
       aneu_point_layers(d, value_col = "aneuploidy_value") +
       stat_compare_means(label = "p.format", size = 3) +
-      scale_fill_manual(values = c(`TRUE` = "red", `FALSE` = "turquoise3"),
+      scale_fill_manual(values = c(`TRUE` = attend_aneu_high, `FALSE` = attend_neutral),
                         name = "copy-number high", labels = c("other", "serous-like")) +
       labs(title = "Aneuploidy score by CNV cluster (independent check)",
            subtitle = paste0("source: ", cnv_source, "; cluster ", high_cluster,
                              " = copy-number high (labelled by SCNA burden, not this score)"),
            x = "CNV cluster", y = "aneuploidy score") +
-      theme_minimal(base_size = 12)
+      attend_theme()
   }
 }
 ```
@@ -509,13 +514,14 @@ if (exists("classed") && all(c("cnv_high", "TP53_pathogenic") %in% names(classed
     ggplot(tp, aes(cluster, fill = tp53)) +
       geom_bar(position = "fill", width = 0.6) +
       scale_y_continuous(labels = scales::percent) +
-      scale_fill_manual(values = c(`TRUE` = "red", `FALSE` = "grey80"),
+      scale_fill_manual(values = c(`TRUE` = unname(attend_tp53_cols[["mut"]]),
+                                   `FALSE` = unname(attend_tp53_cols[["wt"]])),
                         name = "TP53 pathogenic", labels = c("wild-type", "mutant")) +
       geom_hline(yintercept = 0.90, linetype = 2, colour = "grey30") +
       labs(title = "TP53 mutation fraction by copy-number cluster",
            subtitle = "dashed = TCGA serous-like ~90% TP53-mut benchmark",
            x = NULL, y = "% TP53 pathogenic") +
-      theme_minimal(base_size = 12)
+      attend_theme()
   } else message("TP53-enrichment QC: no CN-high assignments with TP53 status yet.")
 } else {
   message("TP53-enrichment QC skipped — needs cnv_high (from clustering) + TP53_pathogenic on the master.")
@@ -536,11 +542,15 @@ if (exists("classed")) {
            aneuploidy_value = suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]])))
 
   ggplot(filter(pd, !is.na(aneuploidy_value)), aes(tcga_class, aneuploidy_value)) +
-    geom_boxplot(outlier.shape = NA, fill = "#A6CEE3") +
+    # Was filled #A6CEE3 = attend_aneu_low, i.e. this figure told the reader every class was
+    # aneuploidy-low. The integrated classes are the smallest strata in the cascade, so the
+    # mark is chosen per class; points come from aneu_point_layers().
+    attend_box(filter(pd, !is.na(aneuploidy_value)), x = "tcga_class", y = "aneuploidy_value",
+               points = FALSE) +
     aneu_point_layers(filter(pd, !is.na(aneuploidy_value)), value_col = "aneuploidy_value") +
     stat_compare_means(label = "p.format", size = 3) +
-    labs(title = "Aneuploidy by integrated class", x = NULL, y = "aneuploidy score") +
-    theme_minimal(base_size = 11) + theme(axis.text.x = element_text(angle = 20, hjust = 1))
+    labs(title = "Aneuploidy by integrated class", x = NULL, y = "Aneuploidy score (0-1)") +
+    attend_theme() + theme(axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```
 
@@ -562,14 +572,13 @@ if (exists("classed") && length(tmb_defs) > 0) {
     filter(!is.na(tmb_value))
 
   ggplot(tl, aes(tcga_class, tmb_value)) +
-    geom_boxplot(outlier.shape = NA, fill = "#B2DF8A") +
-    geom_jitter(width = 0.15, size = 0.6, alpha = 0.4) +
+    attend_box(tl, x = "tcga_class", y = "tmb_value", by = "tmb_def") +
     geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
     facet_wrap(~ tmb_def, scales = "free_y", nrow = 1) +
     labs(title = "TMB by integrated class, per TMB definition",
          subtitle = paste0("dashed line = TMB-high cutoff (", attend_thresholds$tmb, " mut/Mb)"),
          x = NULL, y = "TMB (mut/Mb)") +
-    theme_minimal(base_size = 11) + theme(axis.text.x = element_text(angle = 25, hjust = 1))
+    attend_theme() + theme(axis.text.x = element_text(angle = 25, hjust = 1))
 }
 ```
 

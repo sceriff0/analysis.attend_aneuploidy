@@ -56,76 +56,253 @@ feature_positions <- function(features, cytoband = NULL) {
   out[order(out$chrom, out$coord), , drop = FALSE]
 }
 
-# TCGA Fig. 1a color for the copy-number clusters (green/purple/blue/red …),
-# matching the paper's Cluster bar. Covers up to 8 clusters so the k = 2..8 sweep
-# (fig1a_heatmap_ksweep()) always has a distinct colour per cluster; the standard
-# pipeline fixes k at 4 (Fig. 2b). k > 8 would need more colors.
-.fig1a_cluster_cols <- c("1" = "#2CA02C", "2" = "#7B4FA3", "3" = "#3B6FB6", "4" = "#D62728",
-                         "5" = "#FF7F0E", "6" = "#8C564B", "7" = "#17BECF", "8" = "#BCBD22")
+# ============================================================================
+# THE COLOUR SYSTEM — one palette, one place.
+# ============================================================================
+# Everything categorical in this pipeline resolves to Okabe & Ito (2008): eight
+# hues that stay distinguishable under all three common colour-vision deficiencies
+# and survive greyscale printing. Before this block existed the pipeline mixed six
+# palettes (Okabe-Ito, ColorBrewer Paired, ColorBrewer Set1/RdBu, matplotlib tab10,
+# seaborn deep, and survminer's named R colours), which is why the same light blue
+# meant "aneuploidy-low" in report 05 and "no grouping at all" in reports 01/09.
+#
+# Two rules make the semantic assignments below safe:
+#   [A] GREY IS ALWAYS THE REFERENCE STATE. MMRp, TP53-normal, wild-type — the
+#       thing a reader should not look at — is grey in every figure. Only the
+#       altered state carries a hue.
+#   [B] CONCEPTS THAT CAN SHARE A FIGURE MUST NOT SHARE A HUE. The Fig-1a
+#       annotation stack puts MMR, aneuploidy, TP53 and cluster side by side, so
+#       those four are mutually distinct. TP53 and response reuse #CC79A7 because
+#       they provably never co-occur: report 06 is the only report that colours by
+#       response and it contains no TP53, and no report that plots TP53 (00/05/07/09)
+#       colours by response. Adding TP53 to report 06 means giving one of them a
+#       new hue — see test_plot_style.R, which pins this.
+ATTEND_OKABE_ITO <- c(blue          = "#0072B2",
+                      vermillion    = "#D55E00",
+                      bluish_green  = "#009E73",
+                      reddish_purple= "#CC79A7",
+                      orange        = "#E69F00",
+                      sky_blue      = "#56B4E9",
+                      yellow        = "#F0E442",
+                      grey          = "#999999")
+
+# TCGA Fig. 1a colour for the copy-number clusters, matching the paper's Cluster bar.
+# Covers up to 8 clusters so the k = 2..8 sweep (fig1a_heatmap_ksweep()) always has a
+# distinct colour per cluster; the standard pipeline fixes k at 4 (Fig. 2b). k > 8
+# would need more colours. Derived from ATTEND_OKABE_ITO rather than the tab10 set it
+# used to hardcode, so a cluster bar and a ggplot legend in the same report agree.
+.fig1a_cluster_cols <- stats::setNames(unname(ATTEND_OKABE_ITO), as.character(1:8))
 
 # Project-wide qualitative palette — the brewer-free replacement for
 # scale_*_brewer(palette = "Set1") / RColorBrewer::brewer.pal(). Reports use
 #   scale_colour_manual(values = attend_pal(n), aesthetics = c("colour", "fill"))
 # instead, so no plot depends on RColorBrewer being loadable.
-# Colours are the Okabe-Ito colour-blind-safe set, the same one .fig1a_covariate_cols()
-# already uses for the heatmap annotation bars, so categorical colours agree across reports.
-# `n` > 8 recycles with a warning — a categorical plot needing more than 8 colours should
-# use a different encoding anyway. Pass `names` to get a named vector for a manual scale.
+# `n` > 8 recycles with a warning — a categorical plot needing more than 8 colours
+# should use a different encoding anyway. Pass `names` for a named vector.
 attend_pal <- function(n = 8, names = NULL) {
-  okabe_ito <- c("#0072B2",  # blue
-                 "#D55E00",  # vermillion
-                 "#009E73",  # bluish green
-                 "#CC79A7",  # reddish purple
-                 "#E69F00",  # orange
-                 "#56B4E9",  # sky blue
-                 "#F0E442",  # yellow
-                 "#999999")  # grey
   if (!is.null(names)) n <- length(names)
-  if (n > length(okabe_ito))
-    warning("attend_pal(): ", n, " colours requested but only ", length(okabe_ito),
+  if (n > length(ATTEND_OKABE_ITO))
+    warning("attend_pal(): ", n, " colours requested but only ", length(ATTEND_OKABE_ITO),
             " distinct ones exist — recycling.", call. = FALSE)
-  out <- rep(okabe_ito, length.out = max(1, n))
+  out <- unname(rep(ATTEND_OKABE_ITO, length.out = max(1, n)))
   if (!is.null(names)) stats::setNames(out, names) else out
 }
 
 # --- Semantic colour palettes (single source of truth) --------------------
-# Promoted from .fig1a_covariate_cols() so the ggplot reports and the Fig-1a
-# heatmap use the SAME hex per concept. Keyed by every label spelling in use
-# across reports so a single manual scale covers heatmap bars and ggplots alike.
-attend_mmr_cols <- c(MMRp = "#999999", MMRd = "#E69F00",
-                     `MMR proficient` = "#999999", `MMR deficient` = "#E69F00")
-# Aneuploidy — LOW light blue, HIGH red. Chosen to read the same way as the SCNA
-# heatmap body itself (blue = quiet/loss end, red = altered/gain end) so the annotation
-# bar and the matrix beneath it do not tell opposite colour stories. Deliberately NOT
-# #B2182B (that is TP53-abnormal, which sits in the adjacent Fig-1a bar) and not the
-# Okabe-Ito orange (MMRd).
-attend_aneu_low  <- "#A6CEE3"   # light blue
-attend_aneu_high <- "#E31A1C"   # red
+# Keyed by every label spelling in use across reports so one manual scale covers the
+# Fig-1a annotation bars and the ggplots alike.
+
+# Reference state, rule [A]. Also the fill for a boxplot with no grouping at all:
+# a single-group box must be visibly NON-semantic, or a reader carries a meaning
+# into it from the last figure. This is deliberately not any hue above.
+attend_neutral <- "#BFBFBF"
+
+attend_mmr_cols <- c(MMRp = unname(ATTEND_OKABE_ITO["grey"]),
+                     MMRd = unname(ATTEND_OKABE_ITO["orange"]),
+                     `MMR proficient` = unname(ATTEND_OKABE_ITO["grey"]),
+                     `MMR deficient`  = unname(ATTEND_OKABE_ITO["orange"]))
+
+# Aneuploidy is a two-pole scale, not a reference/altered pair, so both poles carry a
+# hue. Sky blue (quiet) -> vermillion (altered) reads the same direction as the SCNA
+# heatmap body beneath the annotation bar, so the bar and the matrix do not tell
+# opposite colour stories — the reason the old #A6CEE3/#E31A1C pair was chosen. Those
+# were ColorBrewer; these are the nearest Okabe-Ito equivalents and keep the reading.
+attend_aneu_low  <- unname(ATTEND_OKABE_ITO["sky_blue"])
+attend_aneu_high <- unname(ATTEND_OKABE_ITO["vermillion"])
 attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
                       `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,
                       `MMRd aneuploidy-low` = attend_aneu_low,
                       `MMRd aneuploidy-high` = attend_aneu_high)
-attend_tp53_cols <- c(`TP53-normal` = "#AAAAAA", `TP53-abnormal` = "#B2182B",
-                      wt = "#AAAAAA", mut = "#B2182B")
 
-# Treatment response (add_response_class): responder bluish-green, non-responder reddish
-# purple. Both are Okabe-Ito, and both are deliberately outside every palette above --
-# response is plotted on the same cell-type panels as aneuploidy, so reusing the aneuploidy
-# blue/red would make two different groupings look like the same one at a glance.
-attend_resp_cols <- c(`responder` = "#009E73", `non-responder` = "#CC79A7",
-                      `MMRd responder` = "#009E73", `MMRd non-responder` = "#CC79A7")
+# TP53: reference/altered pair, so grey + one hue (rule [A]). Reddish purple keeps it
+# distinct from MMRd orange and aneuploidy vermillion in the adjacent Fig-1a bars.
+attend_tp53_cols <- c(`TP53-normal` = unname(ATTEND_OKABE_ITO["grey"]),
+                      `TP53-abnormal` = unname(ATTEND_OKABE_ITO["reddish_purple"]),
+                      wt = unname(ATTEND_OKABE_ITO["grey"]),
+                      mut = unname(ATTEND_OKABE_ITO["reddish_purple"]))
 
-# Project-wide ggplot theme. One base_size (11) and legend/caption conventions so
-# fonts and spacing stop drifting between reports (was theme_minimal(11|12) and
-# theme_bw()). Call sites still add theme(legend.position = ...) on top as needed.
+# Treatment response (add_response_class). Response is plotted on the SAME cell-type
+# panels as aneuploidy in reports 05/06, so it must not reuse the aneuploidy pair —
+# two different groupings would look like one grouping at a glance.
+attend_resp_cols <- c(`responder` = unname(ATTEND_OKABE_ITO["bluish_green"]),
+                      `non-responder` = unname(ATTEND_OKABE_ITO["reddish_purple"]),
+                      `MMRd responder` = unname(ATTEND_OKABE_ITO["bluish_green"]),
+                      `MMRd non-responder` = unname(ATTEND_OKABE_ITO["reddish_purple"]))
+
+# ============================================================================
+# THE THEME — one base_size, one grid policy.
+# ============================================================================
+# Reports render to a workflowr HTML site, so this is sized for a screen (11pt), not
+# for a journal column. The manuscript path is attend_fig_save(), which restyles to
+# plotstyle.R's 7pt theme_pub() on the way out — see below.
+#
+# Grid policy: horizontal major only. Every figure in this pipeline reads a VALUE off
+# the y axis (a fraction, a score, mut/Mb); none reads one off a categorical x, so an
+# x gridline is ink that guides nothing. Minor gridlines are off for the same reason.
 attend_theme <- function(base_size = 11) {
   ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold", size = base_size + 1),
-      plot.subtitle = ggplot2::element_text(size = base_size - 1),
-      strip.text    = ggplot2::element_text(face = "bold"),
-      legend.title  = ggplot2::element_text(size = base_size - 1),
-      panel.grid.minor = ggplot2::element_blank())
+      plot.title       = ggplot2::element_text(face = "bold", size = base_size + 1),
+      plot.subtitle    = ggplot2::element_text(size = base_size - 1, colour = "grey30"),
+      plot.caption     = ggplot2::element_text(size = base_size - 2, colour = "grey30", hjust = 0),
+      strip.text       = ggplot2::element_text(face = "bold", size = base_size - 1),
+      strip.background = ggplot2::element_blank(),
+      axis.title       = ggplot2::element_text(size = base_size - 1),
+      axis.text        = ggplot2::element_text(size = base_size - 2, colour = "grey20"),
+      legend.title     = ggplot2::element_text(size = base_size - 1),
+      legend.text      = ggplot2::element_text(size = base_size - 2),
+      legend.key.size  = ggplot2::unit(4, "mm"),
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(linewidth = 0.3, colour = "grey88"))
+}
+
+# ============================================================================
+# attend_box() — a distribution layer that tells the truth about small n.
+# ============================================================================
+# ATTEND is a ~40-patient cohort; split by MMR, by aneuploidy class, and by responder
+# status, a group of four is routine. A boxplot of four points draws quartiles that are
+# an artefact of which two points landed in the middle, and `outlier.shape = NA` — which
+# every call site in this pipeline passes, to avoid double-plotting points — DELETES the
+# outliers from a group too small to have any.
+#
+# So the mark is chosen per group from the data, at knit time:
+#   n >= min_n  ->  box + jittered points   (quartiles are supported)
+#   n <  min_n  ->  jittered points + a median crossbar, no box
+# Both branches always draw the points, so nothing is ever summarised away invisibly.
+#
+# `by` carries the FACET variables. Group size differs per panel, so a cell type with
+# 20 patients in one facet and 4 in another must get the box in the first and the
+# crossbar in the second; keying the split on x alone would give both the same verdict.
+#
+# Returns a list of ggplot layers, so it composes: ggplot(d, aes(...)) + attend_box(...).
+# Base R only (aggregate, not dplyr) — attend_plots.R is sourced in the bootstrap env.
+attend_min_box_n <- 10L
+
+attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
+                       jitter_width = 0.18, point_size = 0.8, point_alpha = 0.55,
+                       box_width = 0.6, label_n = TRUE, point_colour = "black",
+                       fill = attend_neutral, points = TRUE, expand_y = label_n) {
+  keys <- c(x, by)
+  d <- data[stats::complete.cases(data[, c(keys, y), drop = FALSE]), , drop = FALSE]
+  if (nrow(d) == 0) return(list())
+
+  # n per (x, facet...) cell, then the two row-sets the layers draw from.
+  cnt <- stats::aggregate(d[[y]], by = as.list(d[, keys, drop = FALSE]),
+                          FUN = function(v) sum(is.finite(v)))
+  names(cnt)[ncol(cnt)] <- ".n"
+  cell <- function(df) do.call(paste, c(lapply(keys, function(k) as.character(df[[k]])), sep = "\r"))
+  dense_cells  <- cell(cnt)[cnt$.n >= min_n]
+  d_dense  <- d[cell(d) %in% dense_cells, , drop = FALSE]
+  d_sparse <- d[!cell(d) %in% dense_cells, , drop = FALSE]
+
+  layers <- list()
+  if (nrow(d_dense) > 0) {
+    # fill = NULL means "inherit the parent aes(fill = ...)" — for the rare panel whose
+    # fill encodes something the x axis does NOT already carry. Every other call gets the
+    # neutral grey, because a box coloured by its own x position is redundant ink.
+    box_args <- list(data = d_dense, outlier.shape = NA, width = box_width)
+    if (!is.null(fill)) box_args$fill <- fill
+    layers <- c(layers, list(do.call(ggplot2::geom_boxplot, box_args)))
+  }
+  if (nrow(d_sparse) > 0)
+    # A median crossbar, drawn only where the box was withheld. Same width as the box
+    # so the two branches line up when they appear in adjacent facets.
+  {
+    cb_args <- list(data = d_sparse, fun = stats::median, geom = "crossbar",
+                    width = box_width, linewidth = 0.5)
+    if (!is.null(fill)) cb_args$fill <- fill
+    layers <- c(layers, list(do.call(ggplot2::stat_summary, cb_args)))
+  }
+
+  # points = FALSE for the call sites that supply their own overlay — highlight_points()
+  # partitions the cohort into highlight groups and a base layer, and drawing this jitter
+  # underneath it would plot every patient twice.
+  if (points)
+    layers <- c(layers, list(ggplot2::geom_jitter(
+      width = jitter_width, height = 0, size = point_size, alpha = point_alpha,
+      colour = point_colour, show.legend = FALSE)))
+
+  if (label_n) {
+    # n at the panel floor: y = -Inf keeps it anchored whatever the free_y range is.
+    cnt$.lab <- paste0("n=", cnt$.n)
+    layers <- c(layers, list(ggplot2::geom_text(
+      data = cnt, inherit.aes = FALSE,
+      mapping = ggplot2::aes(x = .data[[x]], y = -Inf, label = .data$.lab),
+      vjust = -0.6, size = 2.4, colour = "grey35")))
+    # ggplot's default 5% bottom expansion is not enough room for a label at y = -Inf: a
+    # group whose points sit on the panel floor collides with its own n. Widen the bottom
+    # only. Pass expand_y = FALSE at a call site that sets its own y scale (e.g.
+    # scale_y_log10) — the later scale wins anyway, but silently, with a replacement message.
+    if (expand_y)
+      layers <- c(layers, list(ggplot2::scale_y_continuous(
+        expand = ggplot2::expansion(mult = c(0.12, 0.05)))))
+  }
+  layers
+}
+
+# ============================================================================
+# attend_fig_save() — the manuscript path.
+# ============================================================================
+# attend_theme() is sized for the HTML site. A figure headed for the paper needs
+# plotstyle.R's 7pt theme_pub() at a real journal column width, plus the source-data
+# CSV that makes the figure auditable. This restyles and hands off, so a report can
+# render a figure to the site AND export it, from one plot object:
+#
+#   p <- ggplot(...) + attend_theme()
+#   print(p)                                        # -> the site, 11pt
+#   attend_fig_save(p, "figures/fig2_aneu", width = "double", data = plotted)
+#
+# plotstyle.R is only sourced when this is called, so the base-R bootstrap env that
+# runs the unit tests never needs ggplot2 loaded at source() time.
+attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle = TRUE, ...) {
+  ps <- Filter(file.exists, c(
+    if (requireNamespace("here", quietly = TRUE)) here::here("code", "plotstyle.R"),
+    file.path("code", "plotstyle.R"), "plotstyle.R"))
+  if (length(ps) == 0)
+    stop("attend_fig_save(): code/plotstyle.R not found — the manuscript style is missing.")
+  source(ps[[1]], local = TRUE)
+  if (restyle && inherits(plot, "ggplot")) {
+    # theme_pub() is a COMPLETE theme, so `plot + theme_pub()` REPLACES the accumulated
+    # theme rather than merging into it — which silently drops the call-site tweaks every
+    # report adds on top of attend_theme(): legend.position = "none" and the rotated x-axis
+    # labels that keep long class names legible. So they are read off the incoming plot and
+    # re-applied after the swap. Only layout is carried over, never sizes: the whole point
+    # of the export is to move from the site's 11pt to the journal's 7pt.
+    keep <- list()
+    th <- plot$theme
+    if (!is.null(th$legend.position))  keep$legend.position  <- th$legend.position
+    if (!is.null(th$legend.direction)) keep$legend.direction <- th$legend.direction
+    for (ax in c("axis.text.x", "axis.text.y")) {
+      e <- th[[ax]]
+      if (inherits(e, "element_text") && (!is.null(e$angle) || !is.null(e$hjust)))
+        keep[[ax]] <- ggplot2::element_text(angle = e$angle, hjust = e$hjust)
+      if (inherits(e, "element_blank")) keep[[ax]] <- ggplot2::element_blank()
+    }
+    plot <- plot + theme_pub()
+    if (length(keep)) plot <- plot + do.call(ggplot2::theme, keep)
+  }
+  pub_save(plot, path, width = width, data = data, ...)
 }
 
 # Threshold that splits a per-sample aneuploidy vector into high/low, used by BOTH the
@@ -165,16 +342,31 @@ attend_theme <- function(base_size = 11) {
   if ("TCGA_class" %in% names(a) && is.factor(a$TCGA_class)) {
     lv   <- levels(a$TCGA_class)
     real <- setdiff(lv, .fig1a_na_label)
-    pal  <- c("#CC79A7", "#009E73", "#D55E00", "#0072B2")  # purple, green, vermillion, blue
-    cc   <- stats::setNames(pal[seq_along(real)], real)
+    cc   <- stats::setNames(attend_pal(length(real)), real)     # positional fallback
+    # ...then override by NAME wherever the level is one we recognise. The integrated-class
+    # bar sits directly above the MMR and Aneuploidy bars, so a reader reads the three as a
+    # stack: giving MMRd the MMR bar's orange, CN-high the aneuploidy-high vermillion and
+    # CN-low the aneuploidy-low sky blue makes the stack agree with itself instead of
+    # assigning a fourth unrelated colour to the same concept one row down.
+    # Named, not positional, because a positional palette silently reshuffles every colour
+    # if attend_tcga_levels ever gains a tier (e.g. POLE, present in TCGA but not ATTEND).
+    known <- c(`POLE`                             = unname(ATTEND_OKABE_ITO["blue"]),
+               `MMRd`                             = unname(attend_mmr_cols[["MMRd"]]),
+               `Copy-number high (serous-like)`   = attend_aneu_high,
+               `Copy-number low (endometrioid)`   = attend_aneu_low)
+    hit <- intersect(names(known), real)
+    if (length(hit)) cc[hit] <- known[hit]
     if (.fig1a_na_label %in% lv) cc[[.fig1a_na_label]] <- .fig1a_na_col
     cols$TCGA_class <- cc
   }
-  # MMR IHC — proficient MID grey, deficient orange. Deliberately #999999 (the Okabe-Ito
-  # grey), NOT a pale tint: it is a real measurement and must not read as a blank cell.
-  if ("MMR" %in% names(a))  cols$MMR  <- c(MMRp = "#999999", MMRd = "#E69F00")
-  # TP53 — wild-type mid grey (same reasoning as MMRp), mutant deep red
-  if ("TP53" %in% names(a)) cols$TP53 <- c(wt = "#AAAAAA", mut = "#B2182B")
+  # MMR IHC and TP53 — read from the semantic palettes rather than re-spelled here, for the
+  # same reason the aneuploidy bars below do: a hex written twice is a hex that drifts. Both
+  # take the Okabe-Ito grey for their reference state (rule [A]), NOT a pale tint — these are
+  # real measurements and must not read as blank cells.
+  if ("MMR" %in% names(a))  cols$MMR  <- c(MMRp = unname(attend_mmr_cols[["MMRp"]]),
+                                           MMRd = unname(attend_mmr_cols[["MMRd"]]))
+  if ("TP53" %in% names(a)) cols$TP53 <- c(wt  = unname(attend_tp53_cols[["wt"]]),
+                                           mut = unname(attend_tp53_cols[["mut"]]))
   # Binary aneuploidy — light blue = low, red = high. Read from attend_aneu_cols rather
   # than re-spelled here, so the heatmap bar and the ggplot boxplots cannot drift apart.
   if ("Aneuploidy_hl" %in% names(a))
@@ -659,7 +851,8 @@ scna_mirror_plot <- function(freq_tbl, peaks, title = NULL) {
     ggplot2::geom_col(width = 2e6) +
     ggplot2::geom_hline(yintercept = 0, linewidth = 0.3) +
     ggplot2::facet_grid(scna_group ~ chrom, scales = "free_x", space = "free_x") +
-    ggplot2::scale_fill_manual(values = c(amp = "#D55E00", del = "#0072B2")) +
+    ggplot2::scale_fill_manual(values = c(amp = unname(ATTEND_OKABE_ITO["vermillion"]),
+                                          del = unname(ATTEND_OKABE_ITO["blue"]))) +
     ggplot2::scale_y_continuous(labels = function(x) paste0(abs(x) * 100, "%")) +
     ggplot2::labs(x = "Genomic position", y = "Altered (del below / amp above)",
                   title = title) +
@@ -710,10 +903,13 @@ panel_score_plot <- function(scores, group, title = NULL) {
   d <- d[!is.na(d$grp) & !is.na(d$score), , drop = FALSE]
   if (!nrow(d)) { message("panel_score_plot(): all NA — skipping."); return(NULL) }
 
-  ggplot2::ggplot(d, ggplot2::aes(x = grp, y = score, fill = grp)) +
-    ggplot2::geom_boxplot(outlier.shape = NA, alpha = 0.5) +
-    ggplot2::geom_jitter(width = 0.15, height = 0, size = 1.8, alpha = 0.85) +
-    ggplot2::labs(x = NULL, y = "Fraction of TCGA UCEC panel altered",
+  # No `fill = grp`: the group is already the x position, so colouring by it spends the
+  # palette on information the axis carries — which is why the old version had to switch
+  # its own legend off. A single neutral fill, and attend_box() picks box vs median-crossbar
+  # from each group's n (these are SCNA strata; MMRd-high can be a handful of patients).
+  ggplot2::ggplot(d, ggplot2::aes(x = grp, y = score)) +
+    attend_box(d, x = "grp", y = "score", point_size = 1.2, point_alpha = 0.75) +
+    ggplot2::labs(x = NULL, y = "Fraction of TCGA UCEC panel altered (0-1)",
                   title = title) +
     attend_theme() +
     ggplot2::theme(legend.position = "none")

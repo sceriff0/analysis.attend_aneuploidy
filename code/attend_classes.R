@@ -88,8 +88,8 @@ attend_levels <- list(
 #
 # TWO GROUPS, and they mean different things — both are spelled out in the reports:
 #
-#   polipo — the single sample 21S188, drawn magenta.
-#   cohort — the patients that HAVE IHC / IMAGING data, drawn gold. This is a
+#   polipo — the single sample 21S188, drawn blue.
+#   cohort — the patients that HAVE IHC / IMAGING data, drawn yellow. This is a
 #            data-availability group, not a biological one: it marks which points
 #            in a genomics figure also appear in the IHC + imaging report, so a
 #            reader can see whether the multi-modal subset sits anywhere unusual
@@ -100,12 +100,18 @@ attend_levels <- list(
 # matches either); unmatched ids are a knit-safe no-op.
 attend_highlight <- list(
   groups = list(
-    polipo = list(ids = c("21S188"), color = "#CC79A7"),              # magenta — 21S188, its own colour
+    # BLUE and YELLOW are the only two Okabe-Ito hues no semantic palette claims, which is
+    # exactly what a highlight needs: these points are drawn ON TOP of boxes filled with the
+    # MMR, aneuploidy, TP53 and response colours, so a highlight sharing a hex with any of
+    # them disappears into the box it is meant to stand out from. They were #CC79A7 (identical
+    # to non-responder, so the polipo point vanished on report 06's non-responder box) and
+    # #E69F00 (identical to MMRd, same problem on report 03). test_figure_system.R pins this.
+    polipo = list(ids = c("21S188"), color = "#0072B2"),              # blue — 21S188, its own colour
     cohort = list(ids = c("1923575", "23S22", "19S30", "19S63",       # gold — has IHC / imaging
                           "20S63", "21S22", "7834020", "785", "3302",
                           "20752a7", "15792", "23S58", "23S60", "23S61",
                           "23S38", "23S55"),
-                  color = "#E69F00")
+                  color = "#F0E442")
   )
 )
 
@@ -336,10 +342,11 @@ read_maf_maftools <- function(maf_path, maf_cfg = attend_maf, ...) {
 # (surv_table). Cox tidy: broom (cox_table). The calling Rmd loads survminer.
 
 # Single comparison KM: coloured curves for `group`, log-rank p, risk table.
+# Same palette fix as km_facet() below: c("red", "turquoise3") named no palette in this project.
 km_plot <- function(df, group,
                     time    = attend_cols$surv_time,
                     event   = attend_cols$surv_event,
-                    palette = c("red", "turquoise3"),
+                    palette = if (exists("attend_pal")) attend_pal(2) else c("#0072B2", "#D55E00"),
                     title   = NULL) {
   d <- df |> mutate(across(all_of(event), recode_event)) |>
     filter(if_all(all_of(c(time, event, group)), ~ !is.na(.)))
@@ -349,7 +356,9 @@ km_plot <- function(df, group,
     ggsurvfit::add_pvalue() +
     ggsurvfit::add_risktable() +
     ggplot2::scale_colour_manual(values = palette) +
-    ggplot2::labs(title = title)
+    # ggsurvfit's default x label is a bare "time". Survival is in MONTHS throughout this
+    # pipeline (attend_thresholds$response_months; surv_table(times = c(12, 24, 36, 60))).
+    ggplot2::labs(title = title, x = "Time (months)", y = "Survival probability")
 }
 
 # Faceted KM matching the reference attend_wes_analysis figures: survminer's
@@ -357,10 +366,14 @@ km_plot <- function(df, group,
 # `facets` (1-2 vars, e.g. c("aneuploidy_class","MMR_class")) split the grid, and
 # each panel carries its own log-rank p (+ test name) at fixed coordinates.
 # The event column is recoded to 0/1 first (PFS_EVENT is free text).
+# `palette` was c("red", "turquoise3") — two base-R colour names that belong to no palette
+# in this project, so every KM curve in report 04 was the one figure family that could not
+# be read against the rest of the site. It now takes the project palette (attend_plots.R),
+# with a fallback so attend_classes.R stays sourceable on its own.
 km_facet <- function(df, group, facets,
                      time    = attend_cols$surv_time,
                      event   = attend_cols$surv_event,
-                     palette = c("red", "turquoise3"),
+                     palette = if (exists("attend_pal")) attend_pal(2) else c("#0072B2", "#D55E00"),
                      title   = NULL) {
   keep_cols <- c(time, event, group, facets)
   d <- df |> mutate(across(all_of(event), recode_event)) |>
@@ -383,7 +396,9 @@ km_facet <- function(df, group, facets,
     pval.method.coord = c(tmax * 0.5, 0.80),
     censor.shape      = "+",
     short.panel.labs  = TRUE,
-    xlab = "Time", ylab = "Survival probability", legend.title = group
+    # Survival time is in MONTHS everywhere in this pipeline (attend_thresholds$response_months,
+    # surv_table(times = c(12, 24, 36, 60))). The axis said only "Time".
+    xlab = "Time (months)", ylab = "Survival probability", legend.title = group
   ) + ggplot2::labs(title = title)
 }
 

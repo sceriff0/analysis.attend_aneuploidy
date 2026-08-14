@@ -438,8 +438,8 @@ cat("Patients present in ANY dataset:", length(Reduce(union, sets)), "\n")
 ```
 
 The same table as a figure. Each bar is one dataset's **native IDs**, split into mapped
-(green) and unmapped (orange) — both in the same unit, so the bar is genuinely additive
-and its full length is the dataset's raw size. Orange is where linkage is failing.
+(grey) and unmapped (red) — both in the same unit, so the bar is genuinely additive
+and its full length is the dataset's raw size. Red is where linkage is failing.
 
 ```{r plot-loss}
 loss_long <- loss |>
@@ -448,11 +448,15 @@ loss_long <- loss |>
 
 ggplot(loss_long, aes(reorder(dataset, n), n, fill = status)) +
   geom_col() + coord_flip() +
-  scale_fill_manual(values = c(mapped = "#1D9E75", unmapped = "#D85A30")) +
-  labs(x = NULL, y = "native IDs", fill = NULL,
+  # Rule [A]: the state a reader should NOT look at (successfully mapped) is grey, so the
+  # unmapped remainder is the only thing carrying colour. Was a green/orange pair from no
+  # palette in particular, which made "mapped" the loudest element of a loss figure.
+  scale_fill_manual(values = c(mapped = attend_neutral,
+                               unmapped = unname(ATTEND_OKABE_ITO["vermillion"]))) +
+  labs(x = NULL, y = "Native IDs (count)", fill = NULL,
        title    = "Per-dataset coverage and ID-conversion loss",
        subtitle = "Native-ID units; mapped + unmapped is additive") +
-  theme_minimal(base_size = 12)
+  attend_theme()
 ```
 
 ### Which patients have which modalities
@@ -483,17 +487,18 @@ membership <- sapply(sets, function(s) all_pids %in% s)
 degree_tbl <- tibble(pid = all_pids, k = rowSums(membership))
 
 ggplot(degree_tbl, aes(factor(k))) +
-  geom_bar(fill = "#4C72B0") +
+  geom_bar(fill = attend_pal(1)) +
   geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.3, size = 3.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
   labs(title = "Cohort completeness",
-       x = "number of datasets a patient appears in (k)", y = "patients") +
-  theme_minimal(base_size = 12)
+       subtitle = paste0("n = ", nrow(degree_tbl), " patients across ", length(sets), " datasets"),
+       x = "Number of datasets a patient appears in (k)", y = "Patients (count)") +
+  attend_theme()
 ```
 
 The per-patient view of the same information, read off the master's in_<dataset> flags.
 One row per patient, ordered by how many modalities they have (least complete at the
-bottom); blue = present, beige = absent. Vertical beige stripes are the bottleneck
+bottom); blue = present, pale grey = absent. Vertical pale stripes are the bottleneck
 modalities; the solid blue block at the top is the complete cohort.
 
 ```{r plot-availability, fig.width=8, fig.height=7}
@@ -507,9 +512,11 @@ pid_order <- presence |> group_by(pid) |> summarise(k = sum(present), .groups = 
 
 ggplot(presence, aes(dataset, factor(pid, levels = pid_order), fill = present)) +
   geom_tile() +
-  scale_fill_manual(values = c(`TRUE` = "#185FA5", `FALSE` = "#F1EFE8")) +
-  labs(title = "Patient x dataset availability", x = NULL, y = "patients", fill = "present") +
-  theme_minimal(base_size = 11) +
+  scale_fill_manual(values = c(`TRUE` = attend_pal(1), `FALSE` = "grey93")) +
+  labs(title = "Patient x dataset availability",
+       subtitle = paste0("n = ", dplyr::n_distinct(presence$pid), " patients"),
+       x = NULL, y = "Patients (one row each)", fill = "present") +
+  attend_theme() +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())
 ```
@@ -613,12 +620,13 @@ score_long <- master |>
 
 if (nrow(score_long) > 0) {
   ggplot(score_long, aes(value)) +
-    geom_histogram(bins = 30, fill = "#4C72B0") +
+    geom_histogram(bins = 30, fill = attend_pal(1)) +
     facet_wrap(~ metric, scales = "free", ncol = 3) +
     labs(title = "Distributions of the genomic score columns (master)",
-         subtitle = "Check for impossible values, spikes at 0, and bimodality",
-         x = NULL, y = "patients") +
-    theme_minimal(base_size = 11)
+         subtitle = paste0("Check for impossible values, spikes at 0, and bimodality; n = ",
+                           dplyr::n_distinct(score_long$pid), " patients"),
+         x = "Score (units differ per panel; see 00-methods)", y = "Patients (count)") +
+    attend_theme()
 } else {
   message("No numeric score columns matched in master — check column prefixes.")
 }
@@ -650,12 +658,16 @@ if (have_cols(master, msi_score_col, attend_cols$msi_status)) {
   }, error = function(e) NULL)
 
   ggplot(msi_df, aes(status, score)) +
-    geom_boxplot(outlier.shape = NA, fill = "#A6CEE3", width = 0.6) +
+    # points = FALSE: highlight_points() below supplies the partitioned point layer, so
+    # attend_box() contributes only the box (or, where a stratum is under n=10, the median
+    # crossbar) and the per-group n. The old fill was #A6CEE3 — which attend_plots.R defines
+    # as "aneuploidy-low", a meaning this figure does not have.
+    attend_box(msi_df, x = "status", y = "score", points = FALSE) +
     highlight_points(msi_df, "status", "score", base_size = 0.7, base_alpha = 0.4, base_const = "black") +
     labs(title = "WES MSI score by clinical MSI status",
-         subtitle = p_lab, x = "clinical MSI status",
+         subtitle = p_lab, x = "Clinical MSI status",
          y = "WES MSI score (% unstable sites)") +
-    theme_minimal(base_size = 11)
+    attend_theme()
 } else {
   message("Both msi__MSI_SCORE and ", attend_cols$msi_status,
           " must be in the master — skipping MSI concordance plot.")

@@ -27,6 +27,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 5)
 
 source(here("code", "attend_classes.R"))     # attend_tmb_*, ancestry_by_pid(), nassar helpers
+source(here("code", "attend_plots.R"))       # attend_theme(), attend_box(), the shared palette
 source(here("code", "attend_io.R"))          # read_intermediate()
 source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
@@ -258,14 +259,18 @@ if (have_master && length(tmb_recomp) >= 2) {
 
   print(
     ggplot(long, aes(def, tmb)) +
-      geom_boxplot(outlier.shape = NA, fill = "#FDBF6F", width = 0.6) +
+      # Deliberately NOT attend_box(): this is a paired design — each point must sit at the
+      # same x as its patient's connecting line, so the points cannot be jittered. Every
+      # definition is measured on the whole cohort, so the box is supported at any n.
+      geom_boxplot(outlier.shape = NA, fill = attend_neutral, width = 0.6) +
       geom_line(aes(group = pid), alpha = 0.15) +
       geom_point(size = 0.7, alpha = 0.4) +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey40") +
       labs(title = "Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions",
-           subtitle = "lines connect the same patient; dashed = TMB-high cutoff",
+           subtitle = paste0("lines connect the same patient; dashed = TMB-high cutoff; n = ",
+                             dplyr::n_distinct(long$pid), " patients"),
            x = "TMB definition", y = "TMB (mut/Mb)") +
-      theme_minimal(base_size = 12)
+      attend_theme()
   )
 
   # How many patients are TMB-high under each definition (the reclassification).
@@ -307,14 +312,15 @@ if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master
     filter(!is.na(removed))
   if (nrow(g) > 0) {
     ggplot(g, aes(subpop, removed)) +
-      geom_boxplot(outlier.shape = NA, fill = "#CAB2D6") +
-      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      # Sub-populations are the smallest groups in the pipeline — the note above says group
+      # sizes here "can be much smaller than the cohort" — so the mark is chosen per group.
+      attend_box(g, x = "subpop", y = "removed") +
       geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
       labs(title = "TMB removed by the ancestry correction, by ancestry",
-           subtitle = "TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed",
+           subtitle = "TMB (normal) - TMB (ancestry corrected); larger = more germline contamination removed",
            x = "gnomAD sub-population (from self-reported ancestry)",
-           y = "mut/Mb removed") +
-      theme_minimal(base_size = 12)
+           y = "TMB removed (mut/Mb)") +
+      attend_theme()
   } else message("No patients with both TMB definitions and a mapped ancestry.")
 } else {
   message("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
@@ -425,7 +431,7 @@ if (have_master && all(need %in% names(master)) && !is.null(anc)) {
                                if (nc$identity) " | recalibration coefficients are identity, so this is the germline filter alone" else ""),
              x = "TMB (normal), mut/Mb", y = "TMB (ancestry corrected), mut/Mb",
              colour = NULL) +
-        theme_minimal(base_size = 12)
+        attend_theme()
     )
     reclass_n <- eff |> group_by(group) |>
       summarise(n = n(),
@@ -479,8 +485,8 @@ Patients without an ASCETS score are NA and are dropped from class comparisons.
 Two overlay groups are drawn on top of the base colouring by highlight_points(), which
 partitions the data so no patient is plotted twice:
 
-- **polipo** — sample 21S188, in magenta.
-- **cohort** — the multi-modal subset, in gold: patients who also have IHC or imaging
+- **polipo** — sample 21S188, in blue.
+- **cohort** — the multi-modal subset, in yellow: patients who also have IHC or imaging
   data, and so appear in the concordance and composition reports.
 
 polipo is declared first in attend_highlight, and matching is first-match-wins, so

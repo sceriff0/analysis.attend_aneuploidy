@@ -34,7 +34,7 @@ n_mmrd <- length(mmrd_pids)
 
 # --- manual highlight overlay: OFF for now -----------------------------------------
 # Switches off the two attend_highlight groups in THIS report only -- polipo (21S188,
-# magenta) and cohort (gold). Points still carry the aneuploidy blue/red; only the
+# blue) and cohort (yellow). Points still carry the aneuploidy sky-blue/vermillion; only the
 # hand-picked overlay and its legend go away.
 #
 # Done as a wrapper rather than as `attend_highlight <- NULL`, and rather than by editing
@@ -146,7 +146,7 @@ if (have_mmr && nrow(dat) == 0)
           "') — every figure below is skipped.")
 ```
 
-The manual highlight overlay (the magenta polipo point and the gold multi-modal cohort) is
+The manual highlight overlay (the blue polipo point and the yellow multi-modal cohort) is
 switched off in this report for now, in the setup chunk. This line states that, so a reader
 does not go looking for coloured points that were deliberately not drawn.
 
@@ -168,7 +168,10 @@ aneu_box <- function(d, vars, title, subtitle = NULL, ncol = 3) {
   if (nrow(long) == 0) return(NULL)
 
   ggplot(long, aes(group, aneuploidy_value)) +
-    geom_boxplot(outlier.shape = NA, fill = "#A6CEE3", width = 0.6) +
+    # Was fill = #A6CEE3, which attend_plots.R defines as "aneuploidy-low" — so every box in
+    # a figure ABOUT aneuploidy was tinted with one of its two class colours. Neutral now, and
+    # the class colour survives where it belongs: on the points, via base_colour below.
+    attend_box(long, x = "group", y = "aneuploidy_value", by = "comparison", points = FALSE) +
     highlight_points(long, "group", "aneuploidy_value", base_colour = "aneuploidy_class",
                      base_palette = attend_aneu_cols, base_name = "aneuploidy",
                      base_size = 0.7, base_alpha = 0.6) +
@@ -362,7 +365,8 @@ box_by_aneu <- function(df, frac_col, denom_label) {
   d <- df |> filter(is.finite(.data[[frac_col]]))
   if (nrow(d) == 0) return(NULL)
   ggplot(d, aes(aneuploidy_class, .data[[frac_col]], fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(d, x = "aneuploidy_class", y = frac_col, by = "cell_type",
+               fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", frac_col, base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type, scales = "free_y") +
@@ -380,7 +384,7 @@ box_by_aneu_arcsin <- function(df, frac_col, denom_label) {
     mutate(.y = arcsin_sqrt(.data[[frac_col]]))
   if (nrow(d) == 0) return(NULL)
   ggplot(d, aes(aneuploidy_class, .y, fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(d, x = "aneuploidy_class", y = ".y", by = "cell_type", fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", ".y", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type, scales = "free_y") +
@@ -475,7 +479,7 @@ box_immune <- function(df, arcsin = FALSE) {
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(d, x = "aneuploidy_class", y = "frac", by = c("metric", "denom_label"), fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric + denom_label, scales = "free_y") +
@@ -537,7 +541,7 @@ count is on the figure rather than in a caption.
 if (!is.null(res_primary)) {
   d <- res_primary$d
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(d, x = "aneuploidy_class", y = "frac", fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 1.2, base_alpha = 0.5, base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
     scale_fill_manual(values = attend_aneu_cols) +
@@ -624,7 +628,7 @@ cb <- pt |>
 
 if (nrow(cb) > 2) {
   ggplot(cb, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(cb, x = "aneuploidy_class", y = "value", by = "covariate", fill = NULL, points = FALSE) +
     highlight_points(cb, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
@@ -649,7 +653,7 @@ tp <- pt |> filter(!is.na(TP53), !is.na(aneuploidy_score))
 
 if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
   ggplot(tp, aes(TP53, aneuploidy_score, fill = TP53)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(tp, x = "TP53", y = "aneuploidy_score", fill = NULL, points = FALSE) +
     highlight_points(tp, "TP53", "aneuploidy_score", base_size = 1.5, base_alpha = 0.5,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format") +
@@ -702,7 +706,7 @@ icc <- imaging_pt |>
 
 if (nrow(icc) > 2) {
   ggplot(icc, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+    attend_box(icc, x = "aneuploidy_class", y = "value", by = "covariate", fill = NULL, points = FALSE) +
     highlight_points(icc, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
