@@ -96,6 +96,30 @@ cascade reads a single cut (k_cnv in attend_classes.R), while the k-sweep heatma
 shows a range of cuts around it; and the integrated-class and aneuploidy-score annotation
 bars are ATTEND additions, not Fig. 1a elements.
 
+### The heatmap — a different matrix from the clustering
+
+*Follows:* the Fig. 1a legend exactly. TCGA describe the figure as *"SCNAs in each tumour
+(horizontal axis) plotted by chromosomal location (vertical axis)"* — the **whole genome**,
+on a **continuous** colour scale. That is not the matrix they clustered, and the paper does
+not claim it is: Suppl. Methods S2 clusters **thresholded** copy number **restricted to
+significant peaks**. Two matrices, one figure, both from the same GISTIC run.
+
+So report 09 clusters `all_thresholded.by_genes.txt` inside the significant peaks
+(`load_gistic_thresholded()`) and **draws** `all_data_by_genes.txt` genome-wide and
+continuous (`load_gistic_continuous()`), with the columns split and coloured by the
+peak-based clusters. Drawing the clustering matrix instead — which is what this report used
+to do — yields a few hundred peak genes on a five-step colour scale: genome-*ordered*, but
+not the genomic landscape, and not continuous. The clustering is unchanged by this, and
+GISTIC is still required, because the clustering feature is still TCGA's.
+
+The rule generalises past this report: **the matrix that answers a question and the matrix
+that shows it need not be the same matrix**, and forcing them to be the same is what made
+this figure wrong. What must be shared is the *partition* — the clusters drawn are the
+clusters computed, never a re-clustering of the display values.
+
+*Differs:* nothing in kind; the display genes are ATTEND's own GISTIC output rather than
+SNP6 probes, so the vertical resolution is gene-level by cytoband rather than probe-level.
+
 ### The k-sweep
 
 TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it exposes the

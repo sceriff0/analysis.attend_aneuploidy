@@ -93,31 +93,52 @@ tmb_defs <- c(upstream = attend_cols$tmb, attend_cols$tmb_set)
 if (have_master) tmb_defs <- tmb_defs_present(master)
 ```
 
-## Copy-number ingestion — GISTIC thresholded peaks (the only clustering input)
+## Copy-number ingestion — two GISTIC matrices, because the paper uses two
 
-This report clusters **exactly what TCGA clustered** (Kandoth et al., Suppl. Methods S2):
+TCGA **clusters** one matrix and **draws** another, and both come from the same GISTIC run.
+Keeping them separate is what makes this report's heatmap the paper's heatmap.
+
+**The clustering input** is exactly what TCGA clustered (Kandoth et al., Suppl. Methods S2):
 *"thresholded relative copy number data in significantly reoccurring amplifications or
 deletions regions identified by GISTIC 2.0."* There is **one** clustering feature and no
-fallbacks — the arm-level / bin-level proxies have been removed. The matrix is built by
-load_gistic_thresholded() from GISTIC output in data/gistic/:
+fallbacks — the arm-level / bin-level proxies have been removed. load_gistic_thresholded()
+builds it from data/gistic/:
 
 - input all_thresholded.by_genes.txt — genes × samples, values in **{−2,−1,0,+1,+2}**;
 - restricted to the genes inside the **significant amp/del peaks** (amp_genes/del_genes.conf);
 - result: a sample × peak-gene **thresholded** matrix — TCGA's exact feature space.
 
-**Producing it requires running GISTIC on the DRAGEN .seg** — the recipe is
-runbooks/gistic.md. Until data/gistic/ is populated, every CNV/cascade section renders
-as scaffolding.
+**The figure input** is what the Fig. 1a legend describes: *"The heat map shows SCNAs in each
+tumour (horizontal axis) plotted by chromosomal location (vertical axis)"* — the **whole
+genome**, on a **continuous** colour scale. That is a different matrix, and
+load_gistic_continuous() reads it from all_data_by_genes.txt in the same data/gistic/:
+genome-wide, continuous copy number per gene, not peak-restricted. Drawing the *clustering*
+matrix instead is what previously made this heatmap something other than Fig. 1a — a few
+hundred peak genes on a five-step colour scale, genome-ordered but not the genomic landscape.
+
+So: **cluster the peaks, display the genome.** The columns of the heatmap are split and
+coloured by the peak-based clusters, and the body underneath them is the continuous
+genome-wide landscape those clusters were learned from a subset of.
+
+**Both matrices need GISTIC**, on the DRAGEN .seg — the recipe is runbooks/gistic.md. Until
+data/gistic/ is populated, every CNV/cascade section renders as scaffolding. If
+all_data_by_genes.txt is missing but all_thresholded.by_genes.txt is present, the report says
+so and falls back to drawing the clustering matrix, which is the old, non-faithful figure.
 
 **Computational steps.** (1) load_gistic_thresholded() reads GISTIC's
-all_thresholded.by_genes.txt and keeps only genes in the significant peaks. (2) The
-per-sample aneuploidy **score** (external, for the enrichment check only) is loaded
-separately (ASCETS if present, else the master). The clustering never sees the aneuploidy
-score — that keeps the enrichment plot non-circular.
+all_thresholded.by_genes.txt and keeps only genes in the significant peaks — the clustering
+feature. (2) load_gistic_continuous() reads all_data_by_genes.txt genome-wide with no peak
+filter and no integer coercion — the display feature. (3) The per-sample aneuploidy **score**
+(external, for the enrichment check only) is loaded separately (ASCETS if present, else the
+master). The clustering never sees the aneuploidy score — that keeps the enrichment plot
+non-circular, and the display matrix never enters the clustering either.
 
 ```{r cnv-load}
 cnv_mat    <- tryCatch(load_gistic_thresholded(), error = function(e) NULL)  # ID x peak-gene {-2..+2}
 cnv_source <- "GISTIC 2.0 thresholded peaks"
+
+# The Fig-1a DISPLAY matrix: genome-wide, continuous, same GISTIC run. Never clustered.
+disp_mat   <- tryCatch(load_gistic_continuous(), error = function(e) NULL)   # ID x gene, continuous
 
 # per-sample aneuploidy SCORE — used ONLY for the enrichment cross-check, not for clustering
 ascets_aneu <- tryCatch(load_ascets_aneuploidy(), error = function(e) NULL)
@@ -132,6 +153,14 @@ if (!have_cnv) {
 } else {
   cat("Clustering input:", cnv_source, "—", nrow(cnv_mat), "samples x",
       ncol(cnv_mat) - 1, "peak genes.\n")
+}
+if (!is.null(disp_mat)) {
+  cat("Fig-1a display input: GISTIC all_data_by_genes (continuous, genome-wide) —",
+      nrow(disp_mat), "samples x", ncol(disp_mat) - 1, "genes.\n")
+} else {
+  cat("Fig-1a display input: NOT AVAILABLE (no all_data_by_genes.txt under data/gistic/).",
+      "The heatmaps below fall back to the peak-restricted thresholded matrix, which is",
+      "genome-ORDERED but is not the paper's genome-wide continuous landscape.\n")
 }
 ```
 
@@ -151,6 +180,12 @@ What this gets right vs the old arm/bin proxies (now removed):
 - **Thresholded, not continuous** — {−2..+2} discretised calls, exactly S2.
 - **GISTIC significant peaks, not genome-wide** — the feature space is the recurrent
   amp/del peak genes (MYC 8q24, ERBB2 17q12, CCNE1 19q12, 1q, …), exactly S2.
+
+Both of those are properties of the **clustering**, and neither describes the **figure**. The
+heatmap body is the genome-wide continuous matrix (see the ingestion section): peak-restricted
+discretised values are the right thing to cluster and the wrong thing to draw, because Fig. 1a
+is a picture of the whole copy-number landscape. The clusters are still the peak-based ones —
+they set the column split — so nothing about the method moves.
 - **Residual differences from TCGA** — platform (DRAGEN WES .seg vs SNP 6.0), cohort
   (metastatic vs primary), N, and the unspecified CN metric/linkage (here **1 − Pearson /
   Ward.D2**, S2's mRNA/methylation choice; switch via cluster_arm_matrix(..., method=,
@@ -163,8 +198,11 @@ cnv_mat with cluster_arm_matrix(), taking k, method and distance from the config
 values in attend_classes.R — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
 mRNA/methylation choice). (2) Label the **copy-number-high**
 cluster by intrinsic SCNA burden = mean |thresholded value| per cluster
-(cnv_high_cluster_burden()), independent of the aneuploidy score. (3) Heatmap: peak
-genes (rows) × samples (columns by dendrogram), annotated by CN cluster, the **integrated
+(cnv_high_cluster_burden()), independent of the aneuploidy score — computed on the CLUSTERING
+matrix, so the burden rule never sees the genome-wide display values. (3) Heatmap: the
+genome-wide continuous matrix, genes (rows, ordered by chromosomal location) × samples
+(columns split by the peak-based clusters and ordered within each by dendrogram), annotated by
+CN cluster, the **integrated
 TCGA class** (POLE [no cases] > MMRd > CN-high > CN-low, from the add_tcga_class() cascade
 shown below — the same call, drawn here on the Fig-1a clustering), MMR, TP53, **and the
 per-sample aneuploidy score**. That aneuploidy bar is the external ASCETS aneuploidy value
@@ -251,26 +289,60 @@ if (!is.null(cl)) {
   if (!is.null(aneu_id))
     ann$Aneuploidy <- aneu_id$aneuploidy_value[match(ids, aneu_id$ID)]
 
-  # Feature positions: GISTIC genes -> cytoband (from the loader attribute).
-  fpos <- attr(cnv_mat, "feature_pos")
+  # THE DISPLAY MATRIX, which is not the clustering matrix. Fig. 1a shows the whole genome on
+  # a continuous scale; the clustering ran on peak-restricted {-2..+2} calls. Prefer the
+  # genome-wide continuous matrix and fall back to the clustering matrix only if GISTIC's
+  # all_data_by_genes.txt is absent — in which case the figure is the old, non-faithful one and
+  # hm_label says so on the page rather than leaving the reader to guess.
+  to_sample_matrix <- function(tb) {
+    m <- as.matrix(tb[, setdiff(names(tb), "ID"), drop = FALSE])
+    rownames(m) <- tb$ID
+    m
+  }
+  hm_mat <- NULL
+  if (!is.null(disp_mat)) {
+    dm <- to_sample_matrix(disp_mat)
+    dm <- dm[rownames(dm) %in% names(cl$cluster), , drop = FALSE]   # only clustered tumours
+    if (nrow(dm) >= 2) hm_mat <- dm else
+      cat("all_data_by_genes.txt shares", nrow(dm), "samples with the clustering —",
+          "falling back to the thresholded matrix.\n")
+  }
+  if (!is.null(hm_mat)) {
+    hm_src   <- disp_mat
+    hm_vtype <- "continuous"
+    hm_label <- "genome-wide continuous SCNA (all_data_by_genes) — the Fig-1a display"
+  } else {
+    hm_mat   <- cl$matrix
+    hm_src   <- cnv_mat
+    hm_vtype <- "thresholded"
+    hm_label <- "FALLBACK: peak-restricted thresholded calls (no all_data_by_genes.txt)"
+  }
+
+  # Feature positions: GISTIC genes -> cytoband, from whichever matrix is being DISPLAYED.
+  # Taking it from the display matrix matters: the two files carry different gene sets, and
+  # cytoband keys looked up from the wrong one resolve to nothing and drop every row.
+  fpos <- attr(hm_src, "feature_pos")
   cyto <- if (!is.null(fpos)) setNames(fpos$cytoband, fpos$feature) else NULL
-  feat_pos <- feature_positions(colnames(cl$matrix), cytoband = cyto)
+  feat_pos <- feature_positions(colnames(hm_mat), cytoband = cyto)
 
   # WHY-IS-THERE-NO-HEATMAP gate. fig1a_heatmap() returns invisible(NULL) on four different
   # conditions, each announced only with message() — which opts_chunk (message = FALSE)
   # swallows, so the figure just silently fails to appear. Print the preconditions instead:
   # whichever line below reads FALSE / 0 is the reason the heatmap is missing.
   cat("Fig-1a heatmap preconditions",
+      "\n  displaying               :", hm_label,
       "\n  ComplexHeatmap installed :", requireNamespace("ComplexHeatmap", quietly = TRUE),
       "\n  circlize installed       :", requireNamespace("circlize", quietly = TRUE),
-      "\n  matrix (samples x peaks) :", nrow(cl$matrix), "x", ncol(cl$matrix),
-      "\n  samples with a cluster   :", sum(rownames(cl$matrix) %in% names(cl$cluster)),
-      "\n  feature positions mapped :", sum(feat_pos$feature %in% colnames(cl$matrix)),
+      "\n  display (samples x feat) :", nrow(hm_mat), "x", ncol(hm_mat),
+      "\n  clustered on             :", nrow(cl$matrix), "samples x", ncol(cl$matrix), "peak genes",
+      "\n  samples with a cluster   :", sum(rownames(hm_mat) %in% names(cl$cluster)),
+      "\n  feature positions mapped :", sum(feat_pos$feature %in% colnames(hm_mat)),
       "\n  annotation bars          :", if (is.null(ann)) 0L else ncol(ann), "\n")
 
-  fig1a_heatmap(cl$matrix, feat_pos, cl$cluster, ann_col = ann,
-                value_type = "thresholded",
-                main = paste0("GISTIC thresholded peaks — TCGA Fig. 1a (Suppl. S2); cluster ",
+  fig1a_heatmap(hm_mat, feat_pos, cl$cluster, ann_col = ann,
+                value_type = hm_vtype,
+                main = paste0("TCGA Fig. 1a — SCNAs by tumour x chromosomal location; ",
+                              "columns split by the GISTIC-peak clusters (Suppl. S2), cluster ",
                               high_cluster, " = copy-number high"))
 } else {
   cat("CNV clustering skipped — run GISTIC so data/gistic/ exists (see bottom of report).\n")
@@ -283,7 +355,7 @@ if (!is.null(cl)) {
 This is the headline of this variant. The **Pearson/Ward dendrogram is computed once**, then
 **cut at every k from 2 to 8**. Because a single hierarchical tree is cut repeatedly, the
 partitions are **nested** (k = 8 is a refinement of k = 2), so they can share one figure:
-the GISTIC thresholded matrix is drawn once — peak genes (rows) grouped by chromosome,
+the display matrix is drawn once — genome-wide genes (rows) grouped by chromosome,
 tumours (columns) ordered by the **actual Pearson/Ward dendrogram** — with a **stack of
 cluster bars beneath, one per k**. Reading a column downward shows how that tumour's cluster
 label subdivides as k grows; reading a bar left-to-right shows the k-cluster partition
@@ -299,11 +371,15 @@ MMR, TP53, aneuploidy score) as the single-k Fig-1a heatmap above. (3) The avera
 silhouette across k (next chunk) is the quantitative companion to this visual sweep.
 
 ```{r cnv-ksweep, fig.height=9}
-if (!is.null(cl) && exists("feat_pos") && exists("ann")) {
-  fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
-                       value_type = "thresholded",
-                       main = paste0("GISTIC thresholded peaks (Pearson/Ward) — k = ",
-                                     min(k_sweep), "..", max(k_sweep), " cluster bars on one Fig-1a canvas"))
+if (!is.null(cl) && exists("hm_mat") && exists("feat_pos") && exists("ann")) {
+  # Same display matrix as the single-k panel, same peak-based dendrogram. ksweep intersects
+  # rownames(mat) with hc$labels itself, so the genome-wide matrix and the peak-learned tree
+  # line up without any extra handling here.
+  fig1a_heatmap_ksweep(hm_mat, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
+                       value_type = hm_vtype,
+                       main = paste0("Fig-1a canvas (", hm_label, ") — k = ",
+                                     min(k_sweep), "..", max(k_sweep),
+                                     " Pearson/Ward cluster bars"))
 } else cat("k-sweep heatmap skipped — need the Pearson/Ward clustering (run GISTIC first).\n")
 ```
 

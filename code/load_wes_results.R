@@ -835,6 +835,73 @@ load_gistic_thresholded <- function(cnv = attend_cnv) {
   load_gistic_thresholded_at(here("data", cnv$gistic$dir), cnv)
 }
 
+# --- GISTIC genome-wide CONTINUOUS matrix = TCGA's Fig-1a DISPLAY, not its clustering input --
+# THE DISTINCTION THIS EXISTS FOR. Kandoth et al. use TWO different matrices, and conflating
+# them is what made report 09's heatmap not the paper's heatmap:
+#
+#   CLUSTERING (Suppl. Methods S2) — "thresholded relative copy number data in significantly
+#     reoccurring amplifications or deletions regions identified by GISTIC 2.0", i.e.
+#     peak-restricted and discretised to {-2..+2}. That is load_gistic_thresholded(), and it
+#     stays exactly as it is: it is the faithful method and GISTIC is required for it.
+#
+#   FIGURE (Fig. 1a legend) — "SCNAs in each tumour (horizontal axis) plotted by chromosomal
+#     location (vertical axis)", i.e. the WHOLE GENOME on a CONTINUOUS colour scale.
+#
+# Plotting the clustering matrix gives a heatmap whose rows are a few hundred peak genes and
+# whose colour scale has five steps: genome-ordered, but not the genomic landscape, and not
+# continuous. This loader supplies the figure's matrix from the SAME GISTIC run — no .seg
+# re-processing and no second tool — so the report can cluster on peaks and display the
+# landscape, which is what the paper does.
+#
+# all_data_by_genes.txt has the same shape as all_thresholded.by_genes.txt (col 1 = Gene
+# Symbol, cols 2-3 = Gene ID / Cytoband, rest = samples) but carries CONTINUOUS copy number
+# and is NOT peak-restricted. Values are kept as doubles, never coerced to integer, and no
+# peak filter is applied — both would undo the point.
+#
+# Returns an ID x gene tibble with attr "feature_pos" = data.frame(feature, cytoband), the
+# same contract load_gistic_thresholded_at() has, so feature_positions(colnames(mat),
+# cytoband = ...) resolves rows to chromosome + band ordinal identically. NULL when the file
+# is absent, so a report falls back to the clustering matrix and still knits.
+load_gistic_continuous_at <- function(folder, cnv = attend_cnv) {
+  g <- cnv$gistic
+  if (!dir_exists(folder)) { message("load_gistic_continuous(): no folder ", folder); return(NULL) }
+  fd <- dir_ls(folder, recurse = TRUE, type = "file", glob = g$all_data_glob)
+  if (length(fd) == 0) {
+    message("load_gistic_continuous(): no ", g$all_data_glob, " under ", folder,
+            " — the Fig-1a display matrix is unavailable; the caller should fall back to the ",
+            "thresholded clustering matrix.")
+    return(NULL)
+  }
+  dat <- tryCatch(fread(fd[[1]], header = TRUE, sep = "\t", na.strings = c("", "NA")) |> as_tibble(),
+                  error = function(e) NULL)
+  if (is.null(dat) || ncol(dat) < 3) { message("load_gistic_continuous(): unreadable ", fd[[1]]); return(NULL) }
+
+  gene_col  <- names(dat)[1]
+  meta      <- names(dat)[2:3]
+  samp_cols <- setdiff(names(dat), c(gene_col, meta))
+  # guard against a trailing-tab phantom column (see load_gistic_lesions_at)
+  samp_cols <- samp_cols[!is.na(samp_cols) & nzchar(samp_cols)]
+  if (!length(samp_cols)) { message("load_gistic_continuous(): no sample columns in ", fd[[1]]); return(NULL) }
+
+  # as.numeric, NOT as.integer: these are continuous log2-ratio-like values and integer
+  # coercion would silently rebuild the discretised matrix this function exists to avoid.
+  m <- t(as.matrix(sapply(dat[samp_cols], function(x) suppressWarnings(as.numeric(x)))))
+  colnames(m) <- make.unique(as.character(dat[[gene_col]]))
+  fpos <- data.frame(feature  = make.unique(as.character(dat[[gene_col]])),
+                     cytoband = as.character(dat[[meta[2]]]),
+                     stringsAsFactors = FALSE)
+  message("load_gistic_continuous(): ", nrow(m), " samples x ", ncol(m),
+          " genes genome-wide (continuous) for the Fig-1a display.")
+  out <- tibble::as_tibble(m, rownames = "ID") |>
+    mutate(ID = str_remove(ID, cnv$seg$id_strip))
+  attr(out, "feature_pos") <- fpos
+  out
+}
+
+load_gistic_continuous <- function(cnv = attend_cnv) {
+  load_gistic_continuous_at(here("data", cnv$gistic$dir), cnv)
+}
+
 # Locate GISTIC2 output files under data/gistic/ for the report-07 FOCAL overlay
 # (paper-standard gene-level recurrent CNV, TCGA nature12113 style). Returns a named
 # list(all_lesions, amp_genes, del_genes, scores) of file paths (each NULL if absent), or

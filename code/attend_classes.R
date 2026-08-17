@@ -622,7 +622,17 @@ attend_cnv <- list(
     # copy number data in significantly reoccurring amp/del regions identified by GISTIC 2.0".
     # all_thresholded.by_genes.txt = genes x samples in {-2,-1,0,1,2}; we restrict it to
     # genes inside the significant peaks (amp_genes/del_genes) and cluster THAT.
-    all_thresholded_glob = "*all_thresholded*.txt"
+    all_thresholded_glob = "*all_thresholded*.txt",
+
+    # THE faithful TCGA *FIGURE* INPUT, which is a DIFFERENT MATRIX from the clustering one.
+    # Fig. 1a is "SCNAs in each tumour (horizontal axis) plotted by chromosomal location
+    # (vertical axis)" — the whole genome, on a continuous colour scale. The clustering input
+    # above is neither: it is peak-restricted (most of the genome is absent) and discretised
+    # to five values. Plotting the clustering matrix is what made report 09's heatmap not the
+    # paper's heatmap. all_data_by_genes.txt is the same GISTIC run's genome-wide CONTINUOUS
+    # copy number per gene, with the Cytoband column that places each row on the genome.
+    # Cluster on the peaks, DISPLAY this — exactly as the paper does.
+    all_data_glob = "*all_data_by_genes*.txt"
   ),
 
   # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 06): an arm must be
