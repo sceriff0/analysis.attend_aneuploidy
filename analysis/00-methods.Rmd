@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 0. Methods"
+title: "ATTEND — 00. Methods"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html
@@ -27,6 +27,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 5)
 
 source(here("code", "attend_classes.R"))     # attend_tmb_*, ancestry_by_pid(), nassar helpers
+source(here("code", "attend_plots.R"))       # attend_theme(), attend_box(), the shared palette
 source(here("code", "attend_io.R"))          # read_intermediate()
 source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "load_clinical.R"))      # load_gianlu_clinical_data()
@@ -46,15 +47,38 @@ master <- get_master() |> add_molecular_classes()
 have_master <- !is.null(master)
 ```
 
-## Copy-number clustering — why 1 − Pearson distance with Ward.D2 linkage
+## Copy-number clustering — why Euclidean distance with Ward.D2 linkage
 
 Kandoth et al. (*Nature* 2013) Suppl. Methods S2 names no metric or linkage for the
-*copy-number* clustering, though it names 1 − Pearson / Ward for its mRNA and methylation
-clusterings. This pipeline applies that same pair to the copy-number matrix, set via
-cnv_method / cnv_dist in attend_classes.R and passed to cluster_arm_matrix(). It is the only distance/linkage combination the pipeline uses.
+*copy-number* clustering. It does name 1 − Pearson / Ward for its **mRNA and methylation**
+clusterings, and this pipeline previously borrowed that pair on those grounds. That borrowing
+was wrong, and the reason is a property of copy-number data rather than a matter of taste.
 
-Euclidean with complete linkage is the obvious alternative. Comparing the two shows how
-sensitive the copy-number groups are to a metric choice the source paper never fixed.
+**Correlation distance is undefined for a flat profile.** A copy-number-quiet tumour has no
+alteration at any significant peak, so its profile has zero variance and its correlation with
+every other sample is undefined; `cluster_arm_matrix()` has to drop such samples rather than
+invent a distance for them. TCGA's own published cluster 1 **is** the quiet cluster — mean
+|log2| 0.0043, against 0.216 for cluster 4 — so a correlation metric discards most of the one
+cluster it would most need to recover, and the heatmap loses the large pale block the paper's
+Fig. 1a plainly has.
+
+Measured on TCGA UCEC 2013, whose answer is published — 365 tumours, TCGA's own hg19 segments
+and 79 published peaks, both partitions burden-ordered and scored against `CNA_CLUSTER_K4`:
+
+| distance | clustered | published cluster 1 retained | ARI | diagonal |
+|---|---|---|---|---|
+| 1 − Pearson | 281 / 365 | 7 of 86 | 0.222 | 41.1% |
+| **Euclidean** | **365 / 365** | **86 of 86** | **0.423** | **64.7%** |
+
+Euclidean loses no tumours, recovers the quiet cluster completely, nearly doubles the adjusted
+Rand index, and separates TCGA's serous-like group cleanly (published cluster 4 → recomputed
+cluster 4 at 79/93, with no leakage into clusters 1–3). Under Euclidean a flat sample is not
+undefined; it sits near the origin, which is the correct geometry for "no alteration".
+
+So the pair is **Euclidean + Ward.D2**, set via cnv_method / cnv_dist in attend_classes.R and
+passed to cluster_arm_matrix(). It remains the only distance/linkage combination the pipeline
+uses. [10-tcga2013-fig1a](10-tcga2013-fig1a.html) re-runs the comparison above on every knit,
+so this is a claim the site keeps checking rather than one it asserts once.
 
 ## How the serous-like cluster is chosen, and why it is directional
 
@@ -89,17 +113,41 @@ addition. Read it once; the reports themselves carry only their own derivations.
 ### The clustering
 
 *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
-hierarchical clustering. *Differs:* DRAGEN WES .seg rather than SNP6; 1 − Pearson /
+hierarchical clustering. *Differs:* DRAGEN WES .seg rather than SNP6; Euclidean /
 Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
 cascade reads a single cut (k_cnv in attend_classes.R), while the k-sweep heatmap
 shows a range of cuts around it; and the integrated-class and aneuploidy-score annotation
 bars are ATTEND additions, not Fig. 1a elements.
 
+### The heatmap — a different matrix from the clustering
+
+*Follows:* the Fig. 1a legend exactly. TCGA describe the figure as *"SCNAs in each tumour
+(horizontal axis) plotted by chromosomal location (vertical axis)"* — the **whole genome**,
+on a **continuous** colour scale. That is not the matrix they clustered, and the paper does
+not claim it is: Suppl. Methods S2 clusters **thresholded** copy number **restricted to
+significant peaks**. Two matrices, one figure, both from the same GISTIC run.
+
+So report 09 clusters `all_thresholded.by_genes.txt` inside the significant peaks
+(`load_gistic_thresholded()`) and **draws** `all_data_by_genes.txt` genome-wide and
+continuous (`load_gistic_continuous()`), with the columns split and coloured by the
+peak-based clusters. Drawing the clustering matrix instead — which is what this report used
+to do — yields a few hundred peak genes on a five-step colour scale: genome-*ordered*, but
+not the genomic landscape, and not continuous. The clustering is unchanged by this, and
+GISTIC is still required, because the clustering feature is still TCGA's.
+
+The rule generalises past this report: **the matrix that answers a question and the matrix
+that shows it need not be the same matrix**, and forcing them to be the same is what made
+this figure wrong. What must be shared is the *partition* — the clusters drawn are the
+clusters computed, never a re-clustering of the display values.
+
+*Differs:* nothing in kind; the display genes are ATTEND's own GISTIC output rather than
+SNP6 probes, so the vertical resolution is gene-level by cytoband rather than probe-level.
+
 ### The k-sweep
 
 TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it exposes the
 whole cut spectrum on the Fig-1a canvas so the k = 4 parity cut used by the cascade can be
-judged against its neighbours, under the Pearson/Ward metric.
+judged against its neighbours, under the Euclidean/Ward metric.
 
 ### The aneuploidy-enrichment cross-check
 
@@ -147,7 +195,8 @@ never silently picks one:
 Two further columns, tmb__TMB_robust and tmb__TMB_matched, exist on the master because
 the recalibration is fitted on top of robust. They are intermediates: tmb_defs_present()
 cannot return them, so no figure can show them. How the recalibration works is in
-[00-methods](00-methods.html).
+[How the Nassar et al. recalibration actually works](#how-the-nassar-et-al-recalibration-actually-works),
+below.
 
 Every definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
 tmb_class_of(), so panels that differ only in definition differ only in who crossed the
@@ -258,14 +307,18 @@ if (have_master && length(tmb_recomp) >= 2) {
 
   print(
     ggplot(long, aes(def, tmb)) +
-      geom_boxplot(outlier.shape = NA, fill = "#FDBF6F", width = 0.6) +
+      # Deliberately NOT attend_box(): this is a paired design — each point must sit at the
+      # same x as its patient's connecting line, so the points cannot be jittered. Every
+      # definition is measured on the whole cohort, so the box is supported at any n.
+      geom_boxplot(outlier.shape = NA, fill = attend_neutral, width = 0.6) +
       geom_line(aes(group = pid), alpha = 0.15) +
       geom_point(size = 0.7, alpha = 0.4) +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey40") +
       labs(title = "Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions",
-           subtitle = "lines connect the same patient; dashed = TMB-high cutoff",
+           subtitle = paste0("lines connect the same patient; dashed = TMB-high cutoff; n = ",
+                             dplyr::n_distinct(long$pid), " patients"),
            x = "TMB definition", y = "TMB (mut/Mb)") +
-      theme_minimal(base_size = 12)
+      attend_theme()
   )
 
   # How many patients are TMB-high under each definition (the reclassification).
@@ -307,14 +360,15 @@ if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master
     filter(!is.na(removed))
   if (nrow(g) > 0) {
     ggplot(g, aes(subpop, removed)) +
-      geom_boxplot(outlier.shape = NA, fill = "#CAB2D6") +
-      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      # Sub-populations are the smallest groups in the pipeline — the note above says group
+      # sizes here "can be much smaller than the cohort" — so the mark is chosen per group.
+      attend_box(g, x = "subpop", y = "removed") +
       geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
       labs(title = "TMB removed by the ancestry correction, by ancestry",
-           subtitle = "TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed",
+           subtitle = "TMB (normal) - TMB (ancestry corrected); larger = more germline contamination removed",
            x = "gnomAD sub-population (from self-reported ancestry)",
-           y = "mut/Mb removed") +
-      theme_minimal(base_size = 12)
+           y = "TMB removed (mut/Mb)") +
+      attend_theme()
   } else message("No patients with both TMB definitions and a mapped ancestry.")
 } else {
   message("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
@@ -425,7 +479,7 @@ if (have_master && all(need %in% names(master)) && !is.null(anc)) {
                                if (nc$identity) " | recalibration coefficients are identity, so this is the germline filter alone" else ""),
              x = "TMB (normal), mut/Mb", y = "TMB (ancestry corrected), mut/Mb",
              colour = NULL) +
-        theme_minimal(base_size = 12)
+        attend_theme()
     )
     reclass_n <- eff |> group_by(group) |>
       summarise(n = n(),
@@ -476,15 +530,30 @@ configured constant, not a cohort quantile, so it does not move when the cohort 
 Patients without an ASCETS score are NA and are dropped from class comparisons.
 
 ## Highlighted patients
-Two overlay groups are drawn on top of the base colouring by highlight_points(), which
+One overlay group is drawn on top of the base colouring by highlight_points(), which
 partitions the data so no patient is plotted twice:
 
-- **polipo** — sample 21S188, in magenta.
-- **cohort** — the multi-modal subset, in gold: patients who also have IHC or imaging
-  data, and so appear in the concordance and composition reports.
+- **polipo** — sample 21S188, in blue (`#0077BB`).
 
-polipo is declared first in attend_highlight, and matching is first-match-wins, so
-21S188 is never absorbed into cohort.
+It is drawn on **every** report that plots per-patient points, with no per-report opt-out.
+Marking one sample is only useful if a reader can locate it in each distribution it appears
+in; a report that quietly omits it looks identical on the page to one that never carried it.
+
+The overlay colour is the one hue in the palette that no semantic scale may claim, because
+highlight points are drawn *on top of* boxes filled with the MMR, aneuploidy, TP53 and
+response colours — a highlight sharing a hex is invisible on exactly the box it exists to
+mark.
+
+`21S188` is a sequencing **barcode**, while most figures are built from the master and keyed
+on `pid`. The configured ids are therefore expanded through the barcode→pid and image→pid
+crosswalks before matching, so the overlay resolves in every id space. Before that
+resolution existed the match failed silently and the mark simply did not appear.
+
+A second group, **cohort** (the multi-modal subset with IHC or imaging data, in yellow), was
+retired. It covered roughly 16 of ~40 patients, so it read as a second competing fill rather
+than as a mark, and it encoded **data availability** — which the master already carries as
+its `in_*` membership columns and [01-data-integration](01-data-integration.html) already
+draws as a set diagram.
 
 ## What "MMR-deficient only" means
 The cohort restriction is is_mmrd(), which reads the **IHC** MMR call: loss of one or

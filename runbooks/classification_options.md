@@ -13,7 +13,7 @@ Ordered by effort-to-payoff:
    Suppl. S2 exactly. The **ASCETS** aneuploidy score (`data/ascets/`) is still consumed as
    an **independent** per-sample aneuploidy value for the enrichment cross-check; it does
    not enter the clustering.
-2. **Metric/linkage — this variant uses 1 − Pearson / Ward.D2.** S2 leaves the CN
+2. **Metric/linkage — this variant uses Euclidean / Ward.D2.** S2 leaves the CN
    metric/linkage unstated; report 08 applies the mRNA/methylation pair (`cnv_dist =
    "correlation"`, `cnv_method = "ward.D2"`). The k = 2..8 sweep and the
    silhouette-vs-k panel make the cut choice inspectable; compare against base 09 (Euclidean/complete) for robustness.

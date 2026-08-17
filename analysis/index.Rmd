@@ -20,7 +20,7 @@ is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
 reads, and what it deliberately leaves to another report. They are numbered in reading
-order, 00 to 08.
+order, 00 to 10.
 
 **[00 — Methods](00-methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
@@ -69,9 +69,15 @@ alternatives — live in runbooks/.
 
 - **[09 — TCGA integrated classification](09-tcga-classification.html)** · all patients
   Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
-  thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
+  thresholded peaks with Euclidean distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
   printed alongside and [DISAGREE] flagged when they differ.
+- **[10 — TCGA UCEC 2013, Fig. 1a on TCGA's own data](10-tcga2013-fig1a.html)** · TCGA UCEC 2013
+  Report 09's figure, built the same way, on the cohort where **the right answer is
+  published**. Clusters TCGA's own published GISTIC peaks — no parameter guess, no GISTIC run,
+  no liftover — and scores the recomputed partition against `CNA_CLUSTER_K4` with an adjusted
+  Rand index. Also draws what the 2013 paper could not: aneuploidy against its four SCNA
+  clusters, since that score is retrofitted from PanCancer-Atlas.
 
 ### Conventions
 
@@ -92,7 +98,8 @@ checks every chunk parses. Both are base R, so they run without tidyverse or the
 - code/attend_harmonise.R — ID spaces, the two crosswalks, the collapse-to-patient rule.
 - code/attend_classes.R — column names (attend_cols), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
-- code/attend_plots.R — shared palettes, attend_theme(), the highlight overlay.
+- code/attend_plots.R — the one palette (Tol vibrant), attend_theme(), attend_box(),
+  and the highlight overlay with its crosswalk-aware id resolution.
 - code/attend_ihc.R — FlowPath IHC metric definitions (reports 02, 04, 05, 06).
 - code/attend_scna.R — GISTIC peak union, panel score, permutation and LOO stability.
 - code/attend_bimodality.R — tmb_long(), tmb_battery(), and the bimodality measures.

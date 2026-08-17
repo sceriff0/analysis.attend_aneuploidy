@@ -1,7 +1,7 @@
 # =============================================================================
 # load_wes_results.R  —  WES-DERIVED GENOMIC LOADERS
 #
-# Sourced by report 01, 31, 33, 34, 35, 40 and 41. All tables are keyed in BARCODE space and
+# Sourced via code/build_master.R, so every report sees it. All tables are keyed in BARCODE space and
 # mapped to pid via the barcode crosswalk. The barcode-suffix stripping below
 # (`-1TAD104`, `_tumor_only`) normalises the sequencing IDs back to the bare
 # barcode that the gianlu crosswalk (TUMOR_BARCODE) uses.
@@ -97,12 +97,32 @@ process_maf <- function(maf_path) {
 
 # Combine every per-sample MAF into the wide table (ID + <GENE>_status columns).
 # On the cluster the .maf files live in `variant_annotation`; sync them into
-# data/variant_annotations/ (or repoint maf_folder) before running.
+# data/variant_annotations/ (or repoint maf_dir()) before running.
+#
+# One accessor and one predicate, because THREE loaders read this folder
+# (load_maf_data, load_maf_long, load_maf_tmb) and a report has to be able to ask
+# "is the MAF here?" without reading 247 files to find out. Only load_maf_tmb() used
+# to guard the folder; the other two called dir_ls() on it unconditionally, so a
+# checkout without data/variant_annotations/ killed the knit inside the loader
+# instead of degrading to the skeleton every other absent input degrades to.
+maf_dir <- function() here("data", "variant_annotations")
+
+# TRUE only if the folder exists AND holds at least one file. An existing-but-empty
+# folder is the case a bare dir_exists() misses: dir_ls() returns character(0),
+# list_rbind() returns a 0-row tibble, and maftools::read.maf() then fails on a table
+# with no columns — far from where the real problem is.
+has_maf_data <- function() {
+  d <- maf_dir()
+  dir_exists(d) && length(dir_ls(d, type = "file")) > 0
+}
+
 load_maf_data <- function() {
-  maf_folder <- here("data", "variant_annotations")
+  if (!has_maf_data()) {
+    message("load_maf_data(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
+  }
   # All files in the folder are treated as MAFs (original behaviour). If the dir
   # mixes in non-MAF files, add a glob (e.g. glob = "*.maf") to dir_ls().
-  dir_ls(maf_folder) |>
+  dir_ls(maf_dir(), type = "file") |>
     map(process_maf) |>
     list_rbind()
 }
@@ -126,8 +146,10 @@ read_one_maf_long <- function(maf_path) {
 }
 
 load_maf_long <- function() {
-  here("data", "variant_annotations") |>
-    dir_ls() |>
+  if (!has_maf_data()) {
+    message("load_maf_long(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
+  }
+  dir_ls(maf_dir(), type = "file") |>
     map(read_one_maf_long) |>
     list_rbind()
 }
@@ -146,11 +168,10 @@ maf_tmb_cols <- c(
 )
 
 load_maf_tmb <- function() {
-  folder <- here("data", "variant_annotations")
-  if (!dir_exists(folder)) {
-    message("load_maf_tmb(): no folder ", folder, " — returning empty."); return(tibble())
+  if (!has_maf_data()) {
+    message("load_maf_tmb(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
   }
-  dir_ls(folder) |>
+  dir_ls(maf_dir(), type = "file") |>
     map(function(p) {
       id <- str_remove(path_ext_remove(path_file(p)), "-1TAD104")
       fread(p, skip = "Hugo_Symbol", sep = "\t", header = TRUE, quote = "",
@@ -410,6 +431,10 @@ load_tcga_ucec_2013 <- function(ref = attend_tcga_ref_2013) {
     subtype_short   = factor(unname(ref$subtype_short[subtype]),
                              levels = unname(ref$subtype_short)),
     cn_cluster_k4   = factor(as.character(g(ref$cluster_col)), levels = as.character(1:4)),
+    # TRUE for TCGA's 232-sample multiplatform core set. The integrated SUBTYPE exists for
+    # exactly these samples and for no others, so this is the honest way to restrict to the
+    # classified cohort — see the comment on core_col in attend_classes.R.
+    core_sample     = toupper(trimws(as.character(g(ref$core_col)))) %in% c("Y", "YES", "TRUE", "1"),
     mmrd            = mmrd_val,
     pole            = pole_val,          # POLE-ultramutated; excluded from mmrd by the cascade
     msi_call        = msi,
@@ -833,6 +858,73 @@ load_gistic_thresholded_at <- function(folder, cnv = attend_cnv) {
 
 load_gistic_thresholded <- function(cnv = attend_cnv) {
   load_gistic_thresholded_at(here("data", cnv$gistic$dir), cnv)
+}
+
+# --- GISTIC genome-wide CONTINUOUS matrix = TCGA's Fig-1a DISPLAY, not its clustering input --
+# THE DISTINCTION THIS EXISTS FOR. Kandoth et al. use TWO different matrices, and conflating
+# them is what made report 09's heatmap not the paper's heatmap:
+#
+#   CLUSTERING (Suppl. Methods S2) — "thresholded relative copy number data in significantly
+#     reoccurring amplifications or deletions regions identified by GISTIC 2.0", i.e.
+#     peak-restricted and discretised to {-2..+2}. That is load_gistic_thresholded(), and it
+#     stays exactly as it is: it is the faithful method and GISTIC is required for it.
+#
+#   FIGURE (Fig. 1a legend) — "SCNAs in each tumour (horizontal axis) plotted by chromosomal
+#     location (vertical axis)", i.e. the WHOLE GENOME on a CONTINUOUS colour scale.
+#
+# Plotting the clustering matrix gives a heatmap whose rows are a few hundred peak genes and
+# whose colour scale has five steps: genome-ordered, but not the genomic landscape, and not
+# continuous. This loader supplies the figure's matrix from the SAME GISTIC run — no .seg
+# re-processing and no second tool — so the report can cluster on peaks and display the
+# landscape, which is what the paper does.
+#
+# all_data_by_genes.txt has the same shape as all_thresholded.by_genes.txt (col 1 = Gene
+# Symbol, cols 2-3 = Gene ID / Cytoband, rest = samples) but carries CONTINUOUS copy number
+# and is NOT peak-restricted. Values are kept as doubles, never coerced to integer, and no
+# peak filter is applied — both would undo the point.
+#
+# Returns an ID x gene tibble with attr "feature_pos" = data.frame(feature, cytoband), the
+# same contract load_gistic_thresholded_at() has, so feature_positions(colnames(mat),
+# cytoband = ...) resolves rows to chromosome + band ordinal identically. NULL when the file
+# is absent, so a report falls back to the clustering matrix and still knits.
+load_gistic_continuous_at <- function(folder, cnv = attend_cnv) {
+  g <- cnv$gistic
+  if (!dir_exists(folder)) { message("load_gistic_continuous(): no folder ", folder); return(NULL) }
+  fd <- dir_ls(folder, recurse = TRUE, type = "file", glob = g$all_data_glob)
+  if (length(fd) == 0) {
+    message("load_gistic_continuous(): no ", g$all_data_glob, " under ", folder,
+            " — the Fig-1a display matrix is unavailable; the caller should fall back to the ",
+            "thresholded clustering matrix.")
+    return(NULL)
+  }
+  dat <- tryCatch(fread(fd[[1]], header = TRUE, sep = "\t", na.strings = c("", "NA")) |> as_tibble(),
+                  error = function(e) NULL)
+  if (is.null(dat) || ncol(dat) < 3) { message("load_gistic_continuous(): unreadable ", fd[[1]]); return(NULL) }
+
+  gene_col  <- names(dat)[1]
+  meta      <- names(dat)[2:3]
+  samp_cols <- setdiff(names(dat), c(gene_col, meta))
+  # guard against a trailing-tab phantom column (see load_gistic_lesions_at)
+  samp_cols <- samp_cols[!is.na(samp_cols) & nzchar(samp_cols)]
+  if (!length(samp_cols)) { message("load_gistic_continuous(): no sample columns in ", fd[[1]]); return(NULL) }
+
+  # as.numeric, NOT as.integer: these are continuous log2-ratio-like values and integer
+  # coercion would silently rebuild the discretised matrix this function exists to avoid.
+  m <- t(as.matrix(sapply(dat[samp_cols], function(x) suppressWarnings(as.numeric(x)))))
+  colnames(m) <- make.unique(as.character(dat[[gene_col]]))
+  fpos <- data.frame(feature  = make.unique(as.character(dat[[gene_col]])),
+                     cytoband = as.character(dat[[meta[2]]]),
+                     stringsAsFactors = FALSE)
+  message("load_gistic_continuous(): ", nrow(m), " samples x ", ncol(m),
+          " genes genome-wide (continuous) for the Fig-1a display.")
+  out <- tibble::as_tibble(m, rownames = "ID") |>
+    mutate(ID = str_remove(ID, cnv$seg$id_strip))
+  attr(out, "feature_pos") <- fpos
+  out
+}
+
+load_gistic_continuous <- function(cnv = attend_cnv) {
+  load_gistic_continuous_at(here("data", cnv$gistic$dir), cnv)
 }
 
 # Locate GISTIC2 output files under data/gistic/ for the report-07 FOCAL overlay

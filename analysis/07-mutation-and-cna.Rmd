@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 33. Mutation landscape and copy number"
+title: "ATTEND — 07. Mutation landscape and copy number"
 author: "sceriff0"
 date: "2026-08-13"
 output: workflowr::wflow_html
@@ -25,7 +25,13 @@ source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg(
 source(here("code", "attend_scna.R"))        # peak union, panel score, LOO stability
 source(here("code", "attend_plots.R"))       # scna_mirror_plot(), panel_score_plot(), attend_theme()
 
+# Two INDEPENDENT preconditions for the oncoplots, kept apart on purpose. A single
+# MAFTOOLS_OK gate reported "maftools is not installed" whichever one failed, so a
+# missing data/variant_annotations/ sync was misdiagnosed as a missing package — and
+# with maftools present but the folder absent the knit died inside the loader instead.
 MAFTOOLS_OK <- requireNamespace("maftools", quietly = TRUE)
+MAF_DATA_OK <- has_maf_data()                    # code/load_wes_results.R
+ONCO_OK     <- MAFTOOLS_OK && MAF_DATA_OK
 master <- get_master() |> add_molecular_classes() |> add_scna_group()
 n_mmrd_high <- sum(master$scna_group == "MMRd-high", na.rm = TRUE)
 ```
@@ -41,9 +47,19 @@ Three resolutions of one question, coarsest last. Plot conventions follow TCGA U
 significance testing** — GISTIC 2.0 q-values are the field's standard for recurrence
 significance and are not applied to these figures.
 
-```{r maftools-missing, eval=!MAFTOOLS_OK, echo=FALSE, results='asis'}
-cat('`maftools` is not installed, so the oncoplots are skipped. Install with',
-    '`renv::install("bioc::maftools")` and re-knit. The copy-number parts do not need it.\n')
+```{r maftools-missing, eval=!ONCO_OK, echo=FALSE, results='asis'}
+cat("### Part 1 is not in this build\n\n",
+    "Everything in Part 1 needs both `maftools` **and** the per-sample MAFs. ",
+    "What is missing here:\n\n", sep = "")
+if (!MAFTOOLS_OK)
+  cat("- **`maftools` is not installed.** `renv::install(\"bioc::maftools\")`, ",
+      "then `renv::snapshot()`.\n", sep = "")
+if (!MAF_DATA_OK)
+  cat("- **No MAFs in `", maf_dir(), "`.** Sync them from the cluster ",
+      "(`/hpcnfs/scratch/P_DIMA_ATTEND/.../variant_annotation`) into that folder.\n", sep = "")
+cat("\nParts 2 and 3 need neither and are built below. Every figure in Part 1 is ",
+    "skipped rather than drawn empty, so an absent input can never be read as ",
+    "an absent alteration.\n", sep = "")
 ```
 
 ## Part 1 — the mutation landscape
@@ -57,11 +73,6 @@ The oncoplot annotation carries exactly those two TMB tracks, so reading the two
 against each other shows directly whether the germline correction moves any patient across
 the TMB-high/low boundary.
 
-```{r maftools-missing-part1, eval=!MAFTOOLS_OK, echo=FALSE, results='asis'}
-cat('`maftools` is not installed, so the mutation plots below are skipped. Install with',
-    '`renv::install("bioc::maftools")` (Bioconductor 3.18) and re-knit.\n')
-```
-
 ### Building the annotated MAF
 
 Every per-sample MAF in data/variant_annotations/ is read into one object.
@@ -73,7 +84,7 @@ as maftools clinicalData so they can be drawn as annotation tracks.
 Watch the mapped-sample count printed at the end: samples that fail to map carry no
 covariates and will appear with blank annotation bars.
 
-```{r build-maf, eval=MAFTOOLS_OK}
+```{r build-maf, eval=ONCO_OK}
 cw       <- build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg())
 maf_long <- load_maf_long()
 
@@ -139,7 +150,7 @@ transition/transversion split, per-sample mutation burden, and the most frequent
 mutated genes. This is the descriptive baseline — read it before the oncoplot to know
 which variant classes dominate, since that drives what the oncoplot colours show.
 
-```{r maf-summary, eval=MAFTOOLS_OK}
+```{r maf-summary, eval=ONCO_OK}
 maftools::plotmafSummary(maf, addStat = "median", dashboard = TRUE)
 ```
 
@@ -151,7 +162,7 @@ exclusive alterations form the characteristic staircase, the primary mutation-la
 layout readers expect from an OncoPrint. The annotation-sorted panel below answers a
 different question — where alterations concentrate within a covariate — not this one.
 
-```{r oncoplot-memo, eval=MAFTOOLS_OK, fig.height=9}
+```{r oncoplot-memo, eval=ONCO_OK, fig.height=9}
 covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
 maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
                    sortByAnnotation = FALSE, removeNonMutated = FALSE)
@@ -166,7 +177,7 @@ aneuploidy-high, or hypermutation concentrating in MMR-deficient, for example.
 removeNonMutated = FALSE keeps unmutated patients in the figure, so the percentages
 down the side are out of the **whole cohort**, not out of mutated patients only.
 
-```{r oncoplot, eval=MAFTOOLS_OK, fig.height=9}
+```{r oncoplot, eval=ONCO_OK, fig.height=9}
 covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
 maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
                    sortByAnnotation = TRUE, removeNonMutated = FALSE)
@@ -179,7 +190,7 @@ The same figure restricted to the genes this pipeline tracks by name: the **MMR 
 (`r paste(attend_gene_panel_wnt, collapse = ", ")`), and **TP53**. Genes absent from the
 MAF entirely are dropped by the intersection below rather than drawn as empty rows.
 
-```{r oncoplot-panel, eval=MAFTOOLS_OK}
+```{r oncoplot-panel, eval=ONCO_OK}
 panel_genes <- unique(c(attend_genes_per_gene, "TP53"))
 panel <- intersect(panel_genes, as.character(maftools::getGeneSummary(maf)$Hugo_Symbol))
 if (length(panel) > 0) {
@@ -209,7 +220,7 @@ min_mut patients are tested — testing a gene mutated once produces noise, not 
 Frequencies are *within-group*: the denominator is that subgroup's own patient count, so
 a small subgroup shows large jumps per patient. Group sizes are printed with the table.
 
-```{r mutfreq-groups, eval=MAFTOOLS_OK, fig.width=11, fig.height=7}
+```{r mutfreq-groups, eval=ONCO_OK, fig.width=11, fig.height=7}
 min_mut  <- 3    # a gene must be mutated in at least this many patients to be tested
 top_freq <- 25   # genes shown, ranked by overall mutation frequency
 
@@ -269,8 +280,8 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
          subtitle = paste0("Fisher across subgroups, BH-adjusted across ",
                            nrow(fdr_tbl), " genes; * = FDR < 0.05. ",
                            "Frequencies are within-subgroup."),
-         x = NULL, y = "patients mutated", fill = NULL) +
-    theme_minimal(base_size = 11) +
+         x = NULL, y = "Patients mutated (% of subgroup)", fill = NULL) +
+    attend_theme() +
     theme(legend.position = "top"))
 
   print(knitr::kable(fdr_tbl |> arrange(fdr) |> mutate(across(c(p, fdr), ~ signif(.x, 3))),
@@ -298,8 +309,8 @@ reduced denominator is visible rather than hidden. The bars below show the
 `r attend_cnv$arm_calls$n_barplot` most-altered *eligible* arms out of roughly 44 in the
 genome — not every arm — where eligible means evaluable in at least
 `r 100 * attend_cnv$arm_calls$min_evaluable_frac`% of samples, the identical rule
-top_arms applies to the arm annotation tracks on the oncoplots in
-[07-mutation-and-cna](07-mutation-and-cna.html), so neither figure can rank a
+top_arms applies to the arm annotation tracks on the oncoplots in Part 1
+above, so neither figure can rank a
 poorly-covered arm ahead of a well-covered one. An uncallable arm's CNV_<arm> value on
 those oncoplots is NA, not "neutral": missing data is not evidence of no alteration.
 
@@ -332,7 +343,8 @@ if (is.null(arm_freq)) {
     geom_col(width = 0.8) +
     geom_hline(yintercept = 0, colour = "grey40", linewidth = 0.3) +
     coord_flip() +
-    scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
+    scale_fill_manual(values = c(gain = unname(ATTEND_PALETTE["red"]),
+                                 loss = unname(ATTEND_PALETTE["blue"]))) +
     scale_x_discrete(labels = arm_labels) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
     labs(title = "Recurrent arm-level SCNAs across the cohort",
@@ -409,7 +421,8 @@ if (is.null(pile)) {
     geom_vline(data = centromeres, aes(xintercept = gpos), colour = "grey60",
               linewidth = 0.3, linetype = "dashed") +
     facet_grid(tier ~ ., scales = "free_y") +
-    scale_fill_manual(values = c(gain = "firebrick", loss = "steelblue")) +
+    scale_fill_manual(values = c(gain = unname(ATTEND_PALETTE["red"]),
+                                 loss = unname(ATTEND_PALETTE["blue"]))) +
     scale_x_continuous(breaks = offs$mid, labels = str_remove(offs$chrom, "^chr"),
                        expand = c(0, 0)) +
     scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), "%")) +
@@ -443,8 +456,8 @@ through group_of_barcode(), built on the same crosswalk as everything else.
 
 The grouping variable scna_group composes is_mmrd() (IHC-based, MSI deliberately not a
 criterion) with aneuploidy_class at the pre-registered cut
-`r attend_thresholds$aneuploidy`, the same definition
-[07-mutation-and-cna](07-mutation-and-cna.html)'s frequency comparison uses.
+`r attend_thresholds$aneuploidy`, the same definition Part 1's
+frequency comparison uses.
 
 ```{r scna-gate}
 have_master <- exists("master") && !is.null(master) && nrow(master) > 0
@@ -510,11 +523,41 @@ peak has the power to show a difference, and testing hundreds of peaks in a grou
 small produces false positives, not findings. A single composite score over a *fixed,
 externally-specified* set of loci concentrates the evidence into one test.
 
-**Pre-specification is what makes this confirmatory.** The 12-locus panel
-(attend_scna$panel) is fixed *a priori* from the TCGA UCEC recurrent-peak list
-(Kandoth et al. 2013). No locus was added, removed, or re-directioned after looking at
-ATTEND's own GISTIC output. Each locus is **directional** — a deletion at *MYC* does not
-count as serous-like — matched by match_panel_peaks().
+**What the panel is.** The 12 loci (attend_scna$panel) are fixed *a priori* from the
+TCGA UCEC recurrent-peak list (Kandoth et al. 2013). No locus was added, removed, or
+re-directioned after looking at ATTEND's own GISTIC output. Each locus is
+**directional** — a deletion at *MYC* does not count as serous-like — matched by
+match_panel_peaks().
+
+**Why the panel is fixed in advance, and what that costs.** A data-driven panel — the loci
+that best separate MMRd-high from MMRp-high *in ATTEND* — is a legitimate analysis, but it
+is not this one, and it cannot be tested the way this one is. Selecting loci uses the group
+labels, so the resulting score is no longer independent of those labels under the null;
+permuting the labels afterwards does not undo the selection, because the selection was made
+on the unpermuted labels. The permutation null then understates the variability actually
+present and the nominal p is not the type-I error rate (Kriegeskorte et al., *Nat Neurosci*
+2009, on circular analysis; the general problem is post-selection inference). At n ≈ 9
+against a few hundred candidate peaks, selection alone can manufacture near-complete
+separation from noise, so this is not a small correction.
+
+Three routes make a data-driven panel valid, and each is a different study: **hold-out**,
+where loci are chosen on one split and scored on an untouched one — impossible at this n;
+**selection nested inside the resampling**, where every permutation re-derives its own
+panel from scratch so the null absorbs the selection — valid here, and strictly less
+powerful than the fixed panel, because the null it builds is wider; or **a global test that
+selects nothing**, such as a permutational multivariate test across the whole peak matrix,
+which is data-driven in that it uses every locus but answers "is the profile different at
+all?" rather than "is it serous-like?".
+
+So pre-specification is not a claim to the better analysis. It buys one thing: a single
+nominal p that can be read at face value. It costs power against any difference the panel
+is not aimed at — if these tumours reach aneuploidy by a route TCGA's serous tumours do not
+use, a fixed serous panel is pointed the wrong way and returns a null result that means
+"not serous-like", never "not different". Choosing the fixed panel here is choosing to
+spend the little power n ≈ 9 affords on the one hypothesis that has external support,
+rather than to spread it across every peak or to buy apparent significance with selection.
+A data-driven panel found in these data would be reported as **hypothesis-generating**,
+alongside this test rather than in place of it.
 
 Loci with no matching pooled-run peak of the right direction **leave the denominator**
 rather than counting as unaltered, so the score is a fraction of *resolvable* loci.

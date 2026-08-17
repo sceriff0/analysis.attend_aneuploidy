@@ -51,6 +51,24 @@ load_raw_inputs <- function() {
   )
 }
 
+#' Feed the two crosswalks to the figure layer's highlight resolver.
+#'
+#' `attend_highlight` configures ids in whatever space the analyst knows a sample by —
+#' 21S188 is a sequencing barcode — while nearly every figure is built from the master, which
+#' is keyed on `pid` and carries no barcode column. Without this the overlay matched nothing
+#' and drew nothing, silently. Registering here (and again in get_master(), for the cached
+#' path) means every report gets a resolved highlight with no call-site change, for the same
+#' reason get_master() itself exists: shared behaviour belongs in a function, not in a
+#' build order.
+#'
+#' Guarded by exists() rather than by sourcing attend_plots.R: reports source the two files
+#' in either order, and this runs at CALL time, by which point both are in place. A report
+#' that never sources the figure layer simply has no highlight to resolve.
+.register_highlight <- function(cw_barcode_pid, cw_image_pid) {
+  if (!exists("register_highlight_xwalk", mode = "function")) return(invisible(0L))
+  register_highlight_xwalk(cw_barcode_pid, cw_image_pid)
+}
+
 #' The two crosswalks and the id -> pid translator, from already-loaded inputs.
 build_crosswalks <- function(raw) {
   id_cfg <- make_id_cfg()
@@ -60,6 +78,7 @@ build_crosswalks <- function(raw) {
   # maps to exactly ONE patient. Ambiguous keys are refused, never guessed — report 01's
   # recovery ledger shows precisely who is reclaimed and who is refused.
   pid_vector <- make_pid_vector(cw_barcode_pid, cw_image_pid, recover = TRUE)
+  .register_highlight(cw_barcode_pid, cw_image_pid)
   tables <- list(
     tmb = raw$tmb_data, msi = raw$msi_data, maf = raw$maf_data, hrd = raw$hrd_data,
     aneu = raw$aneu_data, gianlu = raw$gianlu_clinical_data,
@@ -147,7 +166,19 @@ build_master <- function(raw = NULL, cw = NULL, write = TRUE, verbose = FALSE) {
 get_master <- function(refresh = FALSE) {
   if (!refresh) {
     m <- tryCatch(read_intermediate("attend_master_joined"), error = function(e) NULL)
-    if (!is.null(m) && nrow(m) > 0) return(m)
+    if (!is.null(m) && nrow(m) > 0) {
+      # The cached path skips build_crosswalks() entirely, so the highlight resolver would
+      # stay empty and 21S188 would go unmatched on exactly the reports that are fastest to
+      # knit. build_master() writes every raw table beside the master, so the two crosswalks
+      # are cheap to rederive from disk — two small tables, no HPC read. Best-effort: a
+      # missing intermediate leaves the highlight on literal matching, as before.
+      tryCatch({
+        cfg <- make_id_cfg()
+        .register_highlight(build_barcode_pid(read_intermediate("gianlu_clinical_data"), cfg),
+                            build_image_pid(read_intermediate("imaging_data"), cfg))
+      }, error = function(e) invisible(NULL))
+      return(m)
+    }
   }
   message("master not found — building it now (code/build_master.R)")
   build_master(write = TRUE, verbose = FALSE)

@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 30. Survival"
+title: "ATTEND — 04. Survival"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html
@@ -25,6 +25,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 7)
 
 source(here("code", "attend_classes.R"))     # column config + km_facet() / surv_table()
+source(here("code", "attend_plots.R"))       # attend_theme() + the palette km_facet() draws with
 source(here("code", "attend_io.R"))          # read_intermediate() (Parquet/CSV)
 source(here("code", "build_master.R"))   # get_master() — builds on demand
 source(here("code", "attend_ihc.R"))         # ihc_patient_metrics(), for the immune split

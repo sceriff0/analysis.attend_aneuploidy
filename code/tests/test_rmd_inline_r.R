@@ -13,7 +13,11 @@
 # no report sources it.
 
 analysis_dir <- file.path("analysis")
-reports <- sort(list.files(analysis_dir, pattern = "^0[0-9][-_].*\\.Rmd$", full.names = TRUE))
+# TWO digits, not "^0[0-9]": the glob used to be ^0[0-9][-_] and a report numbered 10 or
+# above would have been SILENTLY UNCHECKED — no contract, no derivation notes, no line cap,
+# and this suite would still have printed OK. The hyphen rename already came close to
+# blinding this pattern once; widening it is cheaper than noticing the gap downstream.
+reports <- sort(list.files(analysis_dir, pattern = "^[0-9]{2}[-_].*\\.Rmd$", full.names = TRUE))
 stopifnot(length(reports) > 0)
 
 # Base/utility names that appear in inline expressions and are never assigned.

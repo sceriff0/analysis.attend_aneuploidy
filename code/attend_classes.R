@@ -77,35 +77,49 @@ attend_levels <- list(
   mmr_deficient = "Deficient"        # gianlu MMR_STATUS deficient label (verified; proficient = "Intact")
 )
 
-# --- Manual patient highlight (aneuploidy-by-cluster / -by-class plots) ------------
-# A place to flag SPECIFIC patients of interest with a SPECIFIC colour on the aneuploidy
-# boxplots (report 08). Each entry is a named subset: `ids` (patient `pid`s OR sequencing
-# barcodes — the plotter matches either) drawn on TOP of the boxplot in `color`, larger, so
-# the subset stands out from the cluster/class fill. Empty by default -> no-op / knit-safe.
+# --- Manual patient highlight (every per-patient point/box plot) -------------------
+# A place to flag SPECIFIC patients of interest with a SPECIFIC colour on top of any
+# per-patient figure. Each entry is a named subset: `ids` — patient `pid`s, sequencing
+# barcodes, OR image ids, all three resolved through the crosswalks (see below) — drawn on
+# TOP of the base layer in `color`, larger, so the subset stands out from the fill.
 # aneuploidy-HIGH tumours are ALREADY marked by point SHAPE (triangle); this is an
 # orthogonal manual override. Add groups like:
-#   attend_highlight$groups$responders <- list(ids = c("P07","P12"), color = "#F0E442")
+#   attend_highlight$groups$responders <- list(ids = c("P07","P12"), color = "#009988")
 #
-# TWO GROUPS, and they mean different things — both are spelled out in the reports:
+# ONE GROUP: `polipo`, the single sample 21S188, drawn in the palette's reserved blue.
+# It is highlighted on EVERY report that draws per-patient points, with NO per-report
+# opt-out. The point of marking one sample is that a reader can locate it in every
+# distribution it appears in; a figure that silently drops it is worse than one that never
+# carried it, because the reader cannot tell the difference. Reports 05 and 06 previously
+# wrapped highlight_points() to switch the overlay off — that is gone, deliberately.
 #
-#   polipo — the single sample 21S188, drawn magenta.
-#   cohort — the patients that HAVE IHC / IMAGING data, drawn gold. This is a
-#            data-availability group, not a biological one: it marks which points
-#            in a genomics figure also appear in the IHC + imaging report, so a
-#            reader can see whether the multi-modal subset sits anywhere unusual
-#            in the genomic distribution.
+# THERE IS NO `cohort` GROUP, and it must not come back as one. It marked the patients
+# holding IHC / imaging data in yellow, and it failed on both counts a highlight has to
+# meet. It covered roughly 16 of ~40 patients, so "highlighted" stopped meaning "look at
+# this one" and became a second competing fill fighting the semantic palette underneath it;
+# and #F0E442 yellow was the least visible overlay in the set on exactly the pale boxes it
+# landed on most often. It was also not a biological group at all — it is data
+# availability, which the master already carries as the `in_*` membership columns and which
+# report 01 already draws as a set diagram. That is where a reader should learn it.
 #
-# `polipo` is listed FIRST so the first-match-wins matcher can never pull 21S188
-# into `cohort`. Ids are used verbatim (deduped, mixed pid/barcode — the plotter
-# matches either); unmatched ids are a knit-safe no-op.
+# 21S188 IS A SEQUENCING BARCODE, NOT A pid — AND THAT USED TO BREAK SILENTLY.
+# Most figures are built from the master, which is keyed on `pid` and carries no barcode
+# column, so the literal-string match found nothing and the overlay drew nothing on the
+# majority of plots without erroring. The ids are therefore expanded through the SAME
+# crosswalks the join uses: build_crosswalks() and get_master() both call
+# register_highlight_xwalk() (code/attend_plots.R), and highlight_group_of() matches on the
+# expanded set. Configure an id in whichever space you know it in; the resolution is the
+# pipeline's problem, not the analyst's.
 attend_highlight <- list(
   groups = list(
-    polipo = list(ids = c("21S188"), color = "#CC79A7"),              # magenta — 21S188, its own colour
-    cohort = list(ids = c("1923575", "23S22", "19S30", "19S63",       # gold — has IHC / imaging
-                          "20S63", "21S22", "7834020", "785", "3302",
-                          "20752a7", "15792", "23S58", "23S60", "23S61",
-                          "23S38", "23S55"),
-                  color = "#E69F00")
+    # attend_plots.R rule [C] reserves `blue` (#0077BB) for exactly this. Highlight points
+    # are drawn ON TOP of boxes filled with the MMR, aneuploidy, TP53 and response colours,
+    # so a highlight sharing a hex is invisible on the one box it exists to mark. That is
+    # what happened when polipo was #CC79A7 (identical to non-responder, so the point
+    # vanished on report 06's non-responder box) and when the retired cohort group was
+    # #E69F00 (identical to MMRd, same problem on report 03). test_figure_system.R and
+    # test_plot_style.R rule [5] both pin it.
+    polipo = list(ids = c("21S188"), color = "#0077BB")
   )
 )
 
@@ -336,10 +350,11 @@ read_maf_maftools <- function(maf_path, maf_cfg = attend_maf, ...) {
 # (surv_table). Cox tidy: broom (cox_table). The calling Rmd loads survminer.
 
 # Single comparison KM: coloured curves for `group`, log-rank p, risk table.
+# Same palette fix as km_facet() below: c("red", "turquoise3") named no palette in this project.
 km_plot <- function(df, group,
                     time    = attend_cols$surv_time,
                     event   = attend_cols$surv_event,
-                    palette = c("red", "turquoise3"),
+                    palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
                     title   = NULL) {
   d <- df |> mutate(across(all_of(event), recode_event)) |>
     filter(if_all(all_of(c(time, event, group)), ~ !is.na(.)))
@@ -349,7 +364,9 @@ km_plot <- function(df, group,
     ggsurvfit::add_pvalue() +
     ggsurvfit::add_risktable() +
     ggplot2::scale_colour_manual(values = palette) +
-    ggplot2::labs(title = title)
+    # ggsurvfit's default x label is a bare "time". Survival is in MONTHS throughout this
+    # pipeline (attend_thresholds$response_months; surv_table(times = c(12, 24, 36, 60))).
+    ggplot2::labs(title = title, x = "Time (months)", y = "Survival probability")
 }
 
 # Faceted KM matching the reference attend_wes_analysis figures: survminer's
@@ -357,10 +374,14 @@ km_plot <- function(df, group,
 # `facets` (1-2 vars, e.g. c("aneuploidy_class","MMR_class")) split the grid, and
 # each panel carries its own log-rank p (+ test name) at fixed coordinates.
 # The event column is recoded to 0/1 first (PFS_EVENT is free text).
+# `palette` was c("red", "turquoise3") — two base-R colour names that belong to no palette
+# in this project, so every KM curve in report 04 was the one figure family that could not
+# be read against the rest of the site. It now takes the project palette (attend_plots.R),
+# with a fallback so attend_classes.R stays sourceable on its own.
 km_facet <- function(df, group, facets,
                      time    = attend_cols$surv_time,
                      event   = attend_cols$surv_event,
-                     palette = c("red", "turquoise3"),
+                     palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
                      title   = NULL) {
   keep_cols <- c(time, event, group, facets)
   d <- df |> mutate(across(all_of(event), recode_event)) |>
@@ -383,7 +404,9 @@ km_facet <- function(df, group, facets,
     pval.method.coord = c(tmax * 0.5, 0.80),
     censor.shape      = "+",
     short.panel.labs  = TRUE,
-    xlab = "Time", ylab = "Survival probability", legend.title = group
+    # Survival time is in MONTHS everywhere in this pipeline (attend_thresholds$response_months,
+    # surv_table(times = c(12, 24, 36, 60))). The axis said only "Time".
+    xlab = "Time (months)", ylab = "Survival probability", legend.title = group
   ) + ggplot2::labs(title = title)
 }
 
@@ -510,11 +533,29 @@ km_panel_counts <- function(df, facets,
 # applies it; both source this file, so both can name it.
 #
 # 1 - Pearson correlation distance with Ward.D2 linkage. TCGA Suppl. Methods S2 leaves the
-# *copy-number* clustering metric unstated, but its mRNA and methylation clusterings both
-# use 1 - Pearson / Ward, so the same pair is applied to the CN matrix. This is the only
-# distance/linkage combination the pipeline uses.
+# *copy-number* clustering metric unstated. The pipeline used 1 - Pearson on the grounds that
+# S2 names that pair for its mRNA and METHYLATION clusterings — but it never names it for copy
+# number, and on this feature space it is measurably the wrong choice.
+#
+# WHY EUCLIDEAN. Correlation distance is UNDEFINED for a flat profile, and a copy-number-quiet
+# tumour is flat at every significant peak, so cluster_arm_matrix() must drop those samples
+# rather than invent a distance for them. TCGA's own published cluster 1 IS the quiet cluster
+# (mean |log2| 0.0043, against 0.216 for cluster 4), so correlation discards most of the one
+# cluster it would most need to recover. Measured on TCGA UCEC 2013 (365 tumours, their hg19
+# segments, their published 79 peaks), both burden-ordered and scored against CNA_CLUSTER_K4:
+#
+#   1 - Pearson   281/365 clustered    7 of 86 cluster-1 retained   ARI 0.222   41.1% diagonal
+#   Euclidean     365/365 clustered   86 of 86 cluster-1 retained   ARI 0.423   64.7% diagonal
+#
+# Euclidean loses no tumours, recovers the quiet cluster completely, nearly doubles the ARI, and
+# its contingency is clean on the diagonal (published 4 -> recomputed 4 at 79/93, no leakage
+# into 1-3). A flat sample is not undefined under Euclidean; it simply sits near the origin,
+# which is the correct geometry for "no alteration". Report 10 prints the comparison on every
+# knit, so this is a claim the site re-checks rather than one it asserts.
+#
+# Still ONE distance/linkage combination for the whole pipeline — that rule is unchanged.
 cnv_method <- "ward.D2"       # Ward linkage
-cnv_dist   <- "correlation"   # 1 - Pearson correlation (cluster_arm_matrix() correlation path)
+cnv_dist   <- "euclidean"     # see above: correlation cannot represent a flat SCNA profile
 
 # Cut height for the cascade / CN-high-burden label. TCGA found 4 SCNA clusters (Fig. 1a);
 # ATTEND has no POLE and is smaller, but k = 4 keeps parity. Change freely.
@@ -599,7 +640,17 @@ attend_cnv <- list(
     # copy number data in significantly reoccurring amp/del regions identified by GISTIC 2.0".
     # all_thresholded.by_genes.txt = genes x samples in {-2,-1,0,1,2}; we restrict it to
     # genes inside the significant peaks (amp_genes/del_genes) and cluster THAT.
-    all_thresholded_glob = "*all_thresholded*.txt"
+    all_thresholded_glob = "*all_thresholded*.txt",
+
+    # THE faithful TCGA *FIGURE* INPUT, which is a DIFFERENT MATRIX from the clustering one.
+    # Fig. 1a is "SCNAs in each tumour (horizontal axis) plotted by chromosomal location
+    # (vertical axis)" — the whole genome, on a continuous colour scale. The clustering input
+    # above is neither: it is peak-restricted (most of the genome is absent) and discretised
+    # to five values. Plotting the clustering matrix is what made report 09's heatmap not the
+    # paper's heatmap. all_data_by_genes.txt is the same GISTIC run's genome-wide CONTINUOUS
+    # copy number per gene, with the Cytoband column that places each row on the genome.
+    # Cluster on the peaks, DISPLAY this — exactly as the paper does.
+    all_data_glob = "*all_data_by_genes*.txt"
   ),
 
   # Recurrent chromosome-arm SCNAs (recurrent_arm_calls(), report 06): an arm must be
@@ -1805,6 +1856,14 @@ attend_tcga_ref_2013 <- list(
   sample_id_col   = "SAMPLE_ID",
   subtype_col     = "SUBTYPE",                      # the four 2013 integrated groups
   cluster_col     = "CNA_CLUSTER_K4",               # published Fig-1a clusters (1-4)
+  # TCGA's OWN core/non-core flag, and the explanation for every missing SUBTYPE. Measured on
+  # this export: DATA_CORE_SAMPLE is Y for 232 and N for 141 of 373, and the 141 non-core are
+  # EXACTLY the 141 with no integrated subtype (0 disagreements either way). The integrated
+  # classification needed the full multiplatform data, which only the core set has; the other
+  # 141 carry SNP6 copy number and were never integratively classified. So "not classified" is
+  # TCGA's study design, not missingness in our copy, and this column is how a report restricts
+  # to the classified cohort without inventing a criterion.
+  core_col        = "DATA_CORE_SAMPLE",             # Y/N — the 232-sample multiplatform core
   msi_call_col    = "MSI_STATUS_7_MARKER_CALL",     # MSS / MSI-H / MSI-L / Indeterminant
   mlh1_col        = "MLH1_SILENCING",               # 0/1
   mutrate_col     = "MUTATION_RATE_CLUSTER",        # 1_LOW / 2_HIGH / 3_HIGHEST
