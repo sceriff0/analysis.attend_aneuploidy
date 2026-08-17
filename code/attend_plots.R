@@ -495,6 +495,55 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
                                     annotation_name_side = "left")
 }
 
+# ============================================================================
+# Cluster labels ordered by SCNA burden — the paper's x-axis order.
+# ============================================================================
+# WHY THIS EXISTS. In Kandoth et al. Fig. 1a the four cluster blocks run left to right from
+# copy-number QUIET to copy-number HIGH: measured on TCGA's own published CNA_CLUSTER_K4 over
+# their hg19 segments, mean |log2| per cluster is 0.0043, 0.052, 0.099, 0.216 — monotonic, a
+# 50x range, and their "Copy-number high (Serous-like)" subtype is 60/60 inside cluster 4.
+# TCGA numbered their clusters by burden, so the figure reads as a gradient.
+#
+# cutree() does not. It numbers clusters by order of first appearance in the dendrogram, which
+# is an artefact of merge order and carries no meaning. Splitting a heatmap on those labels
+# puts the blocks in an arbitrary sequence, which is why a faithful-looking reproduction still
+# does not look like the paper: same data, same clusters, wrong order.
+#
+# Relabelling by ascending mean |value| fixes the axis AND buys two things: cluster k is the
+# copy-number-high group by construction, and cluster numbers become comparable ACROSS cohorts
+# (ATTEND cluster 4 and TCGA cluster 4 both mean "most altered"), which a cutree label never is.
+#
+# Burden is computed on the matrix passed in. Callers pass the DISPLAYED (genome-wide,
+# continuous) matrix, because that is the quantity the paper's own ordering tracks and it is
+# the matrix both the single-k panel and the k-sweep already hold.
+#
+# Returns the relabelled vector AND the old->new map, because a caller that has already named
+# a cluster by some other rule — cnv_high_cluster_burden() on the peak matrix, say — must
+# translate that name rather than assume it is now k. Base R, so it is unit-testable without
+# the tidyverse stack.
+relabel_clusters_by_burden <- function(clusters, mat) {
+  old <- as.character(clusters)
+  nm  <- names(clusters)
+  lv  <- unique(stats::na.omit(old))
+  if (!length(lv) || is.null(mat) || is.null(rownames(mat)) || is.null(nm))
+    return(list(cluster = clusters, map = stats::setNames(lv, lv), burden = NULL))
+
+  # mean |value| per cluster, over the samples the matrix actually carries. A cluster with no
+  # row in `mat` gets NA and is ordered last, so it can never silently take slot 1.
+  b <- vapply(lv, function(l) {
+    ids <- nm[!is.na(old) & old == l]
+    ids <- intersect(ids, rownames(mat))
+    if (!length(ids)) return(NA_real_)
+    mean(abs(as.matrix(mat[ids, , drop = FALSE])), na.rm = TRUE)
+  }, numeric(1))
+
+  ord <- order(b, na.last = TRUE)
+  map <- stats::setNames(as.character(seq_along(lv)), lv[ord])
+  new <- factor(unname(map[old]), levels = as.character(seq_along(lv)))
+  names(new) <- nm
+  list(cluster = new, map = map, burden = stats::setNames(unname(b), lv))
+}
+
 # Render one tumour x chromosomal-location SCNA heatmap in the TCGA Fig. 1a
 # layout with ComplexHeatmap: rows = features split by chromosome (chr1..X down
 # the left edge), columns = tumours split by copy-number cluster with the cluster
@@ -615,8 +664,14 @@ fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = 
     leg_title <- "GISTIC call"
   }
 
-  # bottom = one cluster bar per k (cutree(hc, k)); colours from the shared TCGA palette
-  bars <- as.data.frame(lapply(ks, function(k) factor(unname(stats::cutree(hc, k = k)[ids]))))
+  # bottom = one cluster bar per k (cutree(hc, k)); colours from the shared TCGA palette.
+  # Every k is relabelled by ascending SCNA burden, exactly as the single-k panel is, so the
+  # bars read as a gradient and the stack is internally consistent: raw cutree labels would
+  # make "cluster 1" mean a different thing on every row of the sweep.
+  bars <- as.data.frame(lapply(ks, function(k) {
+    cut_k <- stats::cutree(hc, k = k)[ids]
+    relabel_clusters_by_burden(cut_k, mat[ids, , drop = FALSE])$cluster
+  }))
   names(bars) <- paste0("k=", ks); rownames(bars) <- ids
   col_list <- stats::setNames(lapply(names(bars), function(nm) {
     lv <- levels(bars[[nm]]); stats::setNames(.fig1a_cluster_cols[lv], lv)

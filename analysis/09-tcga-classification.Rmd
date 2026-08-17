@@ -236,6 +236,40 @@ if (!is.null(cl)) {
           " | undirected |value| would pick: ", high_absolute,
           if (identical(high_cluster, high_absolute)) "  [agree]" else "  [DISAGREE]")
 
+  # ORDER THE CLUSTERS BY SCNA BURDEN — the paper's x-axis. Kandoth et al. Fig. 1a runs quiet
+  # -> copy-number-high, left -> right: on TCGA's own published clusters, mean |log2| is
+  # 0.0043 / 0.052 / 0.099 / 0.216, monotonic over a 50x range. cutree() numbers clusters by
+  # order of first appearance in the dendrogram instead, which is a merge-order artefact, so
+  # the heatmap blocks came out in a sequence that means nothing. Relabelling is presentation
+  # only — the partition is untouched and ARI is label-invariant — but it is what makes the
+  # figure read as the paper's, and it makes ATTEND's cluster numbers comparable to TCGA's
+  # published 1..4 and to report 10's.
+  #
+  # DONE HERE, before `ann` and the cascade join are built, because everything downstream keys
+  # on these labels: relabelling after `ann` would leave the top annotation on old labels and
+  # the bottom cluster bar on new ones. Burden is measured on the genome-wide display matrix,
+  # the quantity the paper's own ordering tracks. high_cluster is TRANSLATED, not assumed to be
+  # k — it comes from cnv_high_cluster_burden() on the PEAK matrix, and whether that rule
+  # agrees with the display ordering is a fact worth printing, not one to assume.
+  if (!is.null(disp_mat)) {
+    dm0 <- as.matrix(disp_mat[, setdiff(names(disp_mat), "ID"), drop = FALSE])
+    rownames(dm0) <- disp_mat$ID
+    rl <- relabel_clusters_by_burden(cl$cluster, dm0)
+    cl$cluster <- rl$cluster
+    cl$assignment$cnv_cluster <- unname(rl$map[as.character(cl$assignment$cnv_cluster)])
+    if (!is.na(high_cluster))  high_cluster  <- unname(rl$map[as.character(high_cluster)])
+    if (!is.na(high_absolute)) high_absolute <- unname(rl$map[as.character(high_absolute)])
+    cat("\nClusters relabelled by ascending SCNA burden (mean |value|, display matrix):\n")
+    print(round(sort(rl$burden), 4))
+    cat("Copy-number-high cluster after relabelling: ", high_cluster,
+        if (identical(as.character(high_cluster), as.character(k_cnv)))
+          "  [= k: the peak-burden rule agrees with the display ordering]" else
+          "  [NOT k: the peak-burden rule and the display ordering DISAGREE]", "\n", sep = "")
+  } else {
+    cat("\nClusters NOT burden-ordered — no display matrix, so the heatmap blocks keep",
+        "cutree's arbitrary order and will not read like the paper's Fig. 1a.\n")
+  }
+
   # Per-barcode aneuploidy, kept ONLY for the enrichment check + heatmap annotation:
   # prefer ASCETS, else map the master's aneuploidy score back onto barcodes via the crosswalk.
   aneu_id <- NULL

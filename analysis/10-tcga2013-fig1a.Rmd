@@ -91,6 +91,14 @@ length-weighted mean `Segment_Mean` per sample × bin, uncovered genome = 0.
 # NOT TCGA's cut points, which were never published — hence stated on the page, not buried.
 thr_cuts <- c(0.1, 0.9)
 
+# RESTRICT TO TCGA'S OWN CORE SET. data_clinical_sample.txt carries DATA_CORE_SAMPLE (Y/N),
+# and the missing integrated SUBTYPE tracks it EXACTLY: 141 of 373 samples are non-core and
+# all 141 are the ones with no subtype, while all 232 core samples have one. So the gap is
+# TCGA's study design, not a hole in our export -- see the prose above. Set to FALSE to draw
+# the paper's own denominator (all tumours with copy number, n = 363) at the cost of an
+# unlabelled third of the annotation.
+core_only <- TRUE
+
 tcga_clin <- tryCatch(load_tcga_ucec_2013(),   error = function(e) tibble())
 tcga_seg  <- tryCatch(load_tcga_2013_seg(),    error = function(e) tibble())
 peaks     <- tryCatch(load_tcga_published_peaks(), error = function(e) tibble())
@@ -99,6 +107,19 @@ arms19    <- tryCatch(load_arm_boundaries(build = "hg19"), error = function(e) N
 
 have_seg   <- nrow(tcga_seg) > 0
 have_peaks <- nrow(peaks) > 0
+
+if (core_only && nrow(tcga_clin) > 0 && "core_sample" %in% names(tcga_clin)) {
+  keep_ids <- tcga_clin$ID[tcga_clin$core_sample %in% TRUE]
+  n_before <- nrow(tcga_clin)
+  tcga_clin <- tcga_clin |> filter(ID %in% keep_ids)
+  if (have_seg) tcga_seg <- tcga_seg |> filter(ID %in% keep_ids)
+  cat("Restricted to TCGA's core set (DATA_CORE_SAMPLE = Y):", nrow(tcga_clin), "of",
+      n_before, "tumours. The", n_before - nrow(tcga_clin), "dropped are exactly the ones",
+      "with no integrated subtype.\n")
+} else if (core_only) {
+  cat("core_only = TRUE but no DATA_CORE_SAMPLE column is available —",
+      "drawing every tumour with copy number.\n")
+}
 
 # CLUSTERING matrix — thresholded, peak-restricted (S2's feature space).
 clust_mat <- if (have_seg && have_peaks)
@@ -169,6 +190,22 @@ exception and is flagged as such — it is retrofitted from the PanCancer-Atlas 
 segments when `code/run_ascets_tcga.sh` has been run, which puts it on ATTEND's own 0–1
 scale. Whichever is used is named in the table.
 
+**Why a third of the cohort has no integrated subtype, and why it is dropped here.** The
+missing `SUBTYPE` is not a hole in this export — it is TCGA's study design, and the sample
+table proves it. `DATA_CORE_SAMPLE` is `Y` for **232** of 373 samples and `N` for **141**, and
+those 141 non-core samples are *exactly* the 141 with no subtype: zero disagreements in either
+direction. The integrated classification required the full multiplatform data (exome,
+methylation, mRNA, miRNA), which only the core set has; the remaining 141 tumours carry SNP6
+copy number and were never integratively classified. TCGA's published cross-tabulation shows
+the same boundary — `Copy-number high (Serous-like)` is **60/60** inside published cluster 4,
+`MSI (Hyper-mutated)` spreads across clusters 1–3 (22/31/10) with only 2 in cluster 4, and the
+141 non-core tumours sit outside all of it.
+
+`core_only` above therefore restricts to TCGA's own core set rather than to a criterion of
+ours, and the count is printed so the denominator is never implicit. Set it to `FALSE` to
+recover the paper's own denominator — Fig. 1a used every tumour with copy number, n = 363 —
+at the price of an unlabelled third of the annotation stack.
+
 **TP53 is absent from this report's annotation stack**, unlike report 09's. `data/tcga_2013/`
 carries clinical tables and segments only — no mutation calls — so there is nothing to build
 a TP53 bar from, and an all-NA bar is dropped rather than drawn as an empty row.
@@ -217,6 +254,26 @@ cl <- if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv)
   cluster_arm_matrix(clust_mat, k = k_cnv, method = cnv_method, dist_method = cnv_dist) else NULL
 
 high_cluster <- if (!is.null(cl)) cnv_high_cluster_burden(cl) else NA_integer_
+
+# ORDER THE CLUSTERS BY SCNA BURDEN — the paper's x-axis. cutree() numbers clusters by order
+# of first appearance in the dendrogram, so the heatmap blocks come out in a sequence that
+# means nothing; Fig. 1a runs quiet -> high, left -> right. Relabelling is presentation only
+# (the partition is untouched, and ARI is label-invariant), but it is what makes the figure
+# read as the paper's, and it makes cluster numbers comparable to TCGA's published 1..4 and
+# to report 09's ATTEND clusters. `high_cluster` is TRANSLATED rather than assumed to be k:
+# it comes from cnv_high_cluster_burden() on the PEAK matrix, and whether the pipeline's own
+# rule agrees with the display-matrix ordering is exactly what Part 3 checks.
+if (!is.null(cl) && !is.null(disp_mat)) {
+  dm0 <- as.matrix(disp_mat[, setdiff(names(disp_mat), "ID"), drop = FALSE])
+  rownames(dm0) <- disp_mat$ID
+  rl <- relabel_clusters_by_burden(cl$cluster, dm0)
+  cl$cluster <- rl$cluster
+  cl$assignment$cnv_cluster <- unname(rl$map[as.character(cl$assignment$cnv_cluster)])
+  if (!is.na(high_cluster)) high_cluster <- unname(rl$map[as.character(high_cluster)])
+  cat("Clusters relabelled by ascending SCNA burden (mean |log2| on the display matrix):\n")
+  print(round(sort(rl$burden), 4))
+}
+
 ann <- NULL
 if (!is.null(cl)) {
   ids <- rownames(cl$matrix)
@@ -372,6 +429,44 @@ if (!is.null(scored)) {
   knitr::kable(as.data.frame.matrix(table(recomputed = j$cnv_cluster, published = j$published)),
                caption = "Recomputed (rows) vs TCGA's published CNA_CLUSTER_K4 (columns).")
 } else cat("Contingency skipped.\n")
+```
+
+The distance metric is the one thing the paper does not fix, and on this feature space the
+choice is not cosmetic. **1 − Pearson correlation is undefined for a flat profile**, and a
+copy-number-quiet tumour is flat at every one of the 79 peaks — so `cluster_arm_matrix()` must
+drop those samples rather than invent a distance for them. TCGA's published cluster 1 *is* the
+quiet cluster (mean |log2| 0.0043 against 0.216 for cluster 4), which means the correlation
+metric discards most of the one cluster it would most need to recover. Euclidean has no such
+problem: a flat sample simply sits near the origin. The table runs both on the identical
+matrix, each burden-ordered, so the cost is a measurement rather than an argument.
+
+```{r metric-compare}
+if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv &&
+    nrow(tcga_clin) > 0 && any(!is.na(tcga_clin$cn_cluster_k4)) && !is.null(disp_mat)) {
+  pub_m <- tcga_clin |> filter(!is.na(cn_cluster_k4)) |>
+    transmute(ID, published = as.character(cn_cluster_k4))
+  dmm <- as.matrix(disp_mat[, setdiff(names(disp_mat), "ID"), drop = FALSE])
+  rownames(dmm) <- disp_mat$ID
+  rows <- lapply(c(cnv_dist, "euclidean"), function(dm) {
+    cc <- cluster_arm_matrix(clust_mat, k = k_cnv, method = cnv_method, dist_method = dm)
+    if (is.null(cc)) return(NULL)
+    lab <- relabel_clusters_by_burden(cc$cluster, dmm)$cluster
+    jj  <- tibble(ID = names(lab), new = as.character(lab)) |> inner_join(pub_m, by = "ID")
+    tibble(distance = dm,
+           clustered = nrow(cc$matrix),
+           dropped_flat = nrow(clust_mat) - nrow(cc$matrix),
+           scored = nrow(jj),
+           ARI = round(adjusted_rand_index(jj$new, jj$published), 3),
+           diagonal_pct = round(100 * mean(jj$new == jj$published), 1),
+           pub_cluster1_kept = sum(jj$published == "1"))
+  })
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (length(rows)) knitr::kable(bind_rows(rows), caption = paste0(
+    "The same peak matrix under two distances, both burden-ordered. dropped_flat counts ",
+    "tumours a correlation metric cannot place; pub_cluster1_kept is how many of TCGA's ",
+    "quiet cluster survive to be scored at all. diagonal_pct is only interpretable because ",
+    "both partitions are burden-ordered — on raw cutree labels it would be meaningless."))
+} else cat("Metric comparison skipped — needs the peak matrix, the display matrix and CNA_CLUSTER_K4.\n")
 ```
 
 ## Part 4 — MMR and aneuploidy across the clusters

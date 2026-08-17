@@ -1838,6 +1838,14 @@ attend_tcga_ref_2013 <- list(
   sample_id_col   = "SAMPLE_ID",
   subtype_col     = "SUBTYPE",                      # the four 2013 integrated groups
   cluster_col     = "CNA_CLUSTER_K4",               # published Fig-1a clusters (1-4)
+  # TCGA's OWN core/non-core flag, and the explanation for every missing SUBTYPE. Measured on
+  # this export: DATA_CORE_SAMPLE is Y for 232 and N for 141 of 373, and the 141 non-core are
+  # EXACTLY the 141 with no integrated subtype (0 disagreements either way). The integrated
+  # classification needed the full multiplatform data, which only the core set has; the other
+  # 141 carry SNP6 copy number and were never integratively classified. So "not classified" is
+  # TCGA's study design, not missingness in our copy, and this column is how a report restricts
+  # to the classified cohort without inventing a criterion.
+  core_col        = "DATA_CORE_SAMPLE",             # Y/N — the 232-sample multiplatform core
   msi_call_col    = "MSI_STATUS_7_MARKER_CALL",     # MSS / MSI-H / MSI-L / Indeterminant
   mlh1_col        = "MLH1_SILENCING",               # 0/1
   mutrate_col     = "MUTATION_RATE_CLUSTER",        # 1_LOW / 2_HIGH / 3_HIGHEST

@@ -115,3 +115,59 @@ Deleted at the same consolidation, listed here so they are not lost again:
 | `analysis/09g`/`09h`/`09i`/`09j` | — | GISTIC k = 2–8 sweeps, Pearson/Ward and Euclidean/Ward, directional |
 
 17 and 12 were ported on 2026-08-17 and then withdrawn the same day — not needed for now.
+
+## Addendum, 2026-08-17 — the x-axis order, and what the metric costs
+
+Reading Fig. 1a itself (`papers/nature12113.pdf`, p. 2) settled two more things.
+
+**1. The paper's cluster blocks are ordered by SCNA burden.** Measured on TCGA's own published
+`CNA_CLUSTER_K4` over their hg19 segments:
+
+| published cluster | n | mean \|log2\| | median |
+|---|---|---|---|
+| 1 | 86 | 0.0043 | 0.0024 |
+| 2 | 129 | 0.0521 | 0.0399 |
+| 3 | 55 | 0.0988 | 0.0832 |
+| 4 | 93 | 0.2160 | 0.2060 |
+
+Monotonic over a 50× range, and `Copy-number high (Serous-like)` is **60/60** inside cluster 4.
+So the figure reads left-to-right as a gradient, quiet → high. `cutree()` numbers clusters by
+order of first appearance in the dendrogram — a merge-order artefact — so a faithful clustering
+still drew its blocks in a meaningless sequence. `relabel_clusters_by_burden()`
+(`code/attend_plots.R`, pinned by `code/tests/test_cluster_burden_order.R`) fixes it, and is
+applied in reports 09 and 10 and inside `fig1a_heatmap_ksweep()` for every k.
+
+It is presentation only — the partition is untouched, ARI is label-invariant — but on the real
+TCGA peak matrix it lifts diagonal agreement with the published labels from **23.2% to 41.1%**,
+and it makes cluster numbers mean the same thing across cohorts (ATTEND cluster 4 and TCGA
+cluster 4 are both "most altered", which a `cutree` label never is).
+
+**2. The paper's Fig. 1a has NO top annotation bars** — only a single Cluster bar beneath, and
+chromosomes 1–22 + X down the left edge. No chrY, which independently confirms the coverage
+filter added to report 10. Our annotation stack is an ATTEND addition, as `00-methods.Rmd`
+already states.
+
+**3. ⚠️ 1 − Pearson cannot represent the copy-number-quiet cluster on this feature space.**
+Correlation distance is undefined for a flat profile, and a quiet tumour is flat at every one
+of the 79 peaks, so `cluster_arm_matrix()` drops it. Both distances on the identical matrix,
+each burden-ordered, scored against `CNA_CLUSTER_K4`:
+
+| distance | clustered | published cluster 1 retained | ARI | diagonal | serous in cluster 4 |
+|---|---|---|---|---|---|
+| 1 − Pearson (pipeline default) | 281 / 365 | **7 of 86** | 0.222 | 41.1% | 54 / 60 |
+| Euclidean | **365 / 365** | **86 of 86** | **0.423** | **64.7%** | 51 / 60 |
+
+Euclidean loses no tumours, recovers TCGA's quiet cluster completely, and nearly doubles the
+ARI; its contingency is clean on the diagonal with published cluster 4 → recomputed 4 at 79/93
+and zero leakage into clusters 1–3. The pipeline's justification for 1 − Pearson / Ward.D2 is
+that TCGA used that pair for **mRNA and methylation** — it is not stated for copy number, and
+this measurement is evidence it is the wrong choice for thresholded peak features.
+`00-methods.Rmd` documents 1 − Pearson / Ward.D2 as the only pair the pipeline uses, so
+changing it is a decision, not a fix. Report 10 prints the comparison either way.
+
+**4. "Not classified" is TCGA's study design, not missing data.** `DATA_CORE_SAMPLE` is `Y` for
+232 of 373 and `N` for 141, and the 141 non-core samples are *exactly* the 141 with no
+integrated `SUBTYPE` — zero disagreements either way. The integrated classification needed the
+full multiplatform data; the other 141 have SNP6 copy number only. Report 10 gains
+`core_only` (default `TRUE`), restricting to TCGA's own core set rather than to a criterion of
+ours, and `attend_tcga_ref_2013$core_col` + the loader's `core_sample` column expose the flag.

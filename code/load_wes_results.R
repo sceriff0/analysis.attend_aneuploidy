@@ -410,6 +410,10 @@ load_tcga_ucec_2013 <- function(ref = attend_tcga_ref_2013) {
     subtype_short   = factor(unname(ref$subtype_short[subtype]),
                              levels = unname(ref$subtype_short)),
     cn_cluster_k4   = factor(as.character(g(ref$cluster_col)), levels = as.character(1:4)),
+    # TRUE for TCGA's 232-sample multiplatform core set. The integrated SUBTYPE exists for
+    # exactly these samples and for no others, so this is the honest way to restrict to the
+    # classified cohort — see the comment on core_col in attend_classes.R.
+    core_sample     = toupper(trimws(as.character(g(ref$core_col)))) %in% c("Y", "YES", "TRUE", "1"),
     mmrd            = mmrd_val,
     pole            = pole_val,          # POLE-ultramutated; excluded from mmrd by the cascade
     msi_call        = msi,
