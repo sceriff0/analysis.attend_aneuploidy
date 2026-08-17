@@ -39,22 +39,10 @@ n_class   <- n_resp + n_nonresp
 n_lost    <- sum(is.na(master$response_class))
 n_mmrd_cl <- sum(master$pid %in% mmrd_pids & !is.na(master$response_class))
 
-# --- manual highlight overlay: OFF for now -----------------------------------------
-# Same switch as 05-aneuploidy-mmrd, kept identical so the two reports draw the same
-# points: the attend_highlight groups polipo (21S188, blue) and cohort (yellow) are not
-# drawn. Points still carry the responder green / non-responder purple; only the
-# hand-picked overlay and its legend go away.
-#
-# Done as a wrapper rather than as `attend_highlight <- NULL`, and rather than by editing
-# every call site. source() puts attend_plots.R's functions in the GLOBAL environment while
-# chunk code runs in the knit environment, so a chunk-level assignment would not shadow the
-# name those functions read -- but a chunk-level function definition does shadow the call,
-# because the call is made from chunk code.
-#
-# To restore the overlay: delete this block, here and in 05-aneuploidy-mmrd.
-.hp_orig <- highlight_points
-highlight_points   <- function(...) .hp_orig(..., highlight = NULL)
-highlight_coverage <- function(...) "highlight overlay is switched off in this report\n"
+# The polipo highlight (21S188) is drawn here, as it is on every per-patient figure in the
+# pipeline -- there is no per-report opt-out any more. Its ids are resolved through the
+# barcode -> pid crosswalk by highlight_group_of(), so the overlay lands on this report's
+# pid-keyed frames; before that resolution existed it matched nothing here and drew nothing.
 ```
 
 > **Question.** Does cell-type composition differ between responders and non-responders, and is the answer inside MMR-deficient tumours the same as across the whole cohort?
@@ -130,10 +118,11 @@ if (nrow(resp_mmrd) > 0)
       "| classifiable:", sum(!is.na(resp_mmrd$response_class)), "\n")
 ```
 
-The manual highlight overlay (the blue polipo point and the yellow multi-modal cohort) is
-switched off in this report for now, in the setup chunk, matching
-[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html). This line states that, so a reader does not
-go looking for coloured points that were deliberately not drawn.
+Coverage of the manual highlight overlay on the response-classifiable cohort. The one
+configured group is `polipo` (sample 21S188, blue); the count is scored after the barcode ->
+pid crosswalk resolves it onto this pid-keyed frame, so `1/1 matched` means the overlay is
+really drawn. A `0/1` here means 21S188 has no observable 6-month response status — read it
+against the four-reason partition above, not as a plotting failure.
 
 ```{r highlight-coverage}
 cat(highlight_coverage(master |> filter(!is.na(response_class))))

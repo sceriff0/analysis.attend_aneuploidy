@@ -452,7 +452,7 @@ ggplot(loss_long, aes(reorder(dataset, n), n, fill = status)) +
   # unmapped remainder is the only thing carrying colour. Was a green/orange pair from no
   # palette in particular, which made "mapped" the loudest element of a loss figure.
   scale_fill_manual(values = c(mapped = attend_neutral,
-                               unmapped = unname(ATTEND_OKABE_ITO["vermillion"]))) +
+                               unmapped = unname(ATTEND_PALETTE["red"]))) +
   labs(x = NULL, y = "Native IDs (count)", fill = NULL,
        title    = "Per-dataset coverage and ID-conversion loss",
        subtitle = "Native-ID units; mapped + unmapped is additive") +

@@ -77,41 +77,49 @@ attend_levels <- list(
   mmr_deficient = "Deficient"        # gianlu MMR_STATUS deficient label (verified; proficient = "Intact")
 )
 
-# --- Manual patient highlight (aneuploidy-by-cluster / -by-class plots) ------------
-# A place to flag SPECIFIC patients of interest with a SPECIFIC colour on the aneuploidy
-# boxplots (report 08). Each entry is a named subset: `ids` (patient `pid`s OR sequencing
-# barcodes — the plotter matches either) drawn on TOP of the boxplot in `color`, larger, so
-# the subset stands out from the cluster/class fill. Empty by default -> no-op / knit-safe.
+# --- Manual patient highlight (every per-patient point/box plot) -------------------
+# A place to flag SPECIFIC patients of interest with a SPECIFIC colour on top of any
+# per-patient figure. Each entry is a named subset: `ids` — patient `pid`s, sequencing
+# barcodes, OR image ids, all three resolved through the crosswalks (see below) — drawn on
+# TOP of the base layer in `color`, larger, so the subset stands out from the fill.
 # aneuploidy-HIGH tumours are ALREADY marked by point SHAPE (triangle); this is an
 # orthogonal manual override. Add groups like:
-#   attend_highlight$groups$responders <- list(ids = c("P07","P12"), color = "#F0E442")
+#   attend_highlight$groups$responders <- list(ids = c("P07","P12"), color = "#009988")
 #
-# TWO GROUPS, and they mean different things — both are spelled out in the reports:
+# ONE GROUP: `polipo`, the single sample 21S188, drawn in the palette's reserved blue.
+# It is highlighted on EVERY report that draws per-patient points, with NO per-report
+# opt-out. The point of marking one sample is that a reader can locate it in every
+# distribution it appears in; a figure that silently drops it is worse than one that never
+# carried it, because the reader cannot tell the difference. Reports 05 and 06 previously
+# wrapped highlight_points() to switch the overlay off — that is gone, deliberately.
 #
-#   polipo — the single sample 21S188, drawn blue.
-#   cohort — the patients that HAVE IHC / IMAGING data, drawn yellow. This is a
-#            data-availability group, not a biological one: it marks which points
-#            in a genomics figure also appear in the IHC + imaging report, so a
-#            reader can see whether the multi-modal subset sits anywhere unusual
-#            in the genomic distribution.
+# THERE IS NO `cohort` GROUP, and it must not come back as one. It marked the patients
+# holding IHC / imaging data in yellow, and it failed on both counts a highlight has to
+# meet. It covered roughly 16 of ~40 patients, so "highlighted" stopped meaning "look at
+# this one" and became a second competing fill fighting the semantic palette underneath it;
+# and #F0E442 yellow was the least visible overlay in the set on exactly the pale boxes it
+# landed on most often. It was also not a biological group at all — it is data
+# availability, which the master already carries as the `in_*` membership columns and which
+# report 01 already draws as a set diagram. That is where a reader should learn it.
 #
-# `polipo` is listed FIRST so the first-match-wins matcher can never pull 21S188
-# into `cohort`. Ids are used verbatim (deduped, mixed pid/barcode — the plotter
-# matches either); unmatched ids are a knit-safe no-op.
+# 21S188 IS A SEQUENCING BARCODE, NOT A pid — AND THAT USED TO BREAK SILENTLY.
+# Most figures are built from the master, which is keyed on `pid` and carries no barcode
+# column, so the literal-string match found nothing and the overlay drew nothing on the
+# majority of plots without erroring. The ids are therefore expanded through the SAME
+# crosswalks the join uses: build_crosswalks() and get_master() both call
+# register_highlight_xwalk() (code/attend_plots.R), and highlight_group_of() matches on the
+# expanded set. Configure an id in whichever space you know it in; the resolution is the
+# pipeline's problem, not the analyst's.
 attend_highlight <- list(
   groups = list(
-    # BLUE and YELLOW are the only two Okabe-Ito hues no semantic palette claims, which is
-    # exactly what a highlight needs: these points are drawn ON TOP of boxes filled with the
-    # MMR, aneuploidy, TP53 and response colours, so a highlight sharing a hex with any of
-    # them disappears into the box it is meant to stand out from. They were #CC79A7 (identical
-    # to non-responder, so the polipo point vanished on report 06's non-responder box) and
-    # #E69F00 (identical to MMRd, same problem on report 03). test_figure_system.R pins this.
-    polipo = list(ids = c("21S188"), color = "#0072B2"),              # blue — 21S188, its own colour
-    cohort = list(ids = c("1923575", "23S22", "19S30", "19S63",       # gold — has IHC / imaging
-                          "20S63", "21S22", "7834020", "785", "3302",
-                          "20752a7", "15792", "23S58", "23S60", "23S61",
-                          "23S38", "23S55"),
-                  color = "#F0E442")
+    # attend_plots.R rule [C] reserves `blue` (#0077BB) for exactly this. Highlight points
+    # are drawn ON TOP of boxes filled with the MMR, aneuploidy, TP53 and response colours,
+    # so a highlight sharing a hex is invisible on the one box it exists to mark. That is
+    # what happened when polipo was #CC79A7 (identical to non-responder, so the point
+    # vanished on report 06's non-responder box) and when the retired cohort group was
+    # #E69F00 (identical to MMRd, same problem on report 03). test_figure_system.R and
+    # test_plot_style.R rule [5] both pin it.
+    polipo = list(ids = c("21S188"), color = "#0077BB")
   )
 )
 
@@ -346,7 +354,7 @@ read_maf_maftools <- function(maf_path, maf_cfg = attend_maf, ...) {
 km_plot <- function(df, group,
                     time    = attend_cols$surv_time,
                     event   = attend_cols$surv_event,
-                    palette = if (exists("attend_pal")) attend_pal(2) else c("#0072B2", "#D55E00"),
+                    palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
                     title   = NULL) {
   d <- df |> mutate(across(all_of(event), recode_event)) |>
     filter(if_all(all_of(c(time, event, group)), ~ !is.na(.)))
@@ -373,7 +381,7 @@ km_plot <- function(df, group,
 km_facet <- function(df, group, facets,
                      time    = attend_cols$surv_time,
                      event   = attend_cols$surv_event,
-                     palette = if (exists("attend_pal")) attend_pal(2) else c("#0072B2", "#D55E00"),
+                     palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
                      title   = NULL) {
   keep_cols <- c(time, event, group, facets)
   d <- df |> mutate(across(all_of(event), recode_event)) |>

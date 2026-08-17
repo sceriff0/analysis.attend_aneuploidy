@@ -482,15 +482,30 @@ configured constant, not a cohort quantile, so it does not move when the cohort 
 Patients without an ASCETS score are NA and are dropped from class comparisons.
 
 ## Highlighted patients
-Two overlay groups are drawn on top of the base colouring by highlight_points(), which
+One overlay group is drawn on top of the base colouring by highlight_points(), which
 partitions the data so no patient is plotted twice:
 
-- **polipo** — sample 21S188, in blue.
-- **cohort** — the multi-modal subset, in yellow: patients who also have IHC or imaging
-  data, and so appear in the concordance and composition reports.
+- **polipo** — sample 21S188, in blue (`#0077BB`).
 
-polipo is declared first in attend_highlight, and matching is first-match-wins, so
-21S188 is never absorbed into cohort.
+It is drawn on **every** report that plots per-patient points, with no per-report opt-out.
+Marking one sample is only useful if a reader can locate it in each distribution it appears
+in; a report that quietly omits it looks identical on the page to one that never carried it.
+
+The overlay colour is the one hue in the palette that no semantic scale may claim, because
+highlight points are drawn *on top of* boxes filled with the MMR, aneuploidy, TP53 and
+response colours — a highlight sharing a hex is invisible on exactly the box it exists to
+mark.
+
+`21S188` is a sequencing **barcode**, while most figures are built from the master and keyed
+on `pid`. The configured ids are therefore expanded through the barcode→pid and image→pid
+crosswalks before matching, so the overlay resolves in every id space. Before that
+resolution existed the match failed silently and the mark simply did not appear.
+
+A second group, **cohort** (the multi-modal subset with IHC or imaging data, in yellow), was
+retired. It covered roughly 16 of ~40 patients, so it read as a second competing fill rather
+than as a mark, and it encoded **data availability** — which the master already carries as
+its `in_*` membership columns and [01-data-integration](01-data-integration.html) already
+draws as a set diagram.
 
 ## What "MMR-deficient only" means
 The cohort restriction is is_mmrd(), which reads the **IHC** MMR call: loss of one or

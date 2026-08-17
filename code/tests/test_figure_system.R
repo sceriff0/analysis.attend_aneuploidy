@@ -2,27 +2,43 @@
 source(file.path("code", "attend_plots.R"))  # base-R-sourceable: no top-level library()
 
 ## --- semantic palettes exist and carry the promoted Fig-1a hexes ---
+## The palette is Paul Tol's "vibrant" scheme, NOT Okabe-Ito: Okabe-Ito has no true red, so
+## the aneuploidy scale could not be the light-blue -> red pair the project describes in prose
+## without lying about the hex. See the palette block in attend_plots.R.
+stopifnot(is.character(ATTEND_PALETTE),
+          length(ATTEND_PALETTE) == 8L,
+          !any(duplicated(ATTEND_PALETTE)),
+          identical(unname(ATTEND_PALETTE[["grey"]]), "#999999"))
+
+## Tol's own grey is #BBBBBB, which is indistinguishable from attend_neutral (#BFBFBF) and
+## would recreate the bug this palette pass fixed — a non-semantic box reading as a semantic
+## reference state. The deviation is deliberate; this pins it so a "fix the palette to match
+## the paper" edit cannot land silently.
+stopifnot(!"#BBBBBB" %in% ATTEND_PALETTE)
+
 stopifnot(is.character(attend_mmr_cols),
           attend_mmr_cols[["MMRp"]] == "#999999",
-          attend_mmr_cols[["MMRd"]] == "#E69F00",
+          attend_mmr_cols[["MMRd"]] == "#EE7733",
           attend_mmr_cols[["MMR proficient"]] == "#999999",
-          attend_mmr_cols[["MMR deficient"]] == "#E69F00")
+          attend_mmr_cols[["MMR deficient"]] == "#EE7733")
 
-stopifnot(identical(attend_aneu_low, "#56B4E9"),   # sky blue   = aneuploidy-low
-          identical(attend_aneu_high, "#D55E00"),  # vermillion = aneuploidy-high
+stopifnot(identical(attend_aneu_low, "#33BBEE"),   # light blue = aneuploidy-low
+          identical(attend_aneu_high, "#CC3311"),  # red        = aneuploidy-high
           attend_aneu_high != attend_tp53_cols[["mut"]],  # must not clash with the adjacent
           attend_aneu_high != attend_mmr_cols[["MMRd"]],  # Fig-1a annotation bars
           is.character(attend_aneu_cols),
           attend_aneu_cols[["aneuploidy-low"]]  == attend_aneu_low,
           attend_aneu_cols[["aneuploidy-high"]] == attend_aneu_high,
           attend_aneu_cols[["aneu-low"]]  == attend_aneu_low,
-          attend_aneu_cols[["aneu-high"]] == attend_aneu_high)
+          attend_aneu_cols[["aneu-high"]] == attend_aneu_high,
+          attend_aneu_cols[["MMRd aneuploidy-low"]]  == attend_aneu_low,
+          attend_aneu_cols[["MMRd aneuploidy-high"]] == attend_aneu_high)
 
 stopifnot(is.character(attend_tp53_cols),
           attend_tp53_cols[["TP53-normal"]]   == "#999999",
-          attend_tp53_cols[["TP53-abnormal"]] == "#CC79A7")
+          attend_tp53_cols[["TP53-abnormal"]] == "#EE3377")
 
-## --- the two rules the palette assignment rests on (attend_plots.R) ---------------
+## --- the three rules the palette assignment rests on (attend_plots.R) -------------
 ## [A] grey is the reference state, everywhere. If a "normal"/"proficient"/wild-type level
 ##     ever picks up a hue, the reader loses the one cue that says "do not look here".
 REFERENCE_GREY <- "#999999"
@@ -39,12 +55,23 @@ altered <- c(attend_mmr_cols[["MMRd"]], attend_aneu_high, attend_tp53_cols[["mut
 stopifnot(length(unique(altered)) == 3L,
           !attend_aneu_low %in% altered)
 
+## [C] `blue` (#0077BB) is RESERVED for the highlight overlay and no semantic palette may
+##     claim it. Highlight points are drawn ON TOP of boxes filled with these colours, so a
+##     highlight sharing a hex is invisible on exactly the box it exists to mark. Keeping one
+##     hue unclaimed is what makes that guarantee cheap — and it is why the retired `cohort`
+##     group had to reach for yellow, the least visible overlay in the set.
+HIGHLIGHT_BLUE <- "#0077BB"
+stopifnot(identical(unname(ATTEND_PALETTE[["blue"]]), HIGHLIGHT_BLUE),
+          !HIGHLIGHT_BLUE %in% c(attend_mmr_cols, attend_aneu_cols,
+                                 attend_tp53_cols, attend_resp_cols))
+
 ## Response must not reuse EITHER aneuploidy pole: reports 05 and 06 draw the same
 ## cell-type panels keyed on different variables, so a shared colour would make two
 ## different groupings look like one.
 stopifnot(!attend_resp_cols[["responder"]]     %in% c(attend_aneu_low, attend_aneu_high),
           !attend_resp_cols[["non-responder"]] %in% c(attend_aneu_low, attend_aneu_high),
-          attend_resp_cols[["responder"]] != attend_resp_cols[["non-responder"]])
+          attend_resp_cols[["responder"]] != attend_resp_cols[["non-responder"]],
+          attend_resp_cols[["responder"]] == "#009988")
 
 ## The neutral single-group fill must not carry ANY semantic meaning — this is the bug that
 ## motivated the palette pass: #A6CEE3 was simultaneously "aneuploidy-low" and "no grouping".
@@ -52,7 +79,58 @@ semantic <- unique(c(attend_mmr_cols, attend_aneu_cols, attend_tp53_cols, attend
 stopifnot(is.character(attend_neutral), !attend_neutral %in% semantic)
 
 ## Every semantic colour is drawn from the one palette (attend_neutral excepted, by design).
-stopifnot(all(semantic %in% ATTEND_OKABE_ITO))
+stopifnot(all(semantic %in% ATTEND_PALETTE))
+
+## --- the highlight is ONE group, and it resolves across id spaces ------------------
+## attend_classes.R is not base-R sourceable (it loads tidyverse), so the config is read as
+## text — the same trick test_plot_style.R rule [5] uses.
+cls <- readLines(file.path("code", "attend_classes.R"), warn = FALSE)
+hl  <- grep("^attend_highlight\\s*<-", cls)
+stopifnot(length(hl) == 1L)
+hl_block <- cls[hl:min(hl + 25L, length(cls))]
+hl_code  <- hl_block[!grepl("^\\s*#", hl_block)]
+
+## The retired `cohort` group must not come back as a highlight. It covered ~16 of ~40
+## patients — a second competing fill rather than a mark — and encoded data availability,
+## which the master already carries as the in_* columns and report 01 already draws.
+stopifnot(!any(grepl("cohort\\s*=\\s*list", hl_code)))
+stopifnot(any(grepl('polipo\\s*=\\s*list', hl_code)),
+          any(grepl(HIGHLIGHT_BLUE, hl_code, fixed = TRUE)))
+
+## No report may switch the overlay off. Marking one sample is only useful if the reader can
+## find it in EVERY distribution it appears in; reports 05 and 06 each carried a wrapper that
+## silently dropped it, which is indistinguishable on the page from never having had it.
+for (f in list.files(file.path("analysis"), pattern = "\\.Rmd$", full.names = TRUE)) {
+  txt <- readLines(f, warn = FALSE)
+  bad <- grep("highlight_points\\s*<-\\s*function|highlight\\s*=\\s*NULL", txt)
+  bad <- bad[!grepl("^\\s*#", txt[bad])]
+  if (length(bad))
+    stop(basename(f), ":", paste(bad, collapse = ","),
+         ": this report overrides or disables highlight_points(). The polipo overlay is drawn ",
+         "on every per-patient figure; there is no per-report opt-out.")
+}
+
+## 21S188 is a BARCODE and the master is keyed on pid, so a literal match found nothing and
+## the overlay drew nothing without erroring. highlight_expand_ids() closes that gap.
+stopifnot(is.function(register_highlight_xwalk), is.function(highlight_expand_ids))
+register_highlight_xwalk(data.frame(barcode = c("21S188", "19S30"),
+                                    pid     = c("P021", "P019"),
+                                    stringsAsFactors = FALSE))
+stopifnot("P021" %in% highlight_expand_ids("21S188"),   # barcode -> pid
+          "21S188" %in% highlight_expand_ids("P021"),   # and back
+          !"P019" %in% highlight_expand_ids("21S188"))  # never leaks across patients
+
+hl_cfg <- list(groups = list(polipo = list(ids = "21S188", color = HIGHLIGHT_BLUE)))
+got <- highlight_group_of(data.frame(pid = c("P021", "P019", "P007"),
+                                     stringsAsFactors = FALSE), highlight = hl_cfg)
+stopifnot(identical(got, c("polipo", NA_character_, NA_character_)))
+stopifnot(grepl("1/1 matched", highlight_coverage(data.frame(pid = "P021",
+                                                            stringsAsFactors = FALSE),
+                                                 highlight = hl_cfg)))
+## Empty registry -> literal matching only, exactly the pre-crosswalk behaviour.
+register_highlight_xwalk()
+stopifnot(identical(highlight_expand_ids("21S188"), "21S188"))
+cat("palette + highlight: verified\n")
 
 ## --- attend_box(): the mark is chosen per group, from the data ---------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {

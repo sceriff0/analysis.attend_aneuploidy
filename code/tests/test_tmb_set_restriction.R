@@ -60,7 +60,10 @@ stopifnot(all(c("PMS2","MLH1","MSH2","MSH6","MSH3") %in% attend_gene_panel),
           identical(attend_gene_panel_wnt, c("CTNNB1","APC")),
           identical(attend_genes_per_gene, c(attend_gene_panel, attend_gene_panel_wnt)))
 
-## highlight groups: renamed to `polipo`, ordered before `cohort`
-stopifnot(identical(names(attend_highlight$groups), c("polipo","cohort")))
+## highlight groups: `polipo` and nothing else. The retired `cohort` group marked patients
+## holding IHC/imaging data in yellow -- data availability, not biology, on ~16 of ~40 patients,
+## so it read as a second competing fill rather than a mark. Availability lives on the master
+## as the in_* columns. test_figure_system.R carries the full reasoning and the colour pin.
+stopifnot(identical(names(attend_highlight$groups), "polipo"))
 
 cat("test_tmb_set_restriction: ALL PASS\n")

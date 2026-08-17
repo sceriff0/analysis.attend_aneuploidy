@@ -59,12 +59,34 @@ feature_positions <- function(features, cytoband = NULL) {
 # ============================================================================
 # THE COLOUR SYSTEM — one palette, one place.
 # ============================================================================
-# Everything categorical in this pipeline resolves to Okabe & Ito (2008): eight
-# hues that stay distinguishable under all three common colour-vision deficiencies
-# and survive greyscale printing. Before this block existed the pipeline mixed six
-# palettes (Okabe-Ito, ColorBrewer Paired, ColorBrewer Set1/RdBu, matplotlib tab10,
-# seaborn deep, and survminer's named R colours), which is why the same light blue
-# meant "aneuploidy-low" in report 05 and "no grouping at all" in reports 01/09.
+# Everything categorical in this pipeline resolves to ONE palette: Paul Tol's
+# "vibrant" qualitative scheme (Tol, "Colour Schemes", SRON/EPS technical note
+# v3.2, Fig. 3). Six hues, distinguishable under all three common colour-vision
+# deficiencies and separable in greyscale by lightness. Before this block existed
+# the pipeline mixed six palettes (Okabe-Ito, ColorBrewer Paired, ColorBrewer
+# Set1/RdBu, matplotlib tab10, seaborn deep, and survminer's named R colours),
+# which is why the same light blue meant "aneuploidy-low" in report 05 and "no
+# grouping at all" in reports 01/09.
+#
+# WHY TOL VIBRANT AND NOT OKABE-ITO. The two poles of aneuploidy have to read as
+# LIGHT BLUE (quiet) and RED (altered) — that is the direction the SCNA heatmap
+# body beneath the annotation bar already reads, and the pair the project uses in
+# every figure legend and in the manuscript text. Okabe-Ito has no true red: its
+# warm end is vermillion #D55E00, which reads as a dark orange next to MMRd's
+# #E69F00 and forced the aneuploidy scale to be described as something it was not.
+# Tol vibrant carries a genuine red (#CC3311) AND a genuine light blue (#33BBEE)
+# while remaining CVD-safe as a set, so the honest colour and the accessibility
+# constraint stop competing.
+#
+# Two deliberate deviations from Tol's published vector:
+#   * Tol's grey is #BBBBBB. That is visually indistinguishable from
+#     `attend_neutral` (#BFBFBF, the "no grouping at all" fill), which would
+#     recreate the exact bug this palette pass fixed: a non-semantic box reading as
+#     a semantic reference state. The reference grey therefore stays the darker
+#     mid-grey #999999.
+#   * `black` is appended as an 8th slot. It is NEVER a semantic colour — it exists
+#     only so `attend_pal()` and the k = 2..8 cluster bar keep eight distinct
+#     values without recycling.
 #
 # Two rules make the semantic assignments below safe:
 #   [A] GREY IS ALWAYS THE REFERENCE STATE. MMRp, TP53-normal, wild-type — the
@@ -72,26 +94,31 @@ feature_positions <- function(features, cytoband = NULL) {
 #       altered state carries a hue.
 #   [B] CONCEPTS THAT CAN SHARE A FIGURE MUST NOT SHARE A HUE. The Fig-1a
 #       annotation stack puts MMR, aneuploidy, TP53 and cluster side by side, so
-#       those four are mutually distinct. TP53 and response reuse #CC79A7 because
+#       those four are mutually distinct. TP53 and response reuse #EE3377 because
 #       they provably never co-occur: report 06 is the only report that colours by
 #       response and it contains no TP53, and no report that plots TP53 (00/05/07/09)
 #       colours by response. Adding TP53 to report 06 means giving one of them a
 #       new hue — see test_plot_style.R, which pins this.
-ATTEND_OKABE_ITO <- c(blue          = "#0072B2",
-                      vermillion    = "#D55E00",
-                      bluish_green  = "#009E73",
-                      reddish_purple= "#CC79A7",
-                      orange        = "#E69F00",
-                      sky_blue      = "#56B4E9",
-                      yellow        = "#F0E442",
-                      grey          = "#999999")
+#   [C] `blue` (#0077BB) IS RESERVED FOR THE HIGHLIGHT. It is the one hue no
+#       semantic palette may claim: highlight points are drawn ON TOP of boxes
+#       filled with the semantic colours, so a highlight sharing a hex is invisible
+#       on exactly the box it exists to mark. Keeping one hue unclaimed is what
+#       makes that guarantee cheap. test_figure_system.R pins it.
+ATTEND_PALETTE <- c(blue    = "#0077BB",   # RESERVED — the polipo highlight, rule [C]
+                    cyan    = "#33BBEE",   # aneuploidy-low
+                    teal    = "#009988",   # responder
+                    orange  = "#EE7733",   # MMRd
+                    red     = "#CC3311",   # aneuploidy-high
+                    magenta = "#EE3377",   # TP53-abnormal, and non-responder (rule [B])
+                    grey    = "#999999",   # every reference state, rule [A]
+                    black   = "#000000")   # non-semantic filler, cluster bars only
 
 # TCGA Fig. 1a colour for the copy-number clusters, matching the paper's Cluster bar.
 # Covers up to 8 clusters so the k = 2..8 sweep (fig1a_heatmap_ksweep()) always has a
 # distinct colour per cluster; the standard pipeline fixes k at 4 (Fig. 2b). k > 8
-# would need more colours. Derived from ATTEND_OKABE_ITO rather than the tab10 set it
+# would need more colours. Derived from ATTEND_PALETTE rather than the tab10 set it
 # used to hardcode, so a cluster bar and a ggplot legend in the same report agree.
-.fig1a_cluster_cols <- stats::setNames(unname(ATTEND_OKABE_ITO), as.character(1:8))
+.fig1a_cluster_cols <- stats::setNames(unname(ATTEND_PALETTE), as.character(1:8))
 
 # Project-wide qualitative palette — the brewer-free replacement for
 # scale_*_brewer(palette = "Set1") / RColorBrewer::brewer.pal(). Reports use
@@ -101,10 +128,10 @@ ATTEND_OKABE_ITO <- c(blue          = "#0072B2",
 # should use a different encoding anyway. Pass `names` for a named vector.
 attend_pal <- function(n = 8, names = NULL) {
   if (!is.null(names)) n <- length(names)
-  if (n > length(ATTEND_OKABE_ITO))
-    warning("attend_pal(): ", n, " colours requested but only ", length(ATTEND_OKABE_ITO),
+  if (n > length(ATTEND_PALETTE))
+    warning("attend_pal(): ", n, " colours requested but only ", length(ATTEND_PALETTE),
             " distinct ones exist — recycling.", call. = FALSE)
-  out <- unname(rep(ATTEND_OKABE_ITO, length.out = max(1, n)))
+  out <- unname(rep(ATTEND_PALETTE, length.out = max(1, n)))
   if (!is.null(names)) stats::setNames(out, names) else out
 }
 
@@ -117,37 +144,54 @@ attend_pal <- function(n = 8, names = NULL) {
 # into it from the last figure. This is deliberately not any hue above.
 attend_neutral <- "#BFBFBF"
 
-attend_mmr_cols <- c(MMRp = unname(ATTEND_OKABE_ITO["grey"]),
-                     MMRd = unname(ATTEND_OKABE_ITO["orange"]),
-                     `MMR proficient` = unname(ATTEND_OKABE_ITO["grey"]),
-                     `MMR deficient`  = unname(ATTEND_OKABE_ITO["orange"]))
+attend_mmr_cols <- c(MMRp = unname(ATTEND_PALETTE["grey"]),
+                     MMRd = unname(ATTEND_PALETTE["orange"]),
+                     `MMR proficient` = unname(ATTEND_PALETTE["grey"]),
+                     `MMR deficient`  = unname(ATTEND_PALETTE["orange"]))
 
 # Aneuploidy is a two-pole scale, not a reference/altered pair, so both poles carry a
-# hue. Sky blue (quiet) -> vermillion (altered) reads the same direction as the SCNA
-# heatmap body beneath the annotation bar, so the bar and the matrix do not tell
-# opposite colour stories — the reason the old #A6CEE3/#E31A1C pair was chosen. Those
-# were ColorBrewer; these are the nearest Okabe-Ito equivalents and keep the reading.
-attend_aneu_low  <- unname(ATTEND_OKABE_ITO["sky_blue"])
-attend_aneu_high <- unname(ATTEND_OKABE_ITO["vermillion"])
+# hue. LIGHT BLUE (quiet) -> RED (altered) reads the same direction as the SCNA heatmap
+# body beneath the annotation bar, so the bar and the matrix do not tell opposite colour
+# stories. This is the pair the project describes in prose and in the manuscript, and
+# Tol vibrant is the reason it can now be literal: #33BBEE is a light blue and #CC3311
+# is a red, where the earlier Okabe-Ito stand-ins (#56B4E9 sky blue / #D55E00
+# vermillion) forced the warm pole to be called red while rendering as dark orange next
+# to MMRd's own orange.
+attend_aneu_low  <- unname(ATTEND_PALETTE["cyan"])
+attend_aneu_high <- unname(ATTEND_PALETTE["red"])
 attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
                       `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,
                       `MMRd aneuploidy-low` = attend_aneu_low,
                       `MMRd aneuploidy-high` = attend_aneu_high)
 
-# TP53: reference/altered pair, so grey + one hue (rule [A]). Reddish purple keeps it
-# distinct from MMRd orange and aneuploidy vermillion in the adjacent Fig-1a bars.
-attend_tp53_cols <- c(`TP53-normal` = unname(ATTEND_OKABE_ITO["grey"]),
-                      `TP53-abnormal` = unname(ATTEND_OKABE_ITO["reddish_purple"]),
-                      wt = unname(ATTEND_OKABE_ITO["grey"]),
-                      mut = unname(ATTEND_OKABE_ITO["reddish_purple"]))
+# TP53: reference/altered pair, so grey + one hue (rule [A]). Magenta is the only warm
+# hue left once aneuploidy has taken red and MMR has taken orange, and it is the one
+# that stays separable from both in the adjacent Fig-1a bars — #EE3377 differs from
+# #CC3311 in hue AND from #EE7733 in hue, so the three-bar stack does not read as one
+# warm smear under deuteranopia.
+attend_tp53_cols <- c(`TP53-normal` = unname(ATTEND_PALETTE["grey"]),
+                      `TP53-abnormal` = unname(ATTEND_PALETTE["magenta"]),
+                      wt = unname(ATTEND_PALETTE["grey"]),
+                      mut = unname(ATTEND_PALETTE["magenta"]))
 
 # Treatment response (add_response_class). Response is plotted on the SAME cell-type
 # panels as aneuploidy in reports 05/06, so it must not reuse the aneuploidy pair —
 # two different groupings would look like one grouping at a glance.
-attend_resp_cols <- c(`responder` = unname(ATTEND_OKABE_ITO["bluish_green"]),
-                      `non-responder` = unname(ATTEND_OKABE_ITO["reddish_purple"]),
-                      `MMRd responder` = unname(ATTEND_OKABE_ITO["bluish_green"]),
-                      `MMRd non-responder` = unname(ATTEND_OKABE_ITO["reddish_purple"]))
+attend_resp_cols <- c(`responder` = unname(ATTEND_PALETTE["teal"]),
+                      `non-responder` = unname(ATTEND_PALETTE["magenta"]),
+                      `MMRd responder` = unname(ATTEND_PALETTE["teal"]),
+                      `MMRd non-responder` = unname(ATTEND_PALETTE["magenta"]))
+
+# Cohort of origin (report 11's ATTEND-vs-TCGA contrast). This is rule [A] applied to a
+# non-biological variable: TCGA UCEC is the EXTERNAL REFERENCE cohort — the thing the ATTEND
+# result is measured against — so it takes the reference grey, and only ATTEND carries a hue.
+# Teal, because red and light blue are already the aneuploidy poles that report 11 plots
+# alongside this, and orange is MMR (report 11 facets on MMR group). Teal is otherwise
+# claimed only by `responder`, and no report colours by cohort and by response at once.
+attend_cohort_cols <- c(`TCGA UCEC (primary)`  = unname(ATTEND_PALETTE["grey"]),
+                        `ATTEND (metastatic)`  = unname(ATTEND_PALETTE["teal"]),
+                        TCGA   = unname(ATTEND_PALETTE["grey"]),
+                        ATTEND = unname(ATTEND_PALETTE["teal"]))
 
 # ============================================================================
 # THE THEME — one base_size, one grid policy.
@@ -345,12 +389,17 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
     cc   <- stats::setNames(attend_pal(length(real)), real)     # positional fallback
     # ...then override by NAME wherever the level is one we recognise. The integrated-class
     # bar sits directly above the MMR and Aneuploidy bars, so a reader reads the three as a
-    # stack: giving MMRd the MMR bar's orange, CN-high the aneuploidy-high vermillion and
-    # CN-low the aneuploidy-low sky blue makes the stack agree with itself instead of
-    # assigning a fourth unrelated colour to the same concept one row down.
+    # stack: giving MMRd the MMR bar's orange, CN-high the aneuploidy-high red and CN-low
+    # the aneuploidy-low light blue makes the stack agree with itself instead of assigning
+    # a fourth unrelated colour to the same concept one row down.
     # Named, not positional, because a positional palette silently reshuffles every colour
     # if attend_tcga_levels ever gains a tier (e.g. POLE, present in TCGA but not ATTEND).
-    known <- c(`POLE`                             = unname(ATTEND_OKABE_ITO["blue"]),
+    # POLE takes the highlight-reserved blue (rule [C]) and that is safe here for two
+    # independent reasons: ATTEND has no POLE cases, so the level never materialises; and
+    # this is a heatmap ANNOTATION BAR, which never carries the per-patient highlight
+    # points that rule [C] protects. Kept in the map so adding POLE upstream cannot
+    # silently reshuffle the positional fallback.
+    known <- c(`POLE`                             = unname(ATTEND_PALETTE["blue"]),
                `MMRd`                             = unname(attend_mmr_cols[["MMRd"]]),
                `Copy-number high (serous-like)`   = attend_aneu_high,
                `Copy-number low (endometrioid)`   = attend_aneu_low)
@@ -361,7 +410,7 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
   }
   # MMR IHC and TP53 — read from the semantic palettes rather than re-spelled here, for the
   # same reason the aneuploidy bars below do: a hex written twice is a hex that drifts. Both
-  # take the Okabe-Ito grey for their reference state (rule [A]), NOT a pale tint — these are
+  # take the palette's reference grey (rule [A]), NOT a pale tint — these are
   # real measurements and must not read as blank cells.
   if ("MMR" %in% names(a))  cols$MMR  <- c(MMRp = unname(attend_mmr_cols[["MMRp"]]),
                                            MMRd = unname(attend_mmr_cols[["MMRd"]]))
@@ -600,11 +649,84 @@ fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = 
 # as text), leaving alphanumeric ids ("21S188") untouched. Applied to BOTH sides of the match.
 .norm_id <- function(x) sub("\\.0+$", "", trimws(as.character(x)))
 
-# Return the highlight GROUP NAME for each row of `df` (NA where none). Matches the configured
-# ids against whichever id column df carries — pid / ID / barcode / image_id / patient_id (the
-# imaging space is included because the highlight ids may be imaging-side). The FIRST group in
-# highlight$groups wins, so a patient listed in two groups keeps the earlier one — this is why
-# attend_highlight lists `polipo` before `cohort`, so 21S188 can never be pulled into the cohort.
+# --- Resolving a configured highlight id into every id space -----------------------
+# THE BUG THIS EXISTS FOR. The highlight ids are configured in whatever space the analyst
+# knows a sample by: `21S188` is a sequencing BARCODE. Most figures, though, are built from
+# the master, which is keyed on `pid` and carries no barcode column (collapse_pid() prefixes
+# every other dataset's columns, so even a surviving id becomes `aneu__ID`, which is not one
+# of the names highlight_group_of() looks for). A literal-string match therefore found
+# nothing and the overlay silently did nothing on the majority of plots — the worst failure
+# mode an overlay has, because the figure still renders, just without the mark.
+#
+# So the ids are translated through the SAME crosswalks the join uses. attend_plots.R cannot
+# build them (they need tidyverse, and this file is base-R sourceable so the unit tests run
+# without the stack), so the crosswalks are pushed IN: build_crosswalks() registers
+# barcode->pid and image->pid on the fresh path, and get_master() re-registers them from the
+# written intermediates on the cached path. Every report picks this up with no call-site
+# change, which is the same reason get_master() exists at all.
+#
+# Kept in an environment rather than a bare global so register_*() cannot be defeated by
+# `<<-` resolving into the wrong frame when a report sources this file from inside a function.
+.attend_hl_env <- new.env(parent = emptyenv())
+.attend_hl_env$xwalk <- data.frame(id = character(0), pid = character(0),
+                                   stringsAsFactors = FALSE)
+
+#' Register id -> pid maps for highlight resolution.
+#'
+#' Accepts any number of maps, each either a two-column data.frame (the column literally
+#' named `pid` is the pid side; the other is the foreign id — this is the shape
+#' build_barcode_pid()/build_image_pid() return) or a named character vector (names = foreign
+#' id, values = pid). Replaces the stored table by default so a rebuild cannot accumulate
+#' stale ids; `append = TRUE` to add a map from somewhere else.
+#' @return invisibly, the number of id -> pid pairs now registered.
+register_highlight_xwalk <- function(..., append = FALSE) {
+  rows <- list()
+  for (m in list(...)) {
+    if (is.null(m) || !length(m)) next
+    if (is.data.frame(m)) {
+      if (ncol(m) < 2L) next
+      pid_col <- if ("pid" %in% names(m)) "pid" else names(m)[[2L]]
+      id_col  <- setdiff(names(m)[seq_len(2L)], pid_col)
+      id_col  <- if (length(id_col)) id_col[[1L]] else names(m)[[1L]]
+      rows[[length(rows) + 1L]] <- data.frame(id  = .norm_id(m[[id_col]]),
+                                              pid = .norm_id(m[[pid_col]]),
+                                              stringsAsFactors = FALSE)
+    } else if (!is.null(names(m))) {
+      rows[[length(rows) + 1L]] <- data.frame(id  = .norm_id(names(m)),
+                                              pid = .norm_id(unname(m)),
+                                              stringsAsFactors = FALSE)
+    }
+  }
+  new <- if (length(rows)) do.call(rbind, rows) else
+    data.frame(id = character(0), pid = character(0), stringsAsFactors = FALSE)
+  keep <- !is.na(new$id) & !is.na(new$pid) & nzchar(new$id) & nzchar(new$pid)
+  new  <- new[keep, , drop = FALSE]
+  if (append) new <- rbind(.attend_hl_env$xwalk, new)
+  .attend_hl_env$xwalk <- unique(new)
+  invisible(nrow(.attend_hl_env$xwalk))
+}
+
+#' Expand configured ids to every id that names the SAME patient.
+#'
+#' One hop each way is enough: both crosswalks point AT `pid`, so
+#' barcode -> pid -> {every barcode, every image id} reaches the whole equivalence class.
+#' Returns the configured ids unchanged when nothing is registered, so the pre-registration
+#' behaviour (literal match only) is preserved and this is never a new failure mode.
+highlight_expand_ids <- function(ids, xwalk = .attend_hl_env$xwalk) {
+  ids <- .norm_id(ids)
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  if (!length(ids) || is.null(xwalk) || !nrow(xwalk)) return(unique(ids))
+  pids <- unique(c(ids[ids %in% xwalk$pid], xwalk$pid[xwalk$id %in% ids]))
+  unique(c(ids, pids, xwalk$id[xwalk$pid %in% pids]))
+}
+
+# Return the highlight GROUP NAME for each row of `df` (NA where none). Matches against
+# whichever id column df carries — pid / ID / barcode / Tumor_Sample_Barcode / image_id /
+# patient_id — after expanding the configured ids through the registered crosswalks
+# (highlight_expand_ids), so a barcode-configured sample is still found on a pid-keyed
+# master and vice-versa. The FIRST group in highlight$groups wins, so a patient listed in
+# two groups keeps the earlier one; with a single group configured that is a no-op, but it
+# is the invariant a second group would depend on, so it stays.
 # Matching is TYPE-AGNOSTIC: normalised-string equality OR numeric equality (so a numeric id
 # column matches string ids and vice-versa). Knit-safe: no id column or no config -> all-NA.
 highlight_group_of <- function(df, id_cols = c("pid", "ID", "barcode", "Tumor_Sample_Barcode",
@@ -617,7 +739,9 @@ highlight_group_of <- function(df, id_cols = c("pid", "ID", "barcode", "Tumor_Sa
   for (nm in names(highlight$groups)) {
     ids <- highlight$groups[[nm]]$ids
     if (!length(ids)) next
-    ids_norm <- .norm_id(ids)
+    # Crosswalk expansion, not a bare .norm_id(): see highlight_expand_ids() above for why
+    # a literal match silently missed 21S188 on every master-derived figure.
+    ids_norm <- highlight_expand_ids(ids)
     ids_num  <- suppressWarnings(as.numeric(ids_norm))
     hit <- Reduce(`|`, lapply(cand, function(cc) {
       col_norm <- .norm_id(df[[cc]])
@@ -644,13 +768,19 @@ highlight_coverage <- function(df, highlight = if (exists("attend_highlight")) a
                                     paste(id_cols, collapse = "/"), ")\n"))
   present <- unique(unlist(lapply(cand, function(cc) .norm_id(df[[cc]]))))
   present_num <- suppressWarnings(as.numeric(present))
+  # Scored per CONFIGURED id but resolved through the crosswalks, so the line reads
+  # "polipo: 1/1 matched" on a pid-keyed master even though 21S188 is a barcode. Reporting
+  # the raw configured id as missing while the expansion matched would be a false alarm.
   lines <- vapply(names(highlight$groups), function(nm) {
-    ids  <- .norm_id(highlight$groups[[nm]]$ids)
-    hit  <- ids %in% present |
-            (!is.na(suppressWarnings(as.numeric(ids))) &
-             suppressWarnings(as.numeric(ids)) %in% present_num[!is.na(present_num)])
-    miss <- highlight$groups[[nm]]$ids[!hit]
-    sprintf("  %s: %d/%d matched%s", nm, sum(hit), length(ids),
+    cfg  <- highlight$groups[[nm]]$ids
+    hit  <- vapply(cfg, function(one) {
+      ids <- highlight_expand_ids(one)
+      any(ids %in% present |
+          (!is.na(suppressWarnings(as.numeric(ids))) &
+           suppressWarnings(as.numeric(ids)) %in% present_num[!is.na(present_num)]))
+    }, logical(1))
+    miss <- cfg[!hit]
+    sprintf("  %s: %d/%d matched%s", nm, sum(hit), length(cfg),
             if (length(miss)) paste0(" | missing: ", paste(miss, collapse = ", ")) else "")
   }, character(1))
   paste0("highlight coverage (id cols: ", paste(cand, collapse = "/"), ")\n",
@@ -658,7 +788,7 @@ highlight_coverage <- function(df, highlight = if (exists("attend_highlight")) a
 }
 
 # Named colour vector c(<group> = "#RRGGBB", …) from the highlight config, in the
-# declared group order (polipo, cohort). Empty when nothing is configured.
+# declared group order. Empty when nothing is configured.
 highlight_palette <- function(highlight = if (exists("attend_highlight")) attend_highlight else NULL) {
   if (is.null(highlight) || !length(highlight$groups)) return(character(0))
   vapply(highlight$groups, function(g) g$color %||% "#111111", character(1))
@@ -851,8 +981,12 @@ scna_mirror_plot <- function(freq_tbl, peaks, title = NULL) {
     ggplot2::geom_col(width = 2e6) +
     ggplot2::geom_hline(yintercept = 0, linewidth = 0.3) +
     ggplot2::facet_grid(scna_group ~ chrom, scales = "free_x", space = "free_x") +
-    ggplot2::scale_fill_manual(values = c(amp = unname(ATTEND_OKABE_ITO["vermillion"]),
-                                          del = unname(ATTEND_OKABE_ITO["blue"]))) +
+    # amp/del is a DIVERGING direction encoding, not one of the semantic categorical
+    # palettes, so it may use the highlight-reserved blue: a frequency panel has no
+    # per-patient points for a highlight to disappear into, and a diverging pair needs
+    # opposing hues. red/blue about zero, matching the SCNA heatmap body.
+    ggplot2::scale_fill_manual(values = c(amp = unname(ATTEND_PALETTE["red"]),
+                                          del = unname(ATTEND_PALETTE["blue"]))) +
     ggplot2::scale_y_continuous(labels = function(x) paste0(abs(x) * 100, "%")) +
     ggplot2::labs(x = "Genomic position", y = "Altered (del below / amp above)",
                   title = title) +

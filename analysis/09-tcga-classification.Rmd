@@ -329,7 +329,7 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
   ggplot(sil_df, aes(k, avg_sil)) +
     geom_line(colour = "grey50") + geom_point(size = 2) +
     geom_vline(xintercept = k_cnv, linetype = 2,
-               colour = unname(ATTEND_OKABE_ITO["vermillion"])) +
+               colour = unname(ATTEND_PALETTE["red"])) +
     scale_x_continuous(breaks = ks) +
     labs(title = "Average silhouette width vs k (Pearson/Ward)",
          subtitle = paste0("dashed = cascade cut k = ", k_cnv, "; higher = more coherent partition"),
@@ -416,7 +416,7 @@ if (!is.null(cl) && exists("aneu_id") && !is.null(aneu_id)) {
     ggplot(d, aes(cluster, aneuploidy_value)) +
       # fill kept (is_high names which cluster is serous-like — the x tick does not), but
       # alpha dropped: blending the fill against white means the rendered box never matches
-      # its own legend swatch. CN-high takes the aneuploidy-high vermillion, since that is
+      # its own legend swatch. CN-high takes the aneuploidy-high red, since that is
       # the same "altered" end of the same biology one panel over.
       geom_boxplot(outlier.shape = NA, aes(fill = is_high), width = 0.6) +
       aneu_point_layers(d, value_col = "aneuploidy_value") +
