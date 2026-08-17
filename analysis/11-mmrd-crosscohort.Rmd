@@ -389,10 +389,13 @@ magnitude above MMRp, so a shared axis would flatten the MMRp panel.
 
 ```{r tcga-tmb-box, fig.height=4.5}
 if (nrow(tcga_tmb) > 0) {
-  ggplot(tcga_tmb, aes(aneuploidy_class, tmb)) +
+  # fill rides the TOP-LEVEL aes and attend_box(fill = NULL) inherits it — the idiom every
+  # other semantic-fill box in the pipeline uses. attend_box() applies outlier.shape = NA
+  # itself (it always draws the points, so an outlier layer would double-plot patients);
+  # it takes no geom_boxplot passthrough, so naming one here is an error, not a no-op.
+  ggplot(tcga_tmb, aes(aneuploidy_class, tmb, fill = aneuploidy_class)) +
     attend_box(tcga_tmb, x = "aneuploidy_class", y = "tmb", by = "mmr_group",
-               fill = NULL, outlier.shape = NA) +
-    aes(fill = aneuploidy_class) +
+               fill = NULL) +
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = attend_aneu_high, linewidth = 0.4) +
     scale_fill_manual(values = attend_aneu_cols, name = "aneuploidy status") +
@@ -531,7 +534,12 @@ if (!is.null(tcga_surv) && requireNamespace("ggsurvfit", quietly = TRUE) &&
       ggsurvfit::survfit2(survival::Surv(time, event) ~ aneuploidy_class, data = d) |>
         ggsurvfit::ggsurvfit(linewidth = 1) +
         ggsurvfit::add_pvalue() + ggsurvfit::add_risktable() +
-        ggplot2::scale_colour_manual(values = attend_aneu_cols) +
+        # POSITIONAL, in the factor's own level order, not name-matched: ggsurvfit labels its
+        # strata from the formula and the exact spelling it lands on is its business, so a
+        # named lookup would fail with "insufficient values in manual scale" at knit time.
+        # Same reason km_facet() takes attend_pal(2) positionally.
+        ggplot2::scale_colour_manual(
+          values = unname(attend_aneu_cols[c("aneuploidy-low", "aneuploidy-high")])) +
         ggplot2::labs(title = paste0("TCGA UCEC MMRd — ", best, " by aneuploidy split (",
                                      cut_lab, ")"),
                       subtitle = paste0("n = ", nrow(d), ", ", sum(d$event),

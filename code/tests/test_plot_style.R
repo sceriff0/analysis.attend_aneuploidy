@@ -9,13 +9,14 @@
 # base-R colour names — and five themes. Nothing failed; every report knitted. The drift was
 # only visible by reading ten files side by side, which is precisely the job a test should do.
 #
-# Six rules:
+# Seven rules:
 #   [1] no literal hex in a report — colour comes from the palette, not from the call site
 #   [2] no raw ggplot theme_*() in a report — attend_theme() is the one theme
 #   [3] no base-R colour NAME as a colour/fill constant ("red", "firebrick", "turquoise3")
 #   [4] every geom_boxplot in a report also draws its points
 #   [5] the highlight-group colours collide with no semantic palette colour
 #   [6] km_facet()'s default palette is not a hardcoded pair of colour names
+#   [7] no call site passes an argument an attend_plots.R helper does not have
 
 source(file.path("code", "attend_plots.R"))   # base-R-sourceable: no top-level library()
 
@@ -143,6 +144,83 @@ if (length(km_line)) {
     note("attend_classes.R: km_facet() default palette still names base-R colours (",
          trimws(bad[1]), ") — every survival curve in report 04 would be the one figure ",
          "family that cannot be read against the rest of the site.")
+}
+
+# ---- [7] no unknown argument at an attend_plots.R helper call site ---------
+# WHY THIS EXISTS. `attend_box(..., outlier.shape = NA)` reached the cluster and died
+# mid-build with "unused argument (outlier.shape = NA)". Nothing local caught it: the file
+# parsed, every chunk parsed, rules [1]-[6] passed, and ggplot is LAZY — attend_box() returns
+# a list of layers, so even building the plot locally succeeds and only print() fails. That is
+# the same class of bug test_rmd_inline_r.R was written for, and the same fix: check it here,
+# where it costs nothing, instead of on a cluster build.
+#
+# attend_box() takes no geom_boxplot passthrough on purpose. It already sets
+# outlier.shape = NA itself (it ALWAYS draws the points, so an outlier layer would plot
+# patients twice), and a passthrough would let a call site quietly re-enable the outliers the
+# n-aware mark exists to make honest.
+#
+# Checked on the PARSE TREE, not with a regex, so a call split over several lines or holding a
+# nested c(...) / aes(...) cannot confuse it. Helpers taking `...` are skipped: they accept
+# anything by construction.
+helper_env <- new.env(parent = globalenv())
+ok_src <- tryCatch({ sys.source(file.path("code", "attend_plots.R"), envir = helper_env); TRUE },
+                   error = function(e) FALSE)
+if (!ok_src) {
+  note("code/attend_plots.R could not be sourced into a fresh environment — rule [7] ",
+       "cannot run, so unknown helper arguments would reach the cluster unchecked.")
+} else {
+  helper_args <- list()
+  for (nm in ls(helper_env, all.names = TRUE)) {
+    obj <- tryCatch(get(nm, envir = helper_env), error = function(e) NULL)
+    if (!is.function(obj)) next
+    fa <- names(formals(obj))
+    if ("..." %in% fa) next              # accepts anything by construction
+    helper_args[[nm]] <- fa
+  }
+
+  # Code lines only, fences dropped. Whole-line comments are KEPT here (unlike code_lines()):
+  # parse() needs the block intact, and a comment cannot contribute a call.
+  chunk_body <- function(lines) {
+    inside <- in_fence(lines)
+    lines[inside & !grepl("^```", lines)]
+  }
+
+  for (f in reports) {
+    body <- chunk_body(readLines(f, warn = FALSE))
+    if (!length(body)) next
+    ex <- tryCatch(parse(text = paste(body, collapse = "\n")), error = function(e) NULL)
+    if (is.null(ex)) next                # parse errors belong to test_rmd_parse.R
+    bad <- character(0)
+    walk <- function(e) {
+      if (!is.call(e)) return(invisible(NULL))
+      parts <- as.list(e)
+      fn <- parts[[1]]
+      if (is.name(fn)) {
+        fname <- as.character(fn)
+        if (!is.null(helper_args[[fname]])) {
+          nms <- names(parts)
+          nms <- if (is.null(nms)) character(0) else nms[-1]
+          unknown <- setdiff(nms[nzchar(nms)], helper_args[[fname]])
+          if (length(unknown))
+            bad <<- c(bad, paste0(fname, "(): ", paste(unknown, collapse = ", ")))
+        }
+      }
+      # `d[, cols, drop = FALSE]` puts the EMPTY SYMBOL in the call, and binding that to an
+      # argument raises "argument is missing" the moment the callee touches it. Test for it
+      # with single-bracket indexing, which keeps the element wrapped in a list and so never
+      # forces it; parts[[i]] is only taken once the element is known not to be empty.
+      for (i in seq_along(parts)[-1]) {
+        if (identical(parts[i], list(quote(expr = )))) next
+        walk(parts[[i]])
+      }
+      invisible(NULL)
+    }
+    for (e in ex) walk(e)
+    if (length(bad))
+      note(basename(f), ": unknown argument(s) passed to an attend_plots.R helper — ",
+           paste(unique(bad), collapse = " | "),
+           ". R would raise \"unused argument\" at knit time, on the cluster, mid-build.")
+  }
 }
 
 # ---- report ----------------------------------------------------------------
