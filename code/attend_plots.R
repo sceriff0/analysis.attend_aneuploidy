@@ -416,6 +416,16 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
                                            MMRd = unname(attend_mmr_cols[["MMRd"]]))
   if ("TP53" %in% names(a)) cols$TP53 <- c(wt  = unname(attend_tp53_cols[["wt"]]),
                                            mut = unname(attend_tp53_cols[["mut"]]))
+  # A PUBLISHED partition drawn beside the recomputed one (report 10: TCGA's own
+  # CNA_CLUSTER_K4). It takes the SAME .fig1a_cluster_cols the bottom cluster bar uses, so
+  # "recomputed 3" and "published 3" are the same colour and agreement is legible by eye
+  # instead of requiring the reader to hold a legend mapping in their head. Left to
+  # ComplexHeatmap's defaults this bar would get an unrelated palette and the comparison —
+  # the entire point of the panel — would be the hardest thing on the figure to read.
+  for (nm in intersect(c("Published_CN_cluster", "CN_cluster_published"), names(a))) {
+    lv <- if (is.factor(a[[nm]])) levels(a[[nm]]) else sort(unique(stats::na.omit(as.character(a[[nm]]))))
+    if (length(lv)) cols[[nm]] <- .fig1a_cluster_cols[lv]
+  }
   # Binary aneuploidy — light blue = low, red = high. Read from attend_aneu_cols rather
   # than re-spelled here, so the heatmap bar and the ggplot boxplots cannot drift apart.
   if ("Aneuploidy_hl" %in% names(a))

@@ -1,0 +1,460 @@
+---
+title: "ATTEND — 10. TCGA UCEC 2013 — Fig. 1a reproduced on TCGA's own data"
+author: "sceriff0"
+date: "2026-08-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# renv: tidyverse, here (+ optional bioc::ComplexHeatmap, circlize for the Fig-1a heatmaps).
+# If missing: renv::install(c("bioc::ComplexHeatmap","circlize")); renv::snapshot()
+# Needs data/tcga_2013/ — Rscript code/fetch_tcga_ucec_2013.R
+library(tidyverse)
+library(here)
+# Headless-safe raster device. The cluster's compute nodes have no X11, so R's default
+# png() fails with "unable to open connection to X11 display" and every figure dies. cairo
+# needs no display; the guard keeps this working on a machine built without it.
+if (capabilities("cairo")) options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 11, fig.height = 8)
+
+source(here("code", "attend_classes.R"))     # k_cnv, k_sweep, cnv_method, cnv_dist,
+                                             # segments_to_bin_matrix(), cluster_arm_matrix(),
+                                             # adjusted_rand_index(), cnv_high_cluster_burden()
+source(here("code", "attend_plots.R"))       # fig1a_heatmap(), feature_positions(), attend_box()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_2013_seg(),
+                                             # load_tcga_published_peaks(), load_tcga_2013_ascets(),
+                                             # published_peak_matrix_from_seg()
+
+# The clustering cut and metric are configuration and live in attend_classes.R with every
+# other method parameter, so this report and 00-methods.Rmd cannot disagree about them. Using
+# the SAME pair as report 09 is deliberate: any difference between the two reports is then the
+# cohort and the platform, never the method.
+```
+> **Question.** Run on TCGA's own data, does this pipeline's Fig-1a reproduction recover TCGA's published copy-number partition — and where do MMR status and aneuploidy sit on that figure?
+> **Cohort.** TCGA UCEC 2013, every tumour carrying SNP6 segments.
+> **Reads.** data/tcga_2013/ (data_cna_hg19.seg, the two clinical tables, pancan_aneuploidy.tsv), data/tcga_gistic_peaks_2013.tsv, and data/arm_boundaries_hg19.tsv.
+> **Out of scope.** The ATTEND cohort and its cascade -> [09-tcga-classification](09-tcga-classification.html). Why 1 - Pearson / Ward.D2, and why the heatmap draws a different matrix from the one it clusters -> [00-methods](00-methods.html).
+
+This is [09-tcga-classification](09-tcga-classification.html)'s figure, built the same way,
+on **TCGA's own tumours**. It exists because here **the right answer is published**: the 2013
+study ships its own copy-number cluster assignment (`CNA_CLUSTER_K4`), so the pipeline can be
+scored rather than merely inspected. If it cannot recover TCGA's partition on TCGA's data,
+report 09's ATTEND clusters need a second look before they are interpreted.
+
+It also draws something the paper could not. TCGA 2013 has **no per-sample aneuploidy score**
+— the score used here is retrofitted from the later PanCancer-Atlas work — so the
+relationship between the four SCNA clusters and aneuploidy was never plotted. Every heatmap
+below carries an aneuploidy bar, and Part 4 makes the comparison explicit.
+
+Two properties make this a cleaner test than report 09 can be:
+
+* **The peaks are published.** Report 09 clusters peaks GISTIC learned *from ATTEND*, and a
+  TCGA run of our own would need parameters TCGA never published (the Supplementary Methods
+  say only *"identified from segmented data using GISTIC 2.0"* — no `-ta`/`-td`/`-conf`, no
+  reference build). Here the peak list is TCGA's own, from Supplementary Data File S2.1, so
+  the clustering feature involves no parameter guess and no GISTIC run.
+* **No liftover.** TCGA's segments and TCGA's published peak boundaries are both hg19, so the
+  peaks apply directly and the genome bins use the bundled hg19 arm table. Binning hg19
+  coordinates against hg38 lengths would shift every bin and misplace every centromere.
+
+What remains ours, and cannot be taken from the paper: the **distance and linkage**. The
+Supplementary Methods name none for the copy-number clustering, so this report uses the
+pipeline's configured pair, exactly as report 09 does.
+
+## Part 1 — the two matrices
+
+TCGA use **two different matrices** for this figure, and keeping them apart is what makes it
+the paper's figure rather than a picture of a clustering input —
+[00-methods](00-methods.html) sets out the rule. Both are built here from the same
+`data/tcga_2013/data_cna_hg19.seg`.
+
+**The clustering feature** is TCGA's stated one (Suppl. Methods S2): *"thresholded relative
+copy number data in significantly reoccurring amplifications or deletions regions identified
+by GISTIC 2.0."* `published_peak_matrix_from_seg()` takes, for each sample × published peak,
+the length-weighted mean log2 seg-mean inside the peak's wide boundaries (a peak with no
+overlapping segment becomes 0, copy-neutral), then **thresholds** it, because S2 is explicit
+that the clustering ran on thresholded and not continuous values. The cut points are not
+published, so they are configuration here and stated in the table below.
+
+**The display feature** is what the Fig. 1a legend describes: *"SCNAs in each tumour
+(horizontal axis) plotted by chromosomal location (vertical axis)"* — the whole genome, on a
+continuous colour scale. `segments_to_bin_matrix()` tiles the same segments into 1 Mb bins
+genome-wide using the hg19 arm table for chromosome lengths and order, taking the
+length-weighted mean `Segment_Mean` per sample × bin, uncovered genome = 0.
+
+```{r tcga-load}
+# |x| < 0.1 -> 0 ; 0.1 <= |x| < 0.9 -> +-1 (low-level) ; |x| >= 0.9 -> +-2 (high-level).
+# NOT TCGA's cut points, which were never published — hence stated on the page, not buried.
+thr_cuts <- c(0.1, 0.9)
+
+tcga_clin <- tryCatch(load_tcga_ucec_2013(),   error = function(e) tibble())
+tcga_seg  <- tryCatch(load_tcga_2013_seg(),    error = function(e) tibble())
+peaks     <- tryCatch(load_tcga_published_peaks(), error = function(e) tibble())
+# hg19, NOT the pipeline default: these are SNP6 segments on hg19 coordinates.
+arms19    <- tryCatch(load_arm_boundaries(build = "hg19"), error = function(e) NULL)
+
+have_seg   <- nrow(tcga_seg) > 0
+have_peaks <- nrow(peaks) > 0
+
+# CLUSTERING matrix — thresholded, peak-restricted (S2's feature space).
+clust_mat <- if (have_seg && have_peaks)
+  published_peak_matrix_from_seg(tcga_seg, peaks, threshold = thr_cuts) else NULL
+# DISPLAY matrix — continuous, genome-wide (the Fig-1a body).
+disp_mat  <- if (have_seg && !is.null(arms19))
+  segments_to_bin_matrix(tcga_seg, arms19) else NULL
+
+# Drop bins on chromosomes this cohort has NO segments for at all.
+# segments_to_bin_matrix() fills uncovered genome with 0 = copy-neutral, which is the right
+# assumption for a gap inside a chromosome that WAS assayed and the wrong one for a whole
+# chromosome that never was: the hg19 arm table carries chrY, this is a uterine cohort with
+# zero chrY segments, and its all-zero chrY bins would render as a white "no alteration" block
+# instead of "not applicable". Driven by the cohort's own coverage, not a chrY special case.
+if (!is.null(disp_mat)) {
+  covered <- unique(paste0("chr", str_remove(as.character(tcga_seg$Chromosome), "^chr")))
+  bin_chr <- str_extract(setdiff(names(disp_mat), "ID"), "^chr[0-9XY]+")
+  drop_b  <- setdiff(names(disp_mat), "ID")[!bin_chr %in% covered]
+  if (length(drop_b)) {
+    disp_mat <- disp_mat |> select(-all_of(drop_b))
+    cat("Dropped", length(drop_b), "genome bins on chromosome(s) with no segments in this",
+        "cohort:", paste(sort(unique(str_extract(drop_b, "^chr[0-9XY]+"))), collapse = ", "),
+        "— all-zero bins there would read as 'no alteration' rather than 'not assayed'.\n")
+  }
+}
+
+# cat(), not message(): opts_chunk sets message = FALSE, so a message() here is invisible on
+# the knitted page and a skipped section then looks like nothing happened at all.
+if (!have_seg)
+  cat("**No TCGA segments** (data/tcga_2013/data_cna_hg19.seg) —",
+      "run `Rscript code/fetch_tcga_ucec_2013.R`. Every panel below is skipped.\n")
+if (have_seg && !have_peaks)
+  cat("**No published peak list** (data/tcga_gistic_peaks_2013.tsv) —",
+      "the clustering feature cannot be built.\n")
+if (have_seg && is.null(arms19))
+  cat("**No hg19 arm table** (data/arm_boundaries_hg19.tsv) —",
+      "the genome-wide display matrix cannot be built; the heatmap will fall back.\n")
+```
+
+Both matrices side by side, so the difference between what is clustered and what is drawn is
+a number on the page rather than a claim in prose. The row counts are the point: a few dozen
+peaks against a few thousand genome bins.
+
+```{r matrix-table}
+if (!is.null(clust_mat) || !is.null(disp_mat)) {
+  knitr::kable(tibble(
+    role     = c("clustered", "displayed"),
+    matrix   = c("published GISTIC peaks, THRESHOLDED",
+                 "1 Mb genome bins, CONTINUOUS"),
+    samples  = c(if (is.null(clust_mat)) NA_integer_ else nrow(clust_mat),
+                 if (is.null(disp_mat))  NA_integer_ else nrow(disp_mat)),
+    features = c(if (is.null(clust_mat)) NA_integer_ else ncol(clust_mat) - 1L,
+                 if (is.null(disp_mat))  NA_integer_ else ncol(disp_mat)  - 1L),
+    provenance = c(paste0("Suppl. Data File S2.1 peaks; cut at ",
+                          paste(thr_cuts, collapse = "/")),
+                   "data_cna_hg19.seg tiled on arm_boundaries_hg19.tsv"),
+    caption_note = c("Suppl. Methods S2 feature space", "Fig. 1a legend")),
+    caption = paste0("The two matrices. Only the first is clustered; only the second is ",
+                     "drawn. Both come from the same hg19 segment file."))
+} else cat("Matrix summary skipped — no segments.\n")
+```
+
+The cohort as TCGA classified it, which is also the annotation stack for the heatmap. Every
+column here is **TCGA's own published field**, not a call of ours: the integrative subtype,
+the MSI-derived MMR status, and the published copy-number cluster. Aneuploidy is the one
+exception and is flagged as such — it is retrofitted from the PanCancer-Atlas table
+(`pancan_aneuploidy.tsv`, a *count* of altered arms, 0–39), or from ASCETS run on these same
+segments when `code/run_ascets_tcga.sh` has been run, which puts it on ATTEND's own 0–1
+scale. Whichever is used is named in the table.
+
+**TP53 is absent from this report's annotation stack**, unlike report 09's. `data/tcga_2013/`
+carries clinical tables and segments only — no mutation calls — so there is nothing to build
+a TP53 bar from, and an all-NA bar is dropped rather than drawn as an empty row.
+
+```{r cohort-table}
+tcga_ascets <- tryCatch(load_tcga_2013_ascets(), error = function(e) tibble())
+use_ascets  <- nrow(tcga_ascets) > 0
+
+aneu_tbl <- if (use_ascets) {
+  tcga_ascets |> transmute(ID, aneuploidy_value = ascets_aneuploidy)
+} else if (nrow(tcga_clin) > 0) {
+  tcga_clin |> transmute(ID, aneuploidy_value = aneuploidy)
+} else NULL
+aneu_label <- if (use_ascets)
+  "ASCETS fraction of evaluable arms (0-1) — same statistic as ATTEND" else
+  "PanCancer-Atlas arm COUNT (0-39, Taylor 2018) — NOT ATTEND's scale"
+
+if (nrow(tcga_clin) > 0) {
+  knitr::kable(tibble(
+    field = c("tumours with clinical data", "with a published CN cluster",
+              "with an integrative subtype", "MMR-deficient (TCGA's MSI cluster)",
+              "POLE-ultramutated", "with an aneuploidy value"),
+    n = c(nrow(tcga_clin),
+          sum(!is.na(tcga_clin$cn_cluster_k4)),
+          sum(!is.na(tcga_clin$subtype_short)),
+          sum(tcga_clin$mmrd %in% TRUE),
+          sum(tcga_clin$pole %in% TRUE),
+          if (is.null(aneu_tbl)) 0L else sum(is.finite(aneu_tbl$aneuploidy_value)))),
+    caption = paste0("TCGA UCEC 2013 as published. Aneuploidy source: ", aneu_label,
+                     ". A third of the cohort has no integrative subtype — it was assigned ",
+                     "to the core set only — which is why the heatmap legends the missing ",
+                     "category explicitly instead of leaving it an unlabelled grey."))
+} else cat("Cohort table skipped — no clinical data.\n")
+```
+
+## Part 2 — the Fig-1a heatmap
+
+The clustering runs on the **thresholded peak** matrix with the pipeline's configured cut,
+distance and linkage, and the copy-number-high cluster is named from that matrix's own SCNA
+burden (`cnv_high_cluster_burden()`, mean |value| per cluster) so it never sees the aneuploidy
+score. The annotation frame is keyed by sample barcode, which is what `fig1a_heatmap()`
+indexes its columns by.
+
+```{r cluster}
+cl <- if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv)
+  cluster_arm_matrix(clust_mat, k = k_cnv, method = cnv_method, dist_method = cnv_dist) else NULL
+
+high_cluster <- if (!is.null(cl)) cnv_high_cluster_burden(cl) else NA_integer_
+ann <- NULL
+if (!is.null(cl)) {
+  ids <- rownames(cl$matrix)
+  ann <- data.frame(CN_cluster = factor(cl$cluster[ids]), row.names = ids)
+  if (nrow(tcga_clin) > 0) {
+    grab <- function(col) tcga_clin[[col]][match(ids, tcga_clin$ID)]
+    ann$TCGA_class <- factor(as.character(grab("subtype_short")),
+                             levels = levels(tcga_clin$subtype_short))
+    mm <- grab("mmrd")
+    ann$MMR <- factor(ifelse(is.na(mm), NA_character_, ifelse(mm, "MMRd", "MMRp")),
+                      levels = c("MMRp", "MMRd"))
+    # TCGA's OWN partition as a bar, so agreement with the recomputed clusters beneath is
+    # readable by eye. Same cluster colours as the bottom bar (see .fig1a_covariate_cols):
+    # "recomputed 3" and "published 3" are the same colour on purpose.
+    ann$Published_CN_cluster <- factor(as.character(grab("cn_cluster_k4")),
+                                       levels = as.character(1:4))
+  }
+  if (!is.null(aneu_tbl))
+    ann$Aneuploidy <- aneu_tbl$aneuploidy_value[match(ids, aneu_tbl$ID)]
+  cat("Clustered", nrow(cl$matrix), "tumours on", ncol(cl$matrix),
+      "published peaks;", cnv_dist, "distance +", cnv_method, "linkage, k =", k_cnv,
+      "\nHighest-burden (copy-number-high) cluster:", high_cluster, "\n")
+} else cat("Clustering skipped — need the thresholded peak matrix.\n")
+```
+
+The figure. Rows are the 1 Mb genome bins ordered by chromosomal location and split by
+chromosome; columns are tumours, split by the peak-based clusters and ordered within each
+split by dendrogram; the body is the continuous log2 landscape, red for gain and blue for
+loss. The colour limit is the 98th percentile of |value|, so a handful of extreme
+amplifications cannot wash the whole panel out. The annotation bars, top to bottom, are
+TCGA's integrative subtype, its MMR status, its published copy-number cluster, and aneuploidy
+as a binary split plus the continuous score. If the hg19 arm table is missing this falls back
+to drawing the thresholded peak matrix and says so — that fallback is *not* Fig. 1a, and the
+label on the panel states it rather than leaving the reader to infer it.
+
+```{r hm, fig.height=8}
+hm_mat <- NULL
+if (!is.null(cl) && !is.null(disp_mat)) {
+  dm <- as.matrix(disp_mat[, setdiff(names(disp_mat), "ID"), drop = FALSE])
+  rownames(dm) <- disp_mat$ID
+  dm <- dm[rownames(dm) %in% names(cl$cluster), , drop = FALSE]   # clustered tumours only
+  if (nrow(dm) >= 2) hm_mat <- dm else
+    cat("The bin matrix shares", nrow(dm), "samples with the clustering — falling back.\n")
+}
+if (!is.null(cl)) {
+  if (!is.null(hm_mat)) {
+    hm_vtype <- "continuous"
+    hm_label <- "genome-wide continuous SCNA (1 Mb bins) — the Fig-1a display"
+    feat_pos <- feature_positions(colnames(hm_mat))     # "chr1:0" bins carry their own coords
+  } else {
+    hm_mat   <- cl$matrix
+    hm_vtype <- "thresholded"
+    hm_label <- "FALLBACK: thresholded published peaks (no hg19 bin matrix) — not Fig. 1a"
+    pk_cyto  <- if (have_peaks) peaks |> distinct(peak_id, cytoband) |> tibble::deframe() else NULL
+    feat_pos <- feature_positions(colnames(hm_mat), cytoband = pk_cyto)
+  }
+
+  # WHY-IS-THERE-NO-HEATMAP gate. fig1a_heatmap() returns invisible(NULL) on several
+  # conditions, each announced only with message() — which opts_chunk (message = FALSE)
+  # swallows, so the figure just silently fails to appear. Whichever line reads FALSE / 0
+  # below is the reason.
+  cat("Fig-1a preconditions",
+      "\n  displaying               :", hm_label,
+      "\n  ComplexHeatmap installed :", requireNamespace("ComplexHeatmap", quietly = TRUE),
+      "\n  circlize installed       :", requireNamespace("circlize", quietly = TRUE),
+      "\n  display (samples x feat) :", nrow(hm_mat), "x", ncol(hm_mat),
+      "\n  clustered on             :", nrow(cl$matrix), "x", ncol(cl$matrix), "peaks",
+      "\n  feature positions mapped :", sum(feat_pos$feature %in% colnames(hm_mat)),
+      "\n  annotation bars          :", if (is.null(ann)) 0L else ncol(ann), "\n")
+
+  fig1a_heatmap(hm_mat, feat_pos, cl$cluster, ann_col = ann, value_type = hm_vtype,
+                main = paste0("TCGA UCEC 2013 — Fig. 1a; columns split by clusters from ",
+                              "TCGA's published peaks, cluster ", high_cluster,
+                              " = copy-number high"))
+} else cat("Heatmap skipped — no clustering.\n")
+```
+
+The same canvas with the cluster assignment at every k from 2 to 8 stacked beneath it. The
+dendrogram is computed once and cut repeatedly, so the partitions are nested and can share
+one figure: reading a column downward shows how that tumour's label subdivides as k grows.
+Here it answers a question report 09 cannot — TCGA fixed k = 4 and published the result, so
+the `Published_CN_cluster` bar above is the reference the sweep can be read against.
+
+```{r hm-ksweep, fig.height=9}
+if (!is.null(cl) && exists("hm_mat") && exists("feat_pos")) {
+  # ksweep intersects rownames(mat) with hc$labels itself, so the genome-wide display matrix
+  # and the peak-learned dendrogram line up with no extra handling.
+  fig1a_heatmap_ksweep(hm_mat, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
+                       value_type = hm_vtype,
+                       main = paste0("TCGA UCEC 2013 — k = ", min(k_sweep), "..", max(k_sweep),
+                                     " cluster bars on one Fig-1a canvas"))
+} else cat("k-sweep skipped — no clustering.\n")
+```
+
+## Part 3 — does it recover TCGA's published partition?
+
+The test the whole report exists for. Agreement is scored with the **adjusted Rand index**,
+which is chance-corrected and so is not inflated by cluster-size imbalance, over the tumours
+carrying a published assignment.
+
+Two columns qualify the answer and belong beside it rather than after it. `burden_pick` is
+the cluster `cnv_high_cluster_burden()` names as copy-number-high; `best_overlap` is the
+cluster that actually overlaps published cluster 4 (TCGA's serous-like group) most. The
+burden rule is a **heuristic** — greatest mean |value| — and on thresholded features mean
+|value| counts a deep deletion and a high amplification identically, so a small
+deletion-heavy cluster can outrank the genuinely serous-like one. **When the two disagree the
+heuristic has failed**, and since report 09 uses that same rule on ATTEND, where no published
+answer exists to catch it, this is the only place the failure is visible at all.
+
+```{r ari}
+scored <- NULL
+if (!is.null(cl) && nrow(tcga_clin) > 0 && any(!is.na(tcga_clin$cn_cluster_k4))) {
+  pub <- tcga_clin |> filter(!is.na(cn_cluster_k4)) |>
+    transmute(ID, published = as.character(cn_cluster_k4))
+  j <- cl$assignment |> inner_join(pub, by = "ID")
+  if (nrow(j) > 0) {
+    f1 <- function(tp, fp, fn) round(2 * tp / max(1, 2 * tp + fp + fn), 3)
+    best <- j |> filter(published == "4") |> count(cnv_cluster) |>
+      slice_max(n, n = 1, with_ties = FALSE)
+    bo <- if (nrow(best)) as.character(best$cnv_cluster[1]) else NA_character_
+    scored <- tibble(
+      n_scored     = nrow(j),
+      ARI          = round(adjusted_rand_index(j$cnv_cluster, j$published), 3),
+      burden_pick  = as.character(high_cluster),
+      burden_F1_vs_pub4 = f1(sum(j$cnv_cluster == high_cluster & j$published == "4"),
+                             sum(j$cnv_cluster == high_cluster & j$published != "4"),
+                             sum(j$cnv_cluster != high_cluster & j$published == "4")),
+      best_overlap = bo,
+      best_F1_vs_pub4   = if (is.na(bo)) NA_real_ else
+        f1(sum(j$cnv_cluster == bo & j$published == "4"),
+           sum(j$cnv_cluster == bo & j$published != "4"),
+           sum(j$cnv_cluster != bo & j$published == "4")),
+      heuristic_ok = !is.na(bo) && identical(as.character(high_cluster), bo))
+    knitr::kable(scored, caption = paste0(
+      "Recomputed clusters scored against TCGA's published CNA_CLUSTER_K4. ",
+      "heuristic_ok = FALSE means the greatest-mean-|value| serous rule picked the wrong ",
+      "cluster on this cohort, which is a warning about report 09's use of the same rule."))
+  }
+}
+if (is.null(scored)) cat("Scoring skipped — needs the clustering and CNA_CLUSTER_K4.\n")
+```
+
+The contingency behind that index: recomputed clusters as rows, TCGA's published clusters as
+columns. A concentrated off-diagonal block is the recovery the ARI summarises as one number;
+mass spread across a row means that recomputed cluster has no published counterpart, which a
+single index cannot show.
+
+```{r contingency}
+if (!is.null(scored)) {
+  pub <- tcga_clin |> filter(!is.na(cn_cluster_k4)) |>
+    transmute(ID, published = as.character(cn_cluster_k4))
+  j <- cl$assignment |> inner_join(pub, by = "ID")
+  knitr::kable(as.data.frame.matrix(table(recomputed = j$cnv_cluster, published = j$published)),
+               caption = "Recomputed (rows) vs TCGA's published CNA_CLUSTER_K4 (columns).")
+} else cat("Contingency skipped.\n")
+```
+
+## Part 4 — MMR and aneuploidy across the clusters
+
+Aneuploidy per recomputed cluster. This is the panel the 2013 paper could not draw: it had no
+per-sample aneuploidy score, so the relationship between its SCNA clusters and aneuploidy was
+never shown. The value is whichever source Part 1 named, and it is **not** a clustering
+feature — the clustering saw only thresholded peak calls — so alignment between the
+high-burden cluster and the high-aneuploidy tumours is corroboration rather than circularity.
+`attend_box()` picks the mark per cluster from the data, box and points where a cluster holds
+at least ten tumours and a median crossbar below that, and prints n in every case.
+
+```{r aneu-by-cluster, fig.height=4.5}
+aneu_cl <- if (!is.null(cl) && !is.null(aneu_tbl)) {
+  cl$assignment |>
+    left_join(aneu_tbl, by = "ID") |>
+    filter(is.finite(aneuploidy_value)) |>
+    mutate(cluster = factor(cnv_cluster))
+} else NULL
+
+if (!is.null(aneu_cl) && nrow(aneu_cl) > 0 && dplyr::n_distinct(aneu_cl$cluster) > 1) {
+  kw <- suppressWarnings(stats::kruskal.test(aneuploidy_value ~ cluster, data = aneu_cl))
+  ggplot(aneu_cl, aes(cluster, aneuploidy_value)) +
+    attend_box(aneu_cl, x = "cluster", y = "aneuploidy_value") +
+    labs(title = "TCGA UCEC 2013 — aneuploidy by recomputed copy-number cluster",
+         subtitle = paste0(aneu_label, "; Kruskal-Wallis p = ", signif(kw$p.value, 3),
+                           "; cluster ", high_cluster, " = highest intrinsic SCNA burden"),
+         x = "copy-number cluster", y = "aneuploidy") +
+    attend_theme()
+} else cat("Aneuploidy-by-cluster skipped — needs clusters and aneuploidy values.\n")
+```
+
+MMR status across the clusters, as counts and as a test. TCGA's MMR call here is its MSI
+(hyper-mutated) integrative cluster, so this asks whether the *copy-number* clustering
+separates MMR-deficient tumours — and the expected answer is that it largely does not, since
+MMR deficiency and broad copy-number change are different routes to a genomic extreme. Fisher
+is used rather than chi-square because a 4 × 2 table on this cohort has thin cells, and it is
+simulated when an exact computation would be too large.
+
+```{r mmr-by-cluster}
+mmr_cl <- if (!is.null(cl) && nrow(tcga_clin) > 0) {
+  cl$assignment |>
+    left_join(tcga_clin |> transmute(ID, mmrd, pole, subtype_short), by = "ID") |>
+    filter(!is.na(mmrd)) |>
+    mutate(cluster = factor(cnv_cluster),
+           MMR = factor(ifelse(mmrd, "MMRd", "MMRp"), levels = c("MMRp", "MMRd")))
+} else NULL
+
+if (!is.null(mmr_cl) && nrow(mmr_cl) > 0 && dplyr::n_distinct(mmr_cl$cluster) > 1) {
+  tab <- table(cluster = mmr_cl$cluster, MMR = mmr_cl$MMR)
+  ft  <- suppressWarnings(tryCatch(stats::fisher.test(tab, simulate.p.value = TRUE, B = 1e5),
+                                   error = function(e) NULL))
+  knitr::kable(as.data.frame.matrix(tab), caption = paste0(
+    "MMR status (TCGA's MSI integrative cluster) by recomputed copy-number cluster",
+    if (!is.null(ft)) paste0(". Fisher exact p = ", signif(ft$p.value, 3),
+                             " (simulated, B = 1e5)") else "."))
+} else cat("MMR-by-cluster skipped — needs clusters and MMR calls.\n")
+```
+
+The same cross-tabulation against TCGA's full integrative subtype, which is the direct
+statement of what the copy-number clustering does and does not recover: the CN-high and
+CN-low subtypes were *defined* from copy number and should separate, while the MSI and POLE
+subtypes were defined from mutation and need not. Rows are the recomputed clusters, so
+reading across a row shows what that cluster is made of. Tumours with no published subtype
+(about a third of the cohort — it was assigned to the core set only) appear as their own
+column rather than being dropped, so the denominators stay honest.
+
+```{r subtype-by-cluster}
+if (!is.null(mmr_cl) && nrow(mmr_cl) > 0) {
+  st <- cl$assignment |>
+    left_join(tcga_clin |> transmute(ID, subtype_short), by = "ID") |>
+    mutate(cluster  = factor(cnv_cluster),
+           subtype  = factor(ifelse(is.na(as.character(subtype_short)), "not classified",
+                                    as.character(subtype_short)),
+                             levels = c(levels(tcga_clin$subtype_short), "not classified")))
+  knitr::kable(as.data.frame.matrix(table(recomputed = st$cluster, subtype = st$subtype)),
+               caption = paste0("Recomputed copy-number clusters (rows) against TCGA's ",
+                                "published integrative subtype (columns). CN-high and CN-low ",
+                                "were defined from copy number and should separate; MSI and ",
+                                "POLE were not and need not."))
+} else cat("Subtype cross-tabulation skipped.\n")
+```
+
+```{r session-info}
+sessionInfo()
+```

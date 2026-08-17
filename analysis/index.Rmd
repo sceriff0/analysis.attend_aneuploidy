@@ -20,7 +20,7 @@ is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
 reads, and what it deliberately leaves to another report. They are numbered in reading
-order, 00 to 09.
+order, 00 to 10.
 
 **[00 — Methods](00-methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
@@ -72,6 +72,12 @@ alternatives — live in runbooks/.
   thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
   printed alongside and [DISAGREE] flagged when they differ.
+- **[10 — TCGA UCEC 2013, Fig. 1a on TCGA's own data](10-tcga2013-fig1a.html)** · TCGA UCEC 2013
+  Report 09's figure, built the same way, on the cohort where **the right answer is
+  published**. Clusters TCGA's own published GISTIC peaks — no parameter guess, no GISTIC run,
+  no liftover — and scores the recomputed partition against `CNA_CLUSTER_K4` with an adjusted
+  Rand index. Also draws what the 2013 paper could not: aneuploidy against its four SCNA
+  clusters, since that score is retrofitted from PanCancer-Atlas.
 
 ### Conventions
 

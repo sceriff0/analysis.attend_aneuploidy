@@ -1,7 +1,9 @@
 # Where the paper-faithful TCGA Fig. 1a heatmap lives
 
 **Date:** 2026-08-17
-**Status:** diagnosis complete, nothing restored yet.
+**Status:** diagnosed and fixed. Report 09 now displays the genome-wide continuous matrix
+(commit `a68533f`); `analysis/10-tcga2013-fig1a.Rmd` carries the same figure on TCGA's own
+data, which re-wires `segments_to_bin_matrix()` — the last helper on CLAUDE.md's orphan list.
 
 ## The complaint
 
@@ -105,7 +107,7 @@ Deleted at the same consolidation, listed here so they are not lost again:
 
 | File (`ATTEND@70bc111`) | Lines | What it was |
 |---|---|---|
-| `analysis/16_tcga2013_fig1a.Rmd` | 935 | The pipeline run on **TCGA's own** segments, scored against published `CNA_CLUSTER_K4` with an adjusted Rand index; four partitions as four heatmaps, aneuploidy annotation added |
+| `analysis/16_tcga2013_fig1a.Rmd` | 935 | The pipeline run on **TCGA's own** segments, scored against published `CNA_CLUSTER_K4` with an adjusted Rand index; four partitions as four heatmaps, aneuploidy annotation added. **Superseded 2026-08-17 by `analysis/10-tcga2013-fig1a.Rmd`**, which answers the same question with the two-matrix design (published peaks clustered, 1 Mb genome bins displayed) in 460 lines instead of 935 — the metric sweep is not reproduced, since the pipeline now mandates one distance/linkage pair |
 | `analysis/17_published_peak_clustering.Rmd` | 326 | Both cohorts in TCGA's published 79-peak space |
 | `analysis/12_mmrd_aneuploidy_crosscohort.Rmd` | 637 | ATTEND metastatic vs TCGA primary MMRd aneuploidy split |
 | `analysis/09d_tcga_classification_binned_k2.Rmd` | — | genome-bin faithful Fig-1a at k = 2 |
