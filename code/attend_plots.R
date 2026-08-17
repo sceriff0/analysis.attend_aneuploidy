@@ -1094,7 +1094,12 @@ scna_delta_plot <- function(freq_tbl, peaks, title = NULL) {
 }
 
 #' Composite serous-like panel score by group — report 06's primary figure.
-panel_score_plot <- function(scores, group, title = NULL) {
+# `ylab` is an argument because there are now TWO panel scores on this plot type and
+# they measure different things: the pre-specified TCGA panel (Family A) and the
+# data-driven one (Family B). A hardcoded "TCGA UCEC panel" label on the Family B
+# figure would assert exactly the provenance that panel does not have.
+panel_score_plot <- function(scores, group, title = NULL,
+                             ylab = "Fraction of TCGA UCEC panel altered (0-1)") {
   if (is.null(scores) || !length(scores)) {
     message("panel_score_plot(): no scores — skipping."); return(NULL)
   }
@@ -1108,8 +1113,7 @@ panel_score_plot <- function(scores, group, title = NULL) {
   # from each group's n (these are SCNA strata; MMRd-high can be a handful of patients).
   ggplot2::ggplot(d, ggplot2::aes(x = grp, y = score)) +
     attend_box(d, x = "grp", y = "score", point_size = 1.2, point_alpha = 0.75) +
-    ggplot2::labs(x = NULL, y = "Fraction of TCGA UCEC panel altered (0-1)",
-                  title = title) +
+    ggplot2::labs(x = NULL, y = ylab, title = title) +
     attend_theme() +
     ggplot2::theme(legend.position = "none")
 }

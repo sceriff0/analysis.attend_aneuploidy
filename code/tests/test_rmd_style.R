@@ -19,6 +19,18 @@
 # runaway guard; the scope contract is what actually keeps a report honest about its scope.
 MAX_LINES <- 800L
 
+# Named per-file exemptions, with a reason each. A flat cap has only two settings — fight
+# the structure, or be raised until it guards nothing — and raising it removes the pressure
+# from every OTHER report at once. An entry here is a deliberate, reviewable statement about
+# one file. An exemption that is no longer needed FAILS as stale, so the list cannot quietly
+# become the new cap.
+OVER_CAP <- c(
+  "07-mutation-and-cna.Rmd" =
+    paste("three resolutions of one question (genes, arms, genome) plus both inference",
+          "families: the pre-specified TCGA panel and the data-driven counterpart, which",
+          "must sit beside it to be readable as its complement rather than a rival result")
+)
+
 # Chunks that exist in every report for mechanical reasons and carry no result of their
 # own, so rule [2] would only force a sentence restating the label.
 BOILERPLATE <- c("setup", "session-info")
@@ -152,7 +164,21 @@ for (f in reports) {
 
 for (f in list.files(analysis_dir, pattern = "\\.Rmd$", full.names = TRUE)) {
   n <- length(readLines(f, warn = FALSE))
-  if (n > MAX_LINES) note(basename(f), ": ", n, " lines, over the ", MAX_LINES, "-line guard")
+  b <- basename(f)
+  if (n > MAX_LINES && !(b %in% names(OVER_CAP)))
+    note(b, ": ", n, " lines, over the ", MAX_LINES, "-line guard")
+}
+
+# A stale exemption is a failure, not a leftover: the whole point of naming files instead of
+# raising MAX_LINES is that the list shrinks on its own as reports are split or trimmed.
+for (b in names(OVER_CAP)) {
+  f <- file.path(analysis_dir, b)
+  if (!file.exists(f)) {
+    note("OVER_CAP names ", b, ", which does not exist — stale exemption")
+  } else if (length(readLines(f, warn = FALSE)) <= MAX_LINES) {
+    note("OVER_CAP exemption for ", b, " is stale: now ", length(readLines(f, warn = FALSE)),
+         " lines, under the ", MAX_LINES, "-line guard — remove the entry")
+  }
 }
 
 # ---- [4] no blockquotes outside the scope contract -------------------------

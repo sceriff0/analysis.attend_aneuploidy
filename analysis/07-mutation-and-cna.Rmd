@@ -201,6 +201,58 @@ if (length(panel) > 0) {
 }
 ```
 
+### Positional clustering within genes — OncodriveCLUST
+
+Which genes carry mutations piled onto a few codons rather than spread along their
+length. Built from the same per-sample MAFs in data/variant_annotations/ as the
+oncoplots, using the amino-acid column the annotator emitted
+(attend_maf$protein_col, resolved by maf_protein_col()) — positions come from that
+column alone, so the chunk is skipped entirely when no annotator supplied one rather
+than run on a fallback that would mean something else.
+
+**Why this and not MutSigCV.** MutSigCV asks whether a gene is mutated above a
+*background rate* it estimates from the cohort's own mutations plus covariates. Two
+properties of this cohort break that: ~40 samples make the per-gene rate estimate
+unstable, and the data are **tumour-only**, so residual germline inflates the counts
+in the ancestry-dependent way [00-methods](00-methods.html) documents for TMB — and
+MutSigCV has no germline model, so it would absorb that leakage into the background.
+OncodriveCLUST instead compares each gene's mutations against *its own* positional
+distribution, needing no cohort-wide rate model, which is why it degrades gracefully
+here. The two are not substitutes: this identifies hotspot-like genes, not drivers.
+For a driver list, TCGA's published significantly-mutated genes are the external
+reference, the same role attend_scna$panel plays for peaks.
+
+Exploratory, and the q-values are its own background estimate over the top genes,
+not a genome-wide claim. Read it as a shortlist, not a result.
+
+```{r oncodrive, eval=ONCO_OK, fig.height=5}
+prot <- maf_protein_col(maf_long)
+if (!length(prot)) {
+  cat("No protein-change column in the MAFs (looked for: ",
+      paste(attend_maf$protein_col, collapse = ", "),
+      "). OncodriveCLUST needs codon positions, so this is skipped.\n", sep = "")
+} else {
+  # minMut = 3 matches the Fisher comparison above: a gene mutated once or twice has no
+  # positional distribution to test, and oncodrive() errors rather than skips on some
+  # such inputs, so the filter is set here rather than left to the default.
+  od <- tryCatch(maftools::oncodrive(maf = maf, AACol = prot[1], minMut = 3,
+                                     pvalMethod = "zscore"),
+                 error = function(e) { message("oncodrive(): ", conditionMessage(e)); NULL })
+  if (is.null(od) || !nrow(od)) {
+    cat("OncodriveCLUST returned nothing at minMut = 3 — no gene has enough mutations ",
+        "to test for positional clustering.\n", sep = "")
+  } else {
+    cat("Protein-change column used:", prot[1],
+        "| genes tested:", nrow(od),
+        "| fdr < 0.1:", sum(od$fdr < 0.1, na.rm = TRUE), "\n\n")
+    print(knitr::kable(head(as.data.frame(od), 15), digits = 4,
+                       caption = "OncodriveCLUST: positional clustering per gene (exploratory)"))
+    if (any(od$fdr < 0.1, na.rm = TRUE))
+      maftools::plotOncodrive(res = od, fdrCutOff = 0.1, useFraction = TRUE)
+  }
+}
+```
+
 ### Mutation frequency by subgroup — the TCGA Fig. 2d view
 
 **This is the figure the oncoplot cannot give you.** An oncoplot shows which patients are
@@ -604,6 +656,73 @@ if (is.null(pooled)) {
         "MMRp-high; if they phenocopy copy-number-high tumours, it does not.\n\n")
   } else {
     cat("Fewer than 3 samples resolved to both MMRd-high and MMRp-high — permutation test skipped.\n\n")
+  }
+}
+```
+
+### The exploratory counterpart — a data-driven panel
+
+The panel above is aimed at the TCGA serous phenotype, so a null result there means "not
+serous-like", never "not different". This asks the larger question the fixed panel cannot:
+is there **any** directional peak set that separates MMRd-high from MMRp-high? The loci are
+chosen from the same pooled-run all_lesions.conf_*.txt matrix, by the signed difference in
+mean thresholded call between the two groups — magnitude ranks them, sign fixes each one's
+direction, so the same concordant-events-only rule applies as for the pre-specified panel.
+
+**This is Family B and can never be Family A.** The loci are chosen using the group labels,
+so permuting those labels afterwards would not undo the selection and the resulting null
+would be far too narrow. perm_test_selected_panel() therefore **re-runs the selection inside
+every permutation replicate**, on the permuted labels, which is what restores the p-value's
+meaning. Measured on pure noise, the hoisted-selection version returns the minimum possible
+p on 100% of datasets while the nested version is uniform —
+`code/tests/test_nested_selection_permutation.R` pins that calibration.
+
+Three numbers make this readable, and all three are printed: the nested p, the selected
+loci, and each locus's **leave-one-out selection frequency**. At n ≈ 9 per group a panel
+whose membership turns over when one patient is dropped is not a finding, and a low LOO
+fraction says so directly. The global burden test below it selects nothing at all, so it
+stays interpretable when both panels come back null.
+
+```{r scna-selected-panel, eval=have_master && have_gistic, fig.height=5}
+if (exists("pooled") && !is.null(pooled)) {
+  grp_sel <- group_of_barcode(rownames(pooled$mat))
+  keep_s  <- !is.na(grp_sel) & grp_sel %in% c("MMRd-high", "MMRp-high")
+  if (sum(keep_s) >= 6 && dplyr::n_distinct(droplevels(grp_sel[keep_s])) == 2) {
+    m_sel <- pooled$mat[keep_s, , drop = FALSE]
+    g_sel <- droplevels(grp_sel[keep_s])
+    ds    <- perm_test_selected_panel(m_sel, g_sel, n_select = attend_scna$select_n,
+                                      B = attend_scna$select_perm_B, seed = 1)
+    floor_s <- 1 / (ds$B + 1)
+    cat("**Data-driven panel (Family B, exploratory).** ", attend_scna$select_n,
+        " loci selected from ", ncol(m_sel), " pooled-run peaks; nested permutation B = ",
+        format(ds$B, big.mark = ","), ". Observed difference in mean score = ",
+        signif(ds$stat, 3), "; ",
+        if (ds$p <= floor_s + 1e-12) paste0("p < ", signif(floor_s, 2), " (resolution floor)")
+        else paste0("p = ", signif(ds$p, 4)), ".\n\n", sep = "")
+    print(knitr::kable(
+      data.frame(locus = ds$loci, direction = ds$dir,
+                 loo_selection_frac = round(ds$loo_frac, 2)),
+      caption = paste("Selected loci and how often each survives leave-one-out;",
+                      "a low fraction means the panel is an artefact of one patient")))
+    # Same plot type as the pre-specified score, relabelled: asserting "TCGA UCEC panel"
+    # on this figure would claim provenance this panel does not have.
+    sel <- select_panel_loci(m_sel, g_sel, attend_scna$select_n)
+    ps  <- rowMeans(.directional_altered(m_sel, sel$idx, sel$dir), na.rm = TRUE)
+    p2 <- panel_score_plot(ps, g_sel,
+            title = "Data-driven panel score (exploratory, Family B)",
+            ylab  = "Fraction of selected loci altered (0-1)")
+    if (!is.null(p2)) print(p2)
+
+    gb <- perm_test_global_burden(m_sel, g_sel, B = attend_scna$perm_B, seed = 1)
+    fg <- 1 / (gb$B + 1)
+    cat("\n**Global burden, no selection.** Mean fraction of all ", ncol(m_sel),
+        " peaks altered in either direction; difference = ", signif(gb$stat, 3), "; ",
+        if (gb$p <= fg + 1e-12) paste0("p < ", signif(fg, 2)) else paste0("p = ", signif(gb$p, 4)),
+        ".\n\n", sep = "")
+  } else {
+    cat("Fewer than 6 samples across both MMRd-high and MMRp-high — the data-driven ",
+        "panel is skipped; selection needs more samples than the fixed panel, not fewer.\n",
+        sep = "")
   }
 }
 ```

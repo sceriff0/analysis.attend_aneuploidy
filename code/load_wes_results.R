@@ -131,17 +131,35 @@ load_maf_data <- function() {
 # Reads every annotated MAF and returns the standard columns maftools needs, with
 # Tumor_Sample_Barcode set from the file name (stripped) so it maps to the barcode
 # crosswalk. One row per variant across all samples. Reads all 247 files — slow.
-maf_standard_cols <- c(
-  "Hugo_Symbol", "Chromosome", "Start_Position", "End_Position",
-  "Reference_Allele", "Tumor_Seq_Allele2", "Variant_Classification", "Variant_Type"
-)
+# The protein-change candidates are appended because maftools::oncodrive() CANNOT
+# run without one — it clusters mutations by codon position within a gene, so with
+# no amino-acid column there is nothing to cluster. select(any_of()) keeps whichever
+# name this annotator emits and silently skips the rest, so adding candidates to
+# attend_maf$protein_col is enough; no loader change is needed for a new annotator.
+# A FUNCTION, not a constant: build_master.R sources this file BEFORE
+# attend_classes.R, so a top-level `c(..., attend_maf$protein_col)` fails at source
+# time with "object 'attend_maf' not found". Deferring the lookup to call time is
+# the same rule attend_classes.R states for k_cnv — visibility follows the source()
+# graph, not the directory listing.
+maf_standard_cols <- function(maf_cfg = attend_maf) {
+  c("Hugo_Symbol", "Chromosome", "Start_Position", "End_Position",
+    "Reference_Allele", "Tumor_Seq_Allele2", "Variant_Classification", "Variant_Type",
+    maf_cfg$protein_col)
+}
+
+# Which protein-change column actually arrived, or character(0). One resolver, so a
+# report never has to guess and can gate a chunk on length(...) > 0.
+maf_protein_col <- function(maf_long, maf_cfg = attend_maf) {
+  if (is.null(maf_long) || !length(maf_long)) return(character(0))
+  intersect(maf_cfg$protein_col, names(maf_long))
+}
 
 read_one_maf_long <- function(maf_path) {
   id <- str_remove(path_ext_remove(path_file(maf_path)), "-1TAD104")
   fread(maf_path, skip = "Hugo_Symbol", sep = "\t", header = TRUE, quote = "",
         fill = Inf, na.strings = c(".", "", "NA")) |>
     as_tibble() |>
-    select(any_of(maf_standard_cols)) |>
+    select(any_of(maf_standard_cols())) |>
     mutate(Tumor_Sample_Barcode = id)
 }
 

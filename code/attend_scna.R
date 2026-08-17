@@ -342,3 +342,116 @@ loo_stability <- function(full_peaks, loo_folders, cnv = attend_cnv,
              retained_frac = n_ret / length(loo),
              stringsAsFactors = FALSE)
 }
+
+# --- data-driven panel: selection NESTED inside the permutation --------------
+# The Family B counterpart to panel_score(). panel_score() asks "are these tumours
+# serous-like in the TCGA sense?" from a panel fixed before the data were seen. This
+# asks "is there ANY directional peak set that separates the two groups?" — a
+# strictly larger question, answered from the data, and therefore Family B forever.
+#
+# Correlated with nothing in Family A, and never pooled with it: family_adjust()
+# keeps the two families apart precisely so a discovery result cannot spend the
+# confirmatory panel's power.
+
+#' Altered-in-the-given-direction, as a logical matrix.
+#'
+#' `dir` is +1 (amplification) or -1 (deletion) per column. Multiplying by dir
+#' flips a deletion's sign, so one `>= 1` test serves both directions: a -2 call at
+#' a del-direction locus becomes +2 and counts, while a +2 call there becomes -2 and
+#' does not. Same "concordant events only" rule match_panel_peaks() applies to the
+#' pre-specified panel — an undirected rule answers "most altered", not "most like
+#' the target phenotype".
+.directional_altered <- function(mat, idx, dir) {
+  sub <- mat[, idx, drop = FALSE]
+  sweep(sub, 2, dir, `*`) >= 1
+}
+
+#' Choose the n_select most group-discriminating peaks, with their directions.
+#'
+#' DELIBERATELY label-dependent — that is the whole point, and the reason the result
+#' can never be treated as pre-specified. Criterion is the signed difference in mean
+#' thresholded call between the two groups: magnitude ranks the peaks, sign fixes
+#' each one's direction. One criterion doing both jobs, so there is no second
+#' selection step to account for.
+select_panel_loci <- function(mat, grp, n_select = attend_scna$select_n) {
+  lv <- levels(droplevels(factor(grp)))
+  if (length(lv) != 2L) stop("select_panel_loci(): need exactly 2 groups, got ", length(lv))
+  d  <- colMeans(mat[grp == lv[1], , drop = FALSE], na.rm = TRUE) -
+        colMeans(mat[grp == lv[2], , drop = FALSE], na.rm = TRUE)
+  d[!is.finite(d)] <- 0
+  # A peak with a zero difference carries no direction, so it is not selectable:
+  # sign(0) == 0 would make .directional_altered() test `0 >= 1` for every sample
+  # and contribute a constant, silently shrinking the score's range.
+  cand <- which(d != 0)
+  if (!length(cand)) return(list(idx = integer(0), dir = numeric(0)))
+  idx <- cand[order(abs(d[cand]), decreasing = TRUE)][seq_len(min(n_select, length(cand)))]
+  list(idx = idx, dir = sign(d[idx]))
+}
+
+#' Group-mean difference in data-driven panel score, for one labelling.
+.selected_panel_stat <- function(mat, grp, n_select) {
+  lv  <- levels(droplevels(factor(grp)))
+  sel <- select_panel_loci(mat, grp, n_select)
+  if (!length(sel$idx)) return(0)
+  s   <- rowMeans(.directional_altered(mat, sel$idx, sel$dir), na.rm = TRUE)
+  mean(s[grp == lv[1]], na.rm = TRUE) - mean(s[grp == lv[2]], na.rm = TRUE)
+}
+
+#' Permutation test for a data-driven panel, with the selection re-run inside every
+#' replicate.
+#'
+#' ⚠️ THE VALIDITY IS ENTIRELY IN WHERE THE SELECTION HAPPENS. select_panel_loci()
+#' is called INSIDE the replicate, on the PERMUTED labels. Hoisting it out — select
+#' once, then permute the scores — is the invalid "double dipping" version
+#' (Kriegeskorte et al., Nat Neurosci 2009): the panel would be chosen with the real
+#' labels, so the permuted scores could never reproduce the optimism the selection
+#' introduced, the null would be far too narrow, and p would be near zero on pure
+#' noise. That hoist looks like an obvious speed-up and is invisible in a diff.
+#' test_nested_selection_permutation.R pins the CALIBRATION (uniform p under the
+#' null), which is what actually catches it.
+#'
+#' ONE-SIDED by construction, not by choice: select_panel_loci() takes each locus's
+#' direction from the sign of the group difference, so the selected panel always
+#' favours the first group and the statistic cannot be negative. Comparing |null| to
+#' |obs|, as perm_test_two_group() does for a fixed panel, would be testing a
+#' two-sided hypothesis the statistic cannot express.
+perm_test_selected_panel <- function(mat, grp,
+                                     n_select = attend_scna$select_n,
+                                     B        = attend_scna$select_perm_B,
+                                     seed     = 1) {
+  keep <- !is.na(grp)
+  mat  <- mat[keep, , drop = FALSE]
+  grp  <- droplevels(factor(grp[keep]))
+  if (nlevels(grp) != 2L)
+    stop("perm_test_selected_panel(): need exactly 2 groups, got ", nlevels(grp))
+
+  obs <- .selected_panel_stat(mat, grp, n_select)
+  set.seed(seed)
+  null <- replicate(B, .selected_panel_stat(mat, sample(grp), n_select))
+
+  sel <- select_panel_loci(mat, grp, n_select)
+  # Leave-one-out selection stability. A panel whose membership turns over when one
+  # patient is dropped is not a finding, and at n ~ 9 per group that is the likely
+  # outcome — so it is reported beside p rather than left for a reader to wonder about.
+  loo <- table(unlist(lapply(seq_len(nrow(mat)), function(i)
+    colnames(mat)[select_panel_loci(mat[-i, , drop = FALSE], grp[-i], n_select)$idx])))
+
+  list(stat = obs,
+       p    = (1 + sum(null >= obs)) / (B + 1),
+       B    = B,
+       loci = colnames(mat)[sel$idx],
+       dir  = ifelse(sel$dir > 0, "amp", "del"),
+       loo_frac = as.numeric(loo[colnames(mat)[sel$idx]]) / nrow(mat))
+}
+
+#' Global two-group test over the WHOLE peak set, selecting nothing.
+#'
+#' The complement to both panels: total directional burden per sample (any call of
+#' |value| >= 1 at any union peak), through the existing fixed-panel permutation. No
+#' selection, so no selection to correct for, and it stays answerable when both panel
+#' routes come back null — it asks "is the profile different at all?", which neither
+#' a serous-aimed panel nor a discriminating-peak panel can answer.
+perm_test_global_burden <- function(mat, grp, B = attend_scna$perm_B, seed = 1) {
+  burden <- rowMeans(abs(mat) >= 1, na.rm = TRUE)
+  perm_test_two_group(burden, grp, B = B, seed = seed)
+}

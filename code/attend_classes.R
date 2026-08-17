@@ -52,7 +52,13 @@ attend_maf <- list(
   sample_col    = "ID",                    # barcode column (both shapes)
   gene_col      = "Hugo_Symbol",           # long: gene symbol column
   class_col     = "Variant_Classification",# long: consequence column
-  status_suffix = "_status"                # wide: per-gene status cols are <GENE>_status
+  status_suffix = "_status",               # wide: per-gene status cols are <GENE>_status
+  # Protein-change column, by candidate name — annotators disagree (VEP emits
+  # HGVSp_Short, ANNOVAR aaChange, older maftools Protein_Change), so the loaders
+  # and every consumer resolve it with intersect() rather than assuming one.
+  # Lives here, not under attend_pole, because TWO things need it now: the POLE
+  # hotspot call and maftools::oncodrive(), which cannot run without it at all.
+  protein_col   = c("HGVSp_Short", "Protein_Change", "amino_acid_change", "aaChange")
 )
 
 # Auto-detect of the "altered" value in wide per-gene status columns. Anything
@@ -927,7 +933,7 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
 attend_pole <- list(
   gene        = "POLE",
   hotspots    = c("P286R", "V411L", "S297F", "A456P", "S459F", "F367S", "L424V"),
-  protein_col = c("HGVSp_Short", "Protein_Change", "amino_acid_change", "aaChange"),
+  protein_col = attend_maf$protein_col,   # one candidate list, defined in attend_maf
   tmb_cutoff  = 100                      # mut/Mb; ultra-high backstop
 )
 
@@ -1975,7 +1981,16 @@ attend_scna <- list(
   loo_min_overlap_bp = 1,       # leave-one-out peak "retained" = wide-limit overlap
   perm_B             = 10000,   # label-permutation replicates
   fdr_method         = "BH",    # Family B (discovery), genome-wide
-  panel_p_adjust     = "holm"   # Family A (confirmatory), 12 loci
+  panel_p_adjust     = "holm",  # Family A (confirmatory), 12 loci
+
+  # Data-driven panel size — Family B ONLY. The loci are chosen from the group
+  # labels, so this panel can never enter Family A no matter how it scores; see
+  # perm_test_selected_panel(), which nests the selection inside the permutation.
+  # Matched to the 12 pre-specified loci so the two scores are on one scale.
+  select_n           = 12,
+  # Replicates for the NESTED test. Lower than perm_B because every replicate
+  # re-runs the selection: cost is B x (selection + scoring), not B x scoring.
+  select_perm_B      = 2000
 )
 
 #' Cross MMR status with aneuploidy class into the report-15 grouping factor.
