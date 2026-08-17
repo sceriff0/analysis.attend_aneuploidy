@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 0. Methods"
+title: "ATTEND — 00. Methods"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html
@@ -195,7 +195,8 @@ never silently picks one:
 Two further columns, tmb__TMB_robust and tmb__TMB_matched, exist on the master because
 the recalibration is fitted on top of robust. They are intermediates: tmb_defs_present()
 cannot return them, so no figure can show them. How the recalibration works is in
-[00-methods](00-methods.html).
+[How the Nassar et al. recalibration actually works](#how-the-nassar-et-al-recalibration-actually-works),
+below.
 
 Every definition is re-binarised at the same `r attend_thresholds$tmb` mut/Mb cutoff by
 tmb_class_of(), so panels that differ only in definition differ only in who crossed the

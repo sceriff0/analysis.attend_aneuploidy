@@ -1,7 +1,7 @@
 # =============================================================================
 # load_wes_results.R  —  WES-DERIVED GENOMIC LOADERS
 #
-# Sourced by report 01, 31, 33, 34, 35, 40 and 41. All tables are keyed in BARCODE space and
+# Sourced via code/build_master.R, so every report sees it. All tables are keyed in BARCODE space and
 # mapped to pid via the barcode crosswalk. The barcode-suffix stripping below
 # (`-1TAD104`, `_tumor_only`) normalises the sequencing IDs back to the bare
 # barcode that the gianlu crosswalk (TUMOR_BARCODE) uses.
@@ -97,12 +97,32 @@ process_maf <- function(maf_path) {
 
 # Combine every per-sample MAF into the wide table (ID + <GENE>_status columns).
 # On the cluster the .maf files live in `variant_annotation`; sync them into
-# data/variant_annotations/ (or repoint maf_folder) before running.
+# data/variant_annotations/ (or repoint maf_dir()) before running.
+#
+# One accessor and one predicate, because THREE loaders read this folder
+# (load_maf_data, load_maf_long, load_maf_tmb) and a report has to be able to ask
+# "is the MAF here?" without reading 247 files to find out. Only load_maf_tmb() used
+# to guard the folder; the other two called dir_ls() on it unconditionally, so a
+# checkout without data/variant_annotations/ killed the knit inside the loader
+# instead of degrading to the skeleton every other absent input degrades to.
+maf_dir <- function() here("data", "variant_annotations")
+
+# TRUE only if the folder exists AND holds at least one file. An existing-but-empty
+# folder is the case a bare dir_exists() misses: dir_ls() returns character(0),
+# list_rbind() returns a 0-row tibble, and maftools::read.maf() then fails on a table
+# with no columns — far from where the real problem is.
+has_maf_data <- function() {
+  d <- maf_dir()
+  dir_exists(d) && length(dir_ls(d, type = "file")) > 0
+}
+
 load_maf_data <- function() {
-  maf_folder <- here("data", "variant_annotations")
+  if (!has_maf_data()) {
+    message("load_maf_data(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
+  }
   # All files in the folder are treated as MAFs (original behaviour). If the dir
   # mixes in non-MAF files, add a glob (e.g. glob = "*.maf") to dir_ls().
-  dir_ls(maf_folder) |>
+  dir_ls(maf_dir(), type = "file") |>
     map(process_maf) |>
     list_rbind()
 }
@@ -126,8 +146,10 @@ read_one_maf_long <- function(maf_path) {
 }
 
 load_maf_long <- function() {
-  here("data", "variant_annotations") |>
-    dir_ls() |>
+  if (!has_maf_data()) {
+    message("load_maf_long(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
+  }
+  dir_ls(maf_dir(), type = "file") |>
     map(read_one_maf_long) |>
     list_rbind()
 }
@@ -146,11 +168,10 @@ maf_tmb_cols <- c(
 )
 
 load_maf_tmb <- function() {
-  folder <- here("data", "variant_annotations")
-  if (!dir_exists(folder)) {
-    message("load_maf_tmb(): no folder ", folder, " — returning empty."); return(tibble())
+  if (!has_maf_data()) {
+    message("load_maf_tmb(): no MAFs in ", maf_dir(), " - returning empty."); return(tibble())
   }
-  dir_ls(folder) |>
+  dir_ls(maf_dir(), type = "file") |>
     map(function(p) {
       id <- str_remove(path_ext_remove(path_file(p)), "-1TAD104")
       fread(p, skip = "Hugo_Symbol", sep = "\t", header = TRUE, quote = "",

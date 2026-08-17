@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 20. FlowPath vs the pathologist"
+title: "ATTEND — 02. FlowPath vs the pathologist"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html

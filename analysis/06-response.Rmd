@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 32. Treatment response and cell-type composition"
+title: "ATTEND — 06. Treatment response and cell-type composition"
 author: "sceriff0"
 date: "2026-08-13"
 output: workflowr::wflow_html

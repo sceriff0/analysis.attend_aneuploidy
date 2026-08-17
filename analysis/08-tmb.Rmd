@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 36. Tumour mutational burden"
+title: "ATTEND — 08. Tumour mutational burden"
 author: "sceriff0"
 date: "2026-08-13"
 output: workflowr::wflow_html
@@ -57,9 +57,9 @@ ultramutated tumours are the other hypermutator route, and ATTEND has none, so t
 is really whether TMB by itself cleanly identifies the hypermutators.
 
 Four steps: describe each distribution, test for bimodality under three independent
-criteria, validate any second mode against MMR status, and — in
-[08-tmb](08-tmb.html) — reproduce the whole thing in
-TCGA UCEC, where the answer is externally known.
+criteria, validate any second mode against MMR status, and — in Part 3
+below — reproduce the whole thing in TCGA UCEC, where the answer is externally
+known.
 
 Comparing the two definitions is a second question this report answers. Tumour-only TMB
 carries ancestry-dependent germline inflation, which is noise added to the signal, so
@@ -301,9 +301,8 @@ if (exists("battery") && nrow(battery) > 0 && sum(is.finite(battery$dip_D)) >= 2
 }
 ```
 
-The battery is written to an intermediate for
-[08-tmb](08-tmb.html), which appends TCGA as one more
-row of this same table.
+The battery is written to an intermediate for Part 3 below, which appends
+TCGA as one more row of this same table.
 
 
 ## Part 2 — TMB by aneuploidy, within MMR strata
