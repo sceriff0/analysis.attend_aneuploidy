@@ -1,0 +1,346 @@
+---
+title: "ATTEND — 10. Clustering on TCGA's published GISTIC peaks"
+author: "sceriff0"
+date: "2026-08-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# renv: tidyverse, here (+ optional bioc::ComplexHeatmap, circlize for the peak heatmaps).
+# If missing: renv::install(c("bioc::ComplexHeatmap","circlize")); renv::snapshot()
+library(tidyverse)
+library(here)
+# Headless-safe raster device. The cluster's compute nodes have no X11, so R's default
+# png() fails with "unable to open connection to X11 display" and every figure dies. cairo
+# needs no display; the guard keeps this working on a machine built without it.
+if (capabilities("cairo")) options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 11, fig.height = 8)
+
+source(here("code", "attend_classes.R"))     # attend_tcga_ref_2013, k_cnv, cluster_arm_matrix(),
+                                             # adjusted_rand_index(), cnv_high_cluster_burden()
+source(here("code", "attend_plots.R"))       # fig1a_heatmap(), feature_positions(), attend_theme()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "build_master.R"))       # get_master() — builds on demand
+source(here("code", "load_wes_results.R"))   # load_tcga_published_peaks(), the two peak-matrix
+                                             # builders, load_gistic_thresholded()
+
+ref <- attend_tcga_ref_2013
+# k_cnv and cnv_method/cnv_dist are configuration and live in attend_classes.R with every
+# other method parameter, so 00-methods.Rmd can name the cut it justifies. This report
+# deliberately clusters with the SAME call report 09 uses, so any difference between the two
+# is the feature set and not the method.
+```
+> **Question.** Does clustering on TCGA's *published* GISTIC peaks — an external feature set fitted to neither cohort — recover TCGA's own copy-number partition, and do ATTEND's clusters correspond to TCGA's in that shared space?
+> **Cohort.** TCGA UCEC 2013 (all classified tumours) and all ATTEND patients with GISTIC output, in one 79-peak space.
+> **Reads.** data/tcga_gistic_peaks_2013.tsv (Kandoth et al. Suppl. Data File S2.1), data/tcga_2013/ (clinical + hg19 segments), and ATTEND's own all_thresholded.by_genes.txt in data/gistic/.
+> **Out of scope.** The ATTEND cascade itself, and which ATTEND cluster is serous-like -> [09-tcga-classification](09-tcga-classification.html). Why 1 - Pearson / Ward.D2 is the pipeline's only distance/linkage pair -> [00-methods](00-methods.html). Producing the GISTIC input -> runbooks/gistic.md.
+
+[09-tcga-classification](09-tcga-classification.html) clusters ATTEND on peaks that GISTIC
+learned **from ATTEND itself**. That is circular in a specific, quantifiable way: the
+features are fitted to the same cohort they then partition, so peak membership shifts when
+samples are added or removed. A TCGA run of our own has the mirror-image problem — it uses
+**our** parameters, because TCGA never published theirs (the Supplementary Methods say only
+*"identified from segmented data using GISTIC 2.0"*, with no `-ta`/`-td`/`-conf`/reference
+build anywhere).
+
+This report removes both problems by using an **external, pre-registered feature set**:
+TCGA's own published peak list, Supplementary Data File S2.1, "all tumor" sheets, converted
+once to `data/tcga_gistic_peaks_2013.tsv`. The peaks were defined before either analysis and
+are not a function of either cohort's samples, so there is nothing to leave one out of; the
+TCGA arm needs no GISTIC run at all, because the regions are given and only each sample's
+copy number inside them has to be read; and both cohorts land in **one shared feature
+space**, which is what makes an ATTEND-vs-TCGA cluster comparison a comparison between like
+and like.
+
+It is **not** a reproduction of the paper's *clustering*. The Methods say only
+*"hierarchical clustering... using R"*, never the distance or linkage, so those remain this
+pipeline's choice.
+
+## Part 1 — the external feature set
+
+One row per peak × gene as delivered by `load_tcga_published_peaks()`, which reads
+`data/tcga_gistic_peaks_2013.tsv`: `peak_id`, `direction` (amp/del), `cytoband`, GISTIC
+`q_value` and `residual_q`, hg19 `chrom`/`start`/`end`, and `gene`. The table below counts
+distinct peaks and distinct genes per direction. Three cytobands carry two distinct peaks
+each (`amp:8q24.21`, `amp:3q26.2`, `amp:19p13.2`) and are suffixed `#2` in the source file so
+they stay separate rather than silently merging into one column.
+
+```{r peaks}
+peaks <- tryCatch(load_tcga_published_peaks(), error = function(e) tibble())
+have_peaks <- nrow(peaks) > 0
+if (!have_peaks) {
+  cat("**data/tcga_gistic_peaks_2013.tsv missing** — every panel below is skipped.\n")
+} else {
+  knitr::kable(
+    peaks |>
+      group_by(direction) |>
+      summarise(peaks = dplyr::n_distinct(peak_id),
+                genes = dplyr::n_distinct(gene), .groups = "drop"),
+    caption = "TCGA 2013 published GISTIC peaks (Suppl. Data File S2.1, 'all tumor' sheets).")
+}
+```
+
+The strongest peaks by GISTIC q-value, with representative member genes. This is a check
+that the file is the one it claims to be rather than a result: ERBB2/17q12 and CCNE1/19q12
+amplifications and the PTEN/10q23.31 deletion are the canonical endometrial hits, so their
+absence from the top of this table would mean the conversion went wrong.
+
+```{r peaks-top}
+if (have_peaks) {
+  knitr::kable(
+    peaks |> distinct(peak_id, direction, cytoband, q_value, chrom, start, end) |>
+      group_by(direction) |> slice_min(q_value, n = 5, with_ties = FALSE) |> ungroup() |>
+      left_join(peaks |> group_by(peak_id) |>
+                  summarise(n_genes = n(),
+                            example = paste(head(gene, 3), collapse = ", "), .groups = "drop"),
+                by = "peak_id") |>
+      arrange(direction, q_value),
+    caption = "Top 5 amplification and deletion peaks by q-value, with representative genes.")
+}
+```
+
+## Part 2 — the two cohorts, on one feature set
+
+TCGA's segments (`data/tcga_2013/data_cna_hg19.seg`, via `load_tcga_2013_seg()`) are hg19,
+the same build as the published peak boundaries, so the peaks apply directly:
+`published_peak_matrix_from_seg()` takes, for each sample × peak, the **length-weighted mean
+log2 seg-mean across the peak's wide boundaries**, and sets a peak with no overlapping
+segment to 0 (copy-neutral).
+
+Those values are then **thresholded**, because the Supplementary Methods are explicit that
+clustering ran on *"**thresholded** relative copy number data in significantly reoccurring
+amplifications or deletions regions"* — not on continuous ratios. Discretising to
+{−2,−1,0,+1,+2} also matches the ATTEND route below, whose GISTIC gene calls are already
+thresholded, so the two cohorts share a representation as well as a feature set. The paper
+does not state its cut points, so **both forms are built** and scored against each other in
+Part 3 rather than one being assumed correct.
+
+```{r tcga-matrix}
+tcga_seg  <- tryCatch(load_tcga_2013_seg(),  error = function(e) tibble())
+tcga_clin <- tryCatch(load_tcga_ucec_2013(), error = function(e) tibble())
+
+# |x| < 0.1 -> 0 ; 0.1 <= |x| < 0.9 -> +-1 (low-level) ; |x| >= 0.9 -> +-2 (high-level).
+# Not TCGA's cut points (never published); the continuous matrix below is the control that
+# says what this choice is worth.
+thr_cuts <- c(0.1, 0.9)
+
+tcga_mat_cont <- if (have_peaks && nrow(tcga_seg) > 0)
+  published_peak_matrix_from_seg(tcga_seg, peaks) else NULL
+tcga_mat <- if (have_peaks && nrow(tcga_seg) > 0)
+  published_peak_matrix_from_seg(tcga_seg, peaks, threshold = thr_cuts) else NULL
+
+have_tcga <- !is.null(tcga_mat) && nrow(tcga_mat) >= k_cnv
+# cat(), not message(): opts_chunk sets message = FALSE, so a message() here is invisible on
+# the knitted page and a skipped section then looks like nothing happened at all.
+if (have_tcga) {
+  cat("TCGA peak matrix:", nrow(tcga_mat), "samples x", ncol(tcga_mat) - 1,
+      "peaks (thresholded at", paste(thr_cuts, collapse = "/"), ")\n")
+} else cat("**TCGA peak matrix unavailable** — run `Rscript code/fetch_tcga_ucec_2013.R`.\n")
+```
+
+ATTEND is **hg38**, so the hg19 peak *coordinates* do not transfer — but gene symbols do.
+`load_gistic_thresholded()` reads ATTEND's own `all_thresholded.by_genes.txt` (genes ×
+samples, values already in {−2,−1,0,+1,+2}), and `published_peak_matrix_from_genes()` subsets
+it to the genes TCGA reported inside its peaks and **averages the per-gene calls within each
+peak**, putting ATTEND on the same peak columns as TCGA. No liftover is involved.
+
+The two routes produce comparable *structure*, not comparable *units*: TCGA's values are
+length-weighted mean log2 ratios, ATTEND's are thresholded GISTIC calls averaged per peak.
+Signs and relative magnitudes correspond, absolute values do not — which is why the
+cross-cohort comparison in Part 4 z-scores within cohort before correlating anything. Two
+further limits belong here rather than beneath the figure: gene-symbol matching depends on
+nomenclature, so genes renamed since 2013 drop out silently (the loader reports how many of
+the ~5,000 matched), and a peak with no member gene present in ATTEND is filled with 0,
+which is a conservative assumption and not a measurement.
+
+```{r attend-matrix}
+attend_thr <- tryCatch(load_gistic_thresholded(), error = function(e) NULL)
+attend_mat <- if (have_peaks && !is.null(attend_thr))
+  published_peak_matrix_from_genes(attend_thr, peaks, collapse = TRUE) else NULL
+have_attend <- !is.null(attend_mat) && nrow(attend_mat) >= k_cnv
+
+if (have_attend) {
+  cat("ATTEND peak matrix:", nrow(attend_mat), "samples x", ncol(attend_mat) - 1, "peaks\n")
+} else cat("**No ATTEND GISTIC output** — populate data/gistic/ (see runbooks/gistic.md).",
+           "The TCGA panels still render.\n")
+```
+
+Both cohorts are clustered with one identical call — the `cnv_dist` / `cnv_method` pair
+configured in `attend_classes.R` and used by [09-tcga-classification](09-tcga-classification.html),
+cut at the configured `k_cnv` — so any difference between the cohorts below is the data and
+not the method. The peak "position" used for the heatmap rows comes from each peak's
+cytoband, so the vertical axis stays genomic even though the features are peaks rather than
+bins.
+
+```{r cluster}
+cl_tcga   <- if (have_tcga)
+  cluster_arm_matrix(tcga_mat,   k = k_cnv, method = cnv_method, dist_method = cnv_dist) else NULL
+cl_attend <- if (have_attend)
+  cluster_arm_matrix(attend_mat, k = k_cnv, method = cnv_method, dist_method = cnv_dist) else NULL
+
+peak_cyto <- if (have_peaks)
+  peaks |> distinct(peak_id, cytoband) |> tibble::deframe() else NULL
+
+# Annotation bars for the TCGA heatmap come from TCGA's own published fields, so the
+# heatmap can be read against the paper: integrative subtype, the MSI-derived MMR call, and
+# the retrofitted PanCancer-Atlas aneuploidy score.
+ann_tcga <- if (nrow(tcga_clin) > 0) {
+  a <- tcga_clin |>
+    transmute(ID, TCGA_class = subtype_short,
+              MMR = factor(ifelse(mmrd, "MMRd", "MMRp"), levels = c("MMRp", "MMRd")),
+              Aneuploidy = aneuploidy) |>
+    as.data.frame()
+  rownames(a) <- a$ID; a$ID <- NULL; a
+} else NULL
+```
+
+TCGA UCEC on TCGA's published peaks. Rows are the published peaks placed by cytoband,
+columns are tumours ordered by the clustering above, and the body is the length-weighted
+mean log2 ratio inside each peak — red for gain, blue for loss, the same direction encoding
+the ATTEND SCNA panels use in [07-mutation-and-cna](07-mutation-and-cna.html). The
+annotation bars are TCGA's published subtype, its MSI-derived MMR call and its aneuploidy
+score, none of which entered the clustering.
+
+```{r hm-tcga, fig.height=8}
+if (!is.null(cl_tcga)) {
+  fp <- feature_positions(colnames(cl_tcga$matrix), cytoband = peak_cyto)
+  fig1a_heatmap(cl_tcga$matrix, fp, cl_tcga$cluster, ann_col = ann_tcga,
+                value_type = "continuous",
+                main = paste0("TCGA UCEC 2013 on TCGA's published GISTIC peaks — k = ", k_cnv))
+} else cat("TCGA peak heatmap skipped.\n")
+```
+
+ATTEND on the same peaks, same clustering call, same row order. There are no annotation bars
+here because the point of the panel is the copy-number pattern itself; the ATTEND
+annotation stack is in [09-tcga-classification](09-tcga-classification.html).
+
+```{r hm-attend, fig.height=8}
+if (!is.null(cl_attend)) {
+  fp <- feature_positions(colnames(cl_attend$matrix), cytoband = peak_cyto)
+  fig1a_heatmap(cl_attend$matrix, fp, cl_attend$cluster, ann_col = NULL,
+                value_type = "continuous",
+                main = paste0("ATTEND on TCGA's published GISTIC peaks — k = ", k_cnv))
+} else cat("ATTEND peak heatmap skipped — needs data/gistic/.\n")
+```
+
+## Part 3 — does the external feature set recover TCGA's own answer?
+
+The validation that licenses everything else: clustering TCGA on TCGA's published peaks
+should recover TCGA's published cluster assignment (`CNA_CLUSTER_K4`, carried by
+`load_tcga_ucec_2013()`). Scored with the **adjusted Rand index**, which is chance-corrected
+so it is not inflated by cluster-size imbalance, on the tumours that carry a published
+assignment; both the thresholded and continuous representations are scored so the difference
+that thresholding makes is reported rather than assumed.
+
+Three caveats belong with the numbers rather than after them. **First**, `burden_pick` is
+what `cnv_high_cluster_burden()` chooses as the serous-like cluster and `best_clust` is the
+cluster that actually overlaps published cluster 4 most; the burden rule is a *heuristic*
+(greatest mean |value|), and on thresholded features mean |value| counts a deep deletion and
+a high amplification identically, so a small deletion-heavy cluster can outrank the
+genuinely serous-like one. **When the two columns disagree, the heuristic has failed** — and
+that failure would otherwise propagate silently into any burden-based serous call. **Second**,
+the contingency table is printed underneath precisely so a high ARI with a mislabelled
+CN-high cluster cannot pass unnoticed. **Third**, a comparison against a same-cohort GISTIC
+run of our own is not available here, because this repository has no such TCGA run; the
+question of whether published peaks beat a locally-fitted set is therefore left open rather
+than answered.
+
+```{r validate}
+score_matrix <- function(mat, label) {
+  cl <- cluster_arm_matrix(mat, k = k_cnv, method = cnv_method, dist_method = cnv_dist)
+  if (is.null(cl)) return(NULL)
+  pub <- tcga_clin |> filter(!is.na(cn_cluster_k4)) |>
+    transmute(ID, published = as.character(cn_cluster_k4))
+  j  <- cl$assignment |> inner_join(pub, by = "ID")
+  if (nrow(j) == 0) return(NULL)
+  hi <- cnv_high_cluster_burden(cl)
+  tp <- sum(j$cnv_cluster == hi & j$published == "4")
+  fp <- sum(j$cnv_cluster == hi & j$published != "4")
+  fn <- sum(j$cnv_cluster != hi & j$published == "4")
+  # ORACLE, for the heuristic-failure check described above: the cluster with the largest
+  # overlap with published 4. Reporting both makes a wrong burden pick visible.
+  best <- j |> filter(published == "4") |> count(cnv_cluster) |>
+    slice_max(n, n = 1, with_ties = FALSE)
+  bo   <- best$cnv_cluster[1]
+  btp  <- sum(j$cnv_cluster == bo & j$published == "4")
+  bfp  <- sum(j$cnv_cluster == bo & j$published != "4")
+  bfn  <- sum(j$cnv_cluster != bo & j$published == "4")
+  list(cl = cl, j = j, row = tibble(
+    representation = label, n_scored = nrow(j),
+    ARI = round(adjusted_rand_index(j$cnv_cluster, j$published), 3),
+    burden_pick = as.character(hi),
+    burden_F1   = round(2 * tp / max(1, 2 * tp + fp + fn), 3),
+    best_clust  = as.character(bo),
+    best_prec   = round(btp / max(1, btp + bfp), 3),
+    best_recall = round(btp / max(1, btp + bfn), 3),
+    best_F1     = round(2 * btp / max(1, 2 * btp + bfp + bfn), 3)))
+}
+
+s_thr <- s_cont <- NULL
+if (!is.null(cl_tcga) && nrow(tcga_clin) > 0 && "cn_cluster_k4" %in% names(tcga_clin)) {
+  s_thr  <- score_matrix(tcga_mat,
+                         paste0("thresholded {-2..+2} @ ", paste(thr_cuts, collapse = "/")))
+  s_cont <- score_matrix(tcga_mat_cont, "continuous log2")
+}
+if (!is.null(s_thr)) {
+  knitr::kable(bind_rows(s_thr$row, s_cont$row), caption = paste0(
+    "Clustering TCGA on TCGA's own published peaks, scored against its published ",
+    "CNA_CLUSTER_K4. The paper specifies THRESHOLDED data; the continuous row shows what ",
+    "that instruction is worth. burden_pick vs best_clust disagreeing means the ",
+    "greatest-mean-|value| serous heuristic has failed on this representation."))
+} else cat("Validation skipped — needs data/tcga_2013/ with CNA_CLUSTER_K4.\n")
+```
+
+The contingency behind the thresholded row: recomputed clusters as rows, TCGA's published
+clusters as columns. A concentrated off-diagonal block is the recovery the ARI summarises;
+mass spread across a row means that recomputed cluster has no published counterpart.
+
+```{r validate-contingency}
+if (!is.null(s_thr)) {
+  knitr::kable(as.data.frame.matrix(table(recomputed = s_thr$j$cnv_cluster,
+                                          published  = s_thr$j$published)),
+               caption = "Thresholded (faithful) representation: recomputed rows vs published columns.")
+} else cat("Contingency skipped.\n")
+```
+
+## Part 4 — do the two cohorts' clusters mean the same thing?
+
+Because both matrices span the same peaks, each cluster can be summarised as a **centroid**
+in that space and the cohorts' centroids correlated. Values are **z-scored within cohort
+first**, since the two routes differ in units (Part 2), so the correlation is about the
+*pattern* of peaks and not amplitude. Each ATTEND cluster correlating strongly with exactly
+one TCGA cluster is what would let an ATTEND cluster be named using TCGA's definition rather
+than an internal guess; a row with no strong partner is a copy-number configuration with no
+primary-disease counterpart, which is the observation
+[11-mmrd-crosscohort](11-mmrd-crosscohort.html) pursues on the aneuploidy axis. With four
+clusters per side the correlation matrix is 4 × 4 and every entry is estimated from a handful
+of tumours, so read the *ranking* within a row, not the absolute coefficient.
+
+```{r cross-cohort, fig.height=5}
+if (!is.null(cl_tcga) && !is.null(cl_attend)) {
+  shared <- intersect(colnames(cl_tcga$matrix), colnames(cl_attend$matrix))
+  zc <- function(cl, tag) {
+    m <- scale(cl$matrix[, shared, drop = FALSE])          # z-score within cohort
+    m[!is.finite(m)] <- 0
+    t(sapply(split(seq_len(nrow(m)), cl$cluster[rownames(cl$matrix)]),
+             function(i) colMeans(m[i, , drop = FALSE]))) |>
+      as.data.frame() |> tibble::rownames_to_column("cluster") |> mutate(cohort = tag)
+  }
+  cen <- bind_rows(zc(cl_tcga, "TCGA"), zc(cl_attend, "ATTEND"))
+  M   <- as.matrix(cen[, shared, drop = FALSE])
+  rownames(M) <- paste(cen$cohort, cen$cluster)
+  cm  <- stats::cor(t(M))
+  ta  <- cm[grep("^TCGA", rownames(cm)), grep("^ATTEND", colnames(cm)), drop = FALSE]
+  knitr::kable(round(ta, 2), caption = paste0(
+    "Pearson correlation between TCGA cluster centroids (rows) and ATTEND cluster centroids ",
+    "(columns) across the ", length(shared), " shared published peaks, z-scored within ",
+    "cohort. A high off-diagonal value pairs an ATTEND cluster with its TCGA counterpart."))
+} else cat("Cross-cohort centroid comparison needs BOTH cohorts' matrices.\n")
+```
+
+```{r session-info}
+sessionInfo()
+```

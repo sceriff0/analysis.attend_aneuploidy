@@ -20,7 +20,7 @@ is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
 reads, and what it deliberately leaves to another report. They are numbered in reading
-order, 00 to 08.
+order, 00 to 11.
 
 **[00 — Methods](00-methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
@@ -72,6 +72,18 @@ alternatives — live in runbooks/.
   thresholded peaks with 1 − Pearson distance and Ward.D2 linkage and sweeping k = 2–8 on
   one chromosome heatmap. The serous-like call is directional; the undirected call is
   printed alongside and [DISAGREE] flagged when they differ.
+- **[10 — Clustering on TCGA's published GISTIC peaks](10-published-peak-clustering.html)** · TCGA + ATTEND
+  Report 09 clusters ATTEND on peaks GISTIC learned from ATTEND itself, which is circular.
+  This one uses TCGA's *published* peak list — an external feature set fitted to neither
+  cohort — to ask whether the clustering recovers TCGA's own partition, and whether ATTEND's
+  clusters correspond to TCGA's in that one shared space.
+- **[11 — MMRd aneuploidy, metastatic vs primary](11-mmrd-crosscohort.html)** · MMRd only, both cohorts
+  Whether aneuploidy substructures MMR-deficient tumours in metastatic disease but not in
+  primary disease, on four measurements that fail in different ways: distribution shape
+  (scale-free), absolute level and prevalence (both requiring ASCETS run on TCGA's own
+  segments, so both skipped without it), and whether TMB tracks aneuploidy within an MMR
+  stratum. The TCGA survival arm is included and labelled as descriptive: at roughly a dozen
+  events it cannot detect even a large hazard ratio.
 
 ### Conventions
 
@@ -92,7 +104,8 @@ checks every chunk parses. Both are base R, so they run without tidyverse or the
 - code/attend_harmonise.R — ID spaces, the two crosswalks, the collapse-to-patient rule.
 - code/attend_classes.R — column names (attend_cols), thresholds, class derivation,
   gene panels, the TMB definitions and labels, and the CNV/TCGA-cascade config.
-- code/attend_plots.R — shared palettes, attend_theme(), the highlight overlay.
+- code/attend_plots.R — the one palette (Tol vibrant), attend_theme(), attend_box(),
+  and the highlight overlay with its crosswalk-aware id resolution.
 - code/attend_ihc.R — FlowPath IHC metric definitions (reports 02, 04, 05, 06).
 - code/attend_scna.R — GISTIC peak union, panel score, permutation and LOO stability.
 - code/attend_bimodality.R — tmb_long(), tmb_battery(), and the bimodality measures.
