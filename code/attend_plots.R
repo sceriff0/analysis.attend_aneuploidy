@@ -617,12 +617,12 @@ fig1a_heatmap <- function(mat, feature_pos, clusters, ann_col = NULL,
 
 # Fig-1a chromosome heatmap for a WHOLE k-sweep in ONE figure. The SCNA matrix is drawn
 # once (features x tumours, rows split by chromosome, columns ordered by the supplied
-# dendrogram `hc` — here the Pearson/Ward one from cluster_arm_matrix), and beneath it a
+# dendrogram `hc` — here the Euclidean/Ward one from cluster_arm_matrix), and beneath it a
 # STACK of cluster bars, one per k in `k_range`: bar "k=NN" colours each tumour by
 # cutree(hc, NN). Reading down the bars shows how the same tumours partition as k grows
 # (2 -> 8), all against the same chromosomal SCNA background. `ann_col` optional top
 # annotation (TCGA_class/MMR/TP53/Aneuploidy), keyed by the rownames of `mat` as in
-# fig1a_heatmap(). Because the columns follow the ACTUAL Pearson/Ward dendrogram (not
+# fig1a_heatmap(). Because the columns follow the ACTUAL dendrogram (not
 # ComplexHeatmap's default column clustering), the bars are contiguous blocks. Knit-safe:
 # ComplexHeatmap/circlize absent -> the dendrogram is drawn with the k-cut rectangles.
 fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = NULL,
@@ -640,8 +640,8 @@ fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = 
   if (!requireNamespace("ComplexHeatmap", quietly = TRUE) ||
       !requireNamespace("circlize", quietly = TRUE)) {
     message("fig1a_heatmap_ksweep(): ComplexHeatmap/circlize not installed — drawing the ",
-            "Pearson/Ward dendrogram with k-cut rectangles as a fallback.")
-    plot(hc, labels = FALSE, main = main %||% "CNV clustering (Pearson/Ward) — k-sweep",
+            "clustering dendrogram with k-cut rectangles as a fallback.")
+    plot(hc, labels = FALSE, main = main %||% "CNV clustering (Ward.D2) — k-sweep",
          xlab = "", sub = "")
     for (k in ks) stats::rect.hclust(hc, k = k, border = .fig1a_cluster_cols[as.character(k)])
     return(invisible(NULL))
@@ -692,7 +692,7 @@ fig1a_heatmap_ksweep <- function(mat, feature_pos, hc, k_range = 2:8, ann_col = 
     cluster_columns = stats::as.dendrogram(hc), column_dend_reorder = FALSE,
     show_row_names = FALSE, show_column_names = FALSE,
     top_annotation = top, bottom_annotation = bottom,
-    column_title = main %||% paste0("SCNAs by tumour (columns, Pearson/Ward order) x chromosomal ",
+    column_title = main %||% paste0("SCNAs by tumour (columns, dendrogram order) x chromosomal ",
                                     "location (rows); cluster bars k = ", min(ks), "..", max(ks)),
     row_title_side = "left", border = TRUE,
     heatmap_legend_param = list(title = leg_title))

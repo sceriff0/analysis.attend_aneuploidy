@@ -37,7 +37,7 @@ source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_
 > **Question.** Run on TCGA's own data, does this pipeline's Fig-1a reproduction recover TCGA's published copy-number partition — and where do MMR status and aneuploidy sit on that figure?
 > **Cohort.** TCGA UCEC 2013, every tumour carrying SNP6 segments.
 > **Reads.** data/tcga_2013/ (data_cna_hg19.seg, the two clinical tables, pancan_aneuploidy.tsv), data/tcga_gistic_peaks_2013.tsv, and data/arm_boundaries_hg19.tsv.
-> **Out of scope.** The ATTEND cohort and its cascade -> [09-tcga-classification](09-tcga-classification.html). Why 1 - Pearson / Ward.D2, and why the heatmap draws a different matrix from the one it clusters -> [00-methods](00-methods.html).
+> **Out of scope.** The ATTEND cohort and its cascade -> [09-tcga-classification](09-tcga-classification.html). Why Euclidean / Ward.D2, and why the heatmap draws a different matrix from the one it clusters -> [00-methods](00-methods.html).
 
 This is [09-tcga-classification](09-tcga-classification.html)'s figure, built the same way,
 on **TCGA's own tumours**. It exists because here **the right answer is published**: the 2013
@@ -107,6 +107,11 @@ arms19    <- tryCatch(load_arm_boundaries(build = "hg19"), error = function(e) N
 
 have_seg   <- nrow(tcga_seg) > 0
 have_peaks <- nrow(peaks) > 0
+
+# Kept unfiltered for the cohort-cost comparison in Part 3 — restricting the cohort changes
+# the clustering, so the price of `core_only` has to be measured, not assumed.
+tcga_seg_all  <- tcga_seg
+tcga_clin_all <- tcga_clin
 
 if (core_only && nrow(tcga_clin) > 0 && "core_sample" %in% names(tcga_clin)) {
   keep_ids <- tcga_clin$ID[tcga_clin$core_sample %in% TRUE]
@@ -203,8 +208,14 @@ the same boundary — `Copy-number high (Serous-like)` is **60/60** inside publi
 
 `core_only` above therefore restricts to TCGA's own core set rather than to a criterion of
 ours, and the count is printed so the denominator is never implicit. Set it to `FALSE` to
-recover the paper's own denominator — Fig. 1a used every tumour with copy number, n = 363 —
-at the price of an unlabelled third of the annotation stack.
+recover the paper's own denominator — Fig. 1a used every tumour with copy number.
+
+⚠️ **The restriction is not free, and Part 3 measures what it costs.** Dropping the non-core
+tumours removes the unclassified annotation block, but it also re-clusters a third fewer
+tumours, and on this cohort that degrades the reproduction sharply: agreement with TCGA's
+published partition falls and the published serous-like tumours stop concentrating in the
+highest-burden cluster. The distance × cohort table in Part 3 prints both, so the trade is
+visible on the page rather than buried in a flag.
 
 **TP53 is absent from this report's annotation stack**, unlike report 09's. `data/tcga_2013/`
 carries clinical tables and segments only — no mutation calls — so there is nothing to build
@@ -432,13 +443,16 @@ if (!is.null(scored)) {
 ```
 
 The distance metric is the one thing the paper does not fix, and on this feature space the
-choice is not cosmetic. **1 − Pearson correlation is undefined for a flat profile**, and a
-copy-number-quiet tumour is flat at every one of the 79 peaks — so `cluster_arm_matrix()` must
-drop those samples rather than invent a distance for them. TCGA's published cluster 1 *is* the
-quiet cluster (mean |log2| 0.0043 against 0.216 for cluster 4), which means the correlation
-metric discards most of the one cluster it would most need to recover. Euclidean has no such
-problem: a flat sample simply sits near the origin. The table runs both on the identical
-matrix, each burden-ordered, so the cost is a measurement rather than an argument.
+choice is not cosmetic — this table is why the pipeline uses **Euclidean** rather than the
+1 − Pearson pair S2 names for its mRNA and methylation clusterings.
+**Correlation distance is undefined for a flat profile**, and a copy-number-quiet tumour is
+flat at every one of the 79 peaks, so `cluster_arm_matrix()` must drop those samples rather
+than invent a distance for them. TCGA's published cluster 1 *is* the quiet cluster (mean
+|log2| 0.0043 against 0.216 for cluster 4), so correlation discards most of the one cluster it
+would most need to recover — and the heatmap loses the large pale block Fig. 1a plainly has.
+Under Euclidean a flat sample is not undefined; it sits near the origin, which is the correct
+geometry for "no alteration". Both distances run on the identical matrix, each burden-ordered,
+so the choice is re-measured here on every knit instead of asserted in prose.
 
 ```{r metric-compare}
 if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv &&
@@ -447,25 +461,46 @@ if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv &&
     transmute(ID, published = as.character(cn_cluster_k4))
   dmm <- as.matrix(disp_mat[, setdiff(names(disp_mat), "ID"), drop = FALSE])
   rownames(dmm) <- disp_mat$ID
-  rows <- lapply(c(cnv_dist, "euclidean"), function(dm) {
-    cc <- cluster_arm_matrix(clust_mat, k = k_cnv, method = cnv_method, dist_method = dm)
+  # Two axes, because both were choices: the configured distance against the metric it
+  # replaced, and the configured cohort against the paper's own denominator. Each cell is a
+  # full re-clustering, so the table keeps re-earning both choices on every knit rather than
+  # asserting them once in prose. unique() in case the two distances ever coincide.
+  pub_all <- tcga_clin_all |> filter(!is.na(cn_cluster_k4)) |>
+    transmute(ID, published = as.character(cn_cluster_k4))
+  grid <- expand.grid(dm = unique(c(cnv_dist, "correlation")),
+                      core = c(TRUE, FALSE), stringsAsFactors = FALSE)
+  rows <- lapply(seq_len(nrow(grid)), function(i) {
+    dm <- grid$dm[i]; co <- grid$core[i]
+    sg <- if (co) tcga_seg_all |> filter(ID %in% tcga_clin_all$ID[tcga_clin_all$core_sample %in% TRUE])
+          else tcga_seg_all
+    cmx <- published_peak_matrix_from_seg(sg, peaks, threshold = thr_cuts)
+    if (is.null(cmx) || nrow(cmx) < k_cnv) return(NULL)
+    cc <- cluster_arm_matrix(cmx, k = k_cnv, method = cnv_method, dist_method = dm)
     if (is.null(cc)) return(NULL)
     lab <- relabel_clusters_by_burden(cc$cluster, dmm)$cluster
-    jj  <- tibble(ID = names(lab), new = as.character(lab)) |> inner_join(pub_m, by = "ID")
+    jj  <- tibble(ID = names(lab), new = as.character(lab)) |> inner_join(pub_all, by = "ID")
+    if (!nrow(jj)) return(NULL)
+    ser <- tcga_clin_all$ID[grepl("Serous", as.character(tcga_clin_all$subtype_short))]
     tibble(distance = dm,
+           cohort = if (co) "core only" else "all with CN",
            clustered = nrow(cc$matrix),
-           dropped_flat = nrow(clust_mat) - nrow(cc$matrix),
+           dropped_flat = nrow(cmx) - nrow(cc$matrix),
            scored = nrow(jj),
            ARI = round(adjusted_rand_index(jj$new, jj$published), 3),
            diagonal_pct = round(100 * mean(jj$new == jj$published), 1),
-           pub_cluster1_kept = sum(jj$published == "1"))
+           pub_cluster1_kept = sum(jj$published == "1"),
+           serous_in_top = sum(jj$new == as.character(k_cnv) & jj$ID %in% ser))
   })
   rows <- rows[!vapply(rows, is.null, logical(1))]
   if (length(rows)) knitr::kable(bind_rows(rows), caption = paste0(
-    "The same peak matrix under two distances, both burden-ordered. dropped_flat counts ",
-    "tumours a correlation metric cannot place; pub_cluster1_kept is how many of TCGA's ",
-    "quiet cluster survive to be scored at all. diagonal_pct is only interpretable because ",
-    "both partitions are burden-ordered — on raw cutree labels it would be meaningless."))
+    "Distance x cohort, every cell a full re-clustering, all burden-ordered. dropped_flat ",
+    "counts tumours a correlation metric cannot place; pub_cluster1_kept is how many of ",
+    "TCGA's quiet cluster survive to be scored; serous_in_top is how many published ",
+    "serous-like tumours land in the highest-burden cluster. diagonal_pct is interpretable ",
+    "only because every partition is burden-ordered — on raw cutree labels it would be ",
+    "meaningless. Read the `core only` rows against `all with CN`: restricting the cohort ",
+    "removes the unclassified annotation block but re-clusters a third fewer tumours, and ",
+    "that is a cost, not a free tidy-up."))
 } else cat("Metric comparison skipped — needs the peak matrix, the display matrix and CNA_CLUSTER_K4.\n")
 ```
 

@@ -47,15 +47,38 @@ master <- get_master() |> add_molecular_classes()
 have_master <- !is.null(master)
 ```
 
-## Copy-number clustering — why 1 − Pearson distance with Ward.D2 linkage
+## Copy-number clustering — why Euclidean distance with Ward.D2 linkage
 
 Kandoth et al. (*Nature* 2013) Suppl. Methods S2 names no metric or linkage for the
-*copy-number* clustering, though it names 1 − Pearson / Ward for its mRNA and methylation
-clusterings. This pipeline applies that same pair to the copy-number matrix, set via
-cnv_method / cnv_dist in attend_classes.R and passed to cluster_arm_matrix(). It is the only distance/linkage combination the pipeline uses.
+*copy-number* clustering. It does name 1 − Pearson / Ward for its **mRNA and methylation**
+clusterings, and this pipeline previously borrowed that pair on those grounds. That borrowing
+was wrong, and the reason is a property of copy-number data rather than a matter of taste.
 
-Euclidean with complete linkage is the obvious alternative. Comparing the two shows how
-sensitive the copy-number groups are to a metric choice the source paper never fixed.
+**Correlation distance is undefined for a flat profile.** A copy-number-quiet tumour has no
+alteration at any significant peak, so its profile has zero variance and its correlation with
+every other sample is undefined; `cluster_arm_matrix()` has to drop such samples rather than
+invent a distance for them. TCGA's own published cluster 1 **is** the quiet cluster — mean
+|log2| 0.0043, against 0.216 for cluster 4 — so a correlation metric discards most of the one
+cluster it would most need to recover, and the heatmap loses the large pale block the paper's
+Fig. 1a plainly has.
+
+Measured on TCGA UCEC 2013, whose answer is published — 365 tumours, TCGA's own hg19 segments
+and 79 published peaks, both partitions burden-ordered and scored against `CNA_CLUSTER_K4`:
+
+| distance | clustered | published cluster 1 retained | ARI | diagonal |
+|---|---|---|---|---|
+| 1 − Pearson | 281 / 365 | 7 of 86 | 0.222 | 41.1% |
+| **Euclidean** | **365 / 365** | **86 of 86** | **0.423** | **64.7%** |
+
+Euclidean loses no tumours, recovers the quiet cluster completely, nearly doubles the adjusted
+Rand index, and separates TCGA's serous-like group cleanly (published cluster 4 → recomputed
+cluster 4 at 79/93, with no leakage into clusters 1–3). Under Euclidean a flat sample is not
+undefined; it sits near the origin, which is the correct geometry for "no alteration".
+
+So the pair is **Euclidean + Ward.D2**, set via cnv_method / cnv_dist in attend_classes.R and
+passed to cluster_arm_matrix(). It remains the only distance/linkage combination the pipeline
+uses. [10-tcga2013-fig1a](10-tcga2013-fig1a.html) re-runs the comparison above on every knit,
+so this is a claim the site keeps checking rather than one it asserts once.
 
 ## How the serous-like cluster is chosen, and why it is directional
 
@@ -90,7 +113,7 @@ addition. Read it once; the reports themselves carry only their own derivations.
 ### The clustering
 
 *Follows:* Suppl. Methods S2 exactly — thresholded CN in GISTIC significant peaks,
-hierarchical clustering. *Differs:* DRAGEN WES .seg rather than SNP6; 1 − Pearson /
+hierarchical clustering. *Differs:* DRAGEN WES .seg rather than SNP6; Euclidean /
 Ward.D2 (S2 leaves the CN metric unspecified but uses this pair for mRNA/methylation); the
 cascade reads a single cut (k_cnv in attend_classes.R), while the k-sweep heatmap
 shows a range of cuts around it; and the integrated-class and aneuploidy-score annotation
@@ -124,7 +147,7 @@ SNP6 probes, so the vertical resolution is gene-level by cytoband rather than pr
 
 TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it exposes the
 whole cut spectrum on the Fig-1a canvas so the k = 4 parity cut used by the cascade can be
-judged against its neighbours, under the Pearson/Ward metric.
+judged against its neighbours, under the Euclidean/Ward metric.
 
 ### The aneuploidy-enrichment cross-check
 

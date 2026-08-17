@@ -36,7 +36,7 @@ source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(),
 > **Question.** Which copy-number cluster is enriched for aneuploidy, i.e. which one is the copy-number-high / serous-like group?
 > **Cohort.** All patients with GISTIC output; the cascade itself is drawn on the full master.
 > **Reads.** GISTIC thresholded peaks in data/gistic/ (produced per runbooks/gistic.md), ASCETS scores in data/ascets/, and attend_master_joined.
-> **Out of scope.** Why 1 - Pearson / Ward.D2, and how the serous-like call is made directional -> [00-methods](00-methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
+> **Out of scope.** Why Euclidean / Ward.D2, and how the serous-like call is made directional -> [00-methods](00-methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
 
 
 Reproduces the TCGA integrated genomic classification of endometrial carcinoma (Kandoth et
@@ -168,13 +168,15 @@ if (!is.null(disp_mat)) {
 
 The clustering feature is a **sample × peak-gene** matrix of **thresholded** GISTIC calls
 ({−2..+2}), restricted to the significantly recurrent amp/del regions — **identical in
-kind to TCGA's** (Suppl. Methods S2). This variant hierarchically clusters it with
-**1 − Pearson correlation distance and Ward.D2 linkage** (rather than Euclidean +
-complete). S2 names no metric for the *copy-number* clustering, but its mRNA/methylation
-clusterings use exactly this **1 − Pearson / Ward** pair — so this report asks what the CN
-groups look like under a correlation-shaped, variance-minimising linkage rather than the
-Euclidean/complete default. Instead of committing to one cut, the chromosome heatmap below
-is annotated with the cluster assignment at **every k from 2 to 8** in a single figure.
+kind to TCGA's** (Suppl. Methods S2). It is clustered with **Euclidean distance and Ward.D2
+linkage**, the pipeline's one configured pair. S2 names no metric for the *copy-number*
+clustering; the pipeline previously borrowed the 1 − Pearson / Ward pair S2 names for mRNA and
+methylation, and [00-methods](00-methods.html) sets out the measurement that overturned that
+choice — correlation distance is undefined for a flat profile, so it silently discards the
+copy-number-quiet tumours that make up TCGA's own cluster 1.
+[10-tcga2013-fig1a](10-tcga2013-fig1a.html) re-scores both distances against TCGA's published
+partition on every knit. Instead of committing to one cut, the chromosome heatmap below is
+annotated with the cluster assignment at **every k from 2 to 8** in a single figure.
 What this gets right vs the old arm/bin proxies (now removed):
 
 - **Thresholded, not continuous** — {−2..+2} discretised calls, exactly S2.
@@ -187,16 +189,16 @@ discretised values are the right thing to cluster and the wrong thing to draw, b
 is a picture of the whole copy-number landscape. The clusters are still the peak-based ones —
 they set the column split — so nothing about the method moves.
 - **Residual differences from TCGA** — platform (DRAGEN WES .seg vs SNP 6.0), cohort
-  (metastatic vs primary), N, and the unspecified CN metric/linkage (here **1 − Pearson /
-  Ward.D2**, S2's mRNA/methylation choice; switch via cluster_arm_matrix(..., method=,
-  dist_method=)).
+  (metastatic vs primary), N, and the unspecified CN metric/linkage (here **Euclidean /
+  Ward.D2**, chosen on the evidence in [00-methods](00-methods.html) rather than borrowed from
+  S2's mRNA section; switch via cluster_arm_matrix(..., method=, dist_method=)).
 
 ## CNV clustering (GISTIC thresholded peaks)
 
 **Computational steps.** (1) Cluster the sample × peak-gene **thresholded** GISTIC matrix
 cnv_mat with cluster_arm_matrix(), taking k, method and distance from the configured
-values in attend_classes.R — **1 − Pearson correlation** distance, **Ward.D2** linkage (S2's
-mRNA/methylation choice). (2) Label the **copy-number-high**
+values in attend_classes.R — **Euclidean** distance, **Ward.D2** linkage. (2) Label the
+**copy-number-high**
 cluster by intrinsic SCNA burden = mean |thresholded value| per cluster
 (cnv_high_cluster_burden()), independent of the aneuploidy score — computed on the CLUSTERING
 matrix, so the burden rule never sees the genome-wide display values. (3) Heatmap: the
@@ -386,18 +388,18 @@ if (!is.null(cl)) {
 
 ## The k-sweep — k = 2…8 on one chromosome heatmap
 
-This is the headline of this variant. The **Pearson/Ward dendrogram is computed once**, then
+This is the headline of this variant. The **Euclidean/Ward dendrogram is computed once**, then
 **cut at every k from 2 to 8**. Because a single hierarchical tree is cut repeatedly, the
 partitions are **nested** (k = 8 is a refinement of k = 2), so they can share one figure:
 the display matrix is drawn once — genome-wide genes (rows) grouped by chromosome,
-tumours (columns) ordered by the **actual Pearson/Ward dendrogram** — with a **stack of
+tumours (columns) ordered by the **actual Euclidean/Ward dendrogram** — with a **stack of
 cluster bars beneath, one per k**. Reading a column downward shows how that tumour's cluster
 label subdivides as k grows; reading a bar left-to-right shows the k-cluster partition
 against the same chromosomal SCNA background. This makes the choice of k a **visual
 question** — at which k do the chromosome blocks stop corresponding to coherent SCNA
 patterns — rather than a number fixed in advance.
 
-**Computational steps.** (1) Reuse the Pearson/Ward cl$hclust from the clustering chunk.
+**Computational steps.** (1) Reuse the Euclidean/Ward cl$hclust from the clustering chunk.
 (2) fig1a_heatmap_ksweep(cl$matrix, feat_pos, cl$hclust, k_range = `r paste0(min(k_sweep), ":", max(k_sweep))`)
 draws the matrix once (columns in dendrogram order, no per-k re-clustering) and adds one
 cutree(hc, k) cluster bar per k, plus the same top annotation bars (integrated class,
@@ -413,17 +415,17 @@ if (!is.null(cl) && exists("hm_mat") && exists("feat_pos") && exists("ann")) {
                        value_type = hm_vtype,
                        main = paste0("Fig-1a canvas (", hm_label, ") — k = ",
                                      min(k_sweep), "..", max(k_sweep),
-                                     " Pearson/Ward cluster bars"))
-} else cat("k-sweep heatmap skipped — need the Pearson/Ward clustering (run GISTIC first).\n")
+                                     " Euclidean/Ward cluster bars"))
+} else cat("k-sweep heatmap skipped — need the Euclidean/Ward clustering (run GISTIC first).\n")
 ```
 
-Average silhouette width against k over the same Pearson/Ward dendrogram, which is the
+Average silhouette width against k over the same Euclidean/Ward dendrogram, which is the
 quantitative companion to the visual sweep above: a peak flags the most internally coherent
 cut, and the cascade's configured cut k_cnv is marked for reference. Needs the optional cluster
 package.
 
 ```{r cnv-ksweep-silhouette, fig.height=5}
-# Average silhouette width vs k over the SAME Pearson/Ward dendrogram — the quantitative
+# Average silhouette width vs k over the SAME Euclidean/Ward dendrogram — the quantitative
 # read on "how many clusters". Peaks flag the most internally-coherent cut(s); the cascade's
 # the cascade's configured cut k_cnv is marked for reference. Optional dependency `cluster`.
 if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
@@ -441,7 +443,7 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
     geom_vline(xintercept = k_cnv, linetype = 2,
                colour = unname(ATTEND_PALETTE["red"])) +
     scale_x_continuous(breaks = ks) +
-    labs(title = "Average silhouette width vs k (Pearson/Ward)",
+    labs(title = "Average silhouette width vs k (Euclidean/Ward)",
          subtitle = paste0("dashed = cascade cut k = ", k_cnv, "; higher = more coherent partition"),
          x = "number of clusters (k)", y = "mean silhouette width") +
     attend_theme()
@@ -458,19 +460,19 @@ if (!is.null(cl) && have_master && have_cw) {
 } else message("KM skipped — need CNV clusters + master + crosswalk.")
 ```
 
-Per-sample silhouette at the cascade cut k_cnv, computed on the same 1 - Pearson
+Per-sample silhouette at the cascade cut k_cnv, computed on the same Euclidean
 distance the clustering used rather than Euclidean, so the widths are consistent with the
 tree the clusters came from.
 
 ```{r cnv-silhouette, fig.height=5}
-# Per-sample silhouette at the cascade cut k = k_cnv, using the SAME 1 - Pearson distance the
-# clustering used (not Euclidean) so the widths are consistent with the Pearson/Ward tree.
+# Per-sample silhouette at the cascade cut k = k_cnv, using the SAME distance the clustering
+# used, so the widths are consistent with the tree rather than describing a different geometry.
 if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
   D_sil <- if (identical(cnv_dist, "correlation"))
              stats::as.dist(1 - stats::cor(t(cl$matrix), use = "pairwise.complete.obs"))
            else stats::dist(cl$matrix, method = cnv_dist)
   sil <- cluster::silhouette(cl$cluster[rownames(cl$matrix)], D_sil)
-  plot(sil, main = paste0("Silhouette (Pearson/Ward), k = ", k_cnv), col = "grey40")
+  plot(sil, main = paste0("Silhouette (Euclidean/Ward), k = ", k_cnv), col = "grey40")
 }
 ```
 

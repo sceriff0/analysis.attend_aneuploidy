@@ -533,11 +533,29 @@ km_panel_counts <- function(df, facets,
 # applies it; both source this file, so both can name it.
 #
 # 1 - Pearson correlation distance with Ward.D2 linkage. TCGA Suppl. Methods S2 leaves the
-# *copy-number* clustering metric unstated, but its mRNA and methylation clusterings both
-# use 1 - Pearson / Ward, so the same pair is applied to the CN matrix. This is the only
-# distance/linkage combination the pipeline uses.
+# *copy-number* clustering metric unstated. The pipeline used 1 - Pearson on the grounds that
+# S2 names that pair for its mRNA and METHYLATION clusterings — but it never names it for copy
+# number, and on this feature space it is measurably the wrong choice.
+#
+# WHY EUCLIDEAN. Correlation distance is UNDEFINED for a flat profile, and a copy-number-quiet
+# tumour is flat at every significant peak, so cluster_arm_matrix() must drop those samples
+# rather than invent a distance for them. TCGA's own published cluster 1 IS the quiet cluster
+# (mean |log2| 0.0043, against 0.216 for cluster 4), so correlation discards most of the one
+# cluster it would most need to recover. Measured on TCGA UCEC 2013 (365 tumours, their hg19
+# segments, their published 79 peaks), both burden-ordered and scored against CNA_CLUSTER_K4:
+#
+#   1 - Pearson   281/365 clustered    7 of 86 cluster-1 retained   ARI 0.222   41.1% diagonal
+#   Euclidean     365/365 clustered   86 of 86 cluster-1 retained   ARI 0.423   64.7% diagonal
+#
+# Euclidean loses no tumours, recovers the quiet cluster completely, nearly doubles the ARI, and
+# its contingency is clean on the diagonal (published 4 -> recomputed 4 at 79/93, no leakage
+# into 1-3). A flat sample is not undefined under Euclidean; it simply sits near the origin,
+# which is the correct geometry for "no alteration". Report 10 prints the comparison on every
+# knit, so this is a claim the site re-checks rather than one it asserts.
+#
+# Still ONE distance/linkage combination for the whole pipeline — that rule is unchanged.
 cnv_method <- "ward.D2"       # Ward linkage
-cnv_dist   <- "correlation"   # 1 - Pearson correlation (cluster_arm_matrix() correlation path)
+cnv_dist   <- "euclidean"     # see above: correlation cannot represent a flat SCNA profile
 
 # Cut height for the cascade / CN-high-burden label. TCGA found 4 SCNA clusters (Fig. 1a);
 # ATTEND has no POLE and is smaller, but k = 4 keeps parity. Change freely.

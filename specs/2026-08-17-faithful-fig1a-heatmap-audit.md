@@ -171,3 +171,28 @@ integrated `SUBTYPE` — zero disagreements either way. The integrated classific
 full multiplatform data; the other 141 have SNP6 copy number only. Report 10 gains
 `core_only` (default `TRUE`), restricting to TCGA's own core set rather than to a criterion of
 ours, and `attend_tcga_ref_2013$core_col` + the loader's `core_sample` column expose the flag.
+
+### Decision taken, 2026-08-17: Euclidean
+
+`cnv_dist` is now `"euclidean"` (`attend_classes.R`), and `00-methods.Rmd`'s justification is
+rewritten from "S2 names 1 − Pearson / Ward for mRNA and methylation" to the measurement above.
+The pipeline still uses exactly one distance/linkage pair. Reports 09, 10, `index.Rmd`,
+`attend_plots.R`'s labels and `runbooks/classification_options.md` all follow.
+
+### And the core-set restriction costs more than it saves
+
+Measured with the configured Euclidean pair, 4 cells of distance × cohort:
+
+| cohort | n | ARI | diagonal | published serous-like in the top-burden cluster |
+|---|---|---|---|---|
+| core only (`DATA_CORE_SAMPLE = Y`) | 232 | 0.300 | 31.5% | **8 of 60** |
+| all with copy number | 365 | **0.423** | **64.7%** | **51 of 60** |
+
+Restricting to the core set removes the unclassified annotation block — which is what it was
+asked to do — but re-clusters a third fewer tumours, and Ward.D2 on 232 splits the *altered*
+end into three (burden 0.187 / 0.207 / 0.247) instead of producing the paper's clean gradient
+(0.019 / 0.078 / 0.180 / 0.224). The published serous-like tumours stop concentrating in the
+top cluster, which is the single thing the reproduction is meant to recover.
+
+`core_only` therefore stays a one-line switch with the cost printed by the distance × cohort
+table in report 10 Part 3, rather than a silent default either way.
