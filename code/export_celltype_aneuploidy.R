@@ -19,7 +19,12 @@
 #   Rscript code/export_celltype_aneuploidy.R --mmrd        # MMRd only, as in report 05
 #   Rscript code/export_celltype_aneuploidy.R --out /path/dir
 #
+# A companion CSV carries the RAW COUNTS behind all of the above — the numerators
+# and the shared denominator, untransformed — so any fraction here is re-derivable
+# without the FlowPath tree.
+#
 # Writes output/clean_data/celltype_aneuploidy.csv
+#        output/clean_data/celltype_counts.csv
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -79,7 +84,8 @@ extra <- ct |>
             Tumor_cells   = arcsin_sqrt(n_tumor_inside / n_inside),
             CD45pos_cells = arcsin_sqrt(n_cd45_inside  / n_inside))
 
-clash <- intersect(c("Tumor_cells", "CD45pos_cells"), names(wide))
+# Guards both files: Total_cells_inside is a computed header on the counts CSV.
+clash <- intersect(c("Tumor_cells", "CD45pos_cells", "Total_cells_inside"), names(wide))
 if (length(clash))
   stop("a FlowPath cell-type label collides with a computed column: ",
        paste(clash, collapse = ", "), " — rename the computed column")
@@ -96,10 +102,53 @@ wide <- wide[, c("pid", "aneuploidy_class", "Tumor_cells", "CD45pos_cells",
 f_out <- file.path(out_dir, "celltype_aneuploidy.csv")
 write_csv(wide, f_out)
 
+# --- companion: the raw counts ----------------------------------------------
+# Same rows, same column order, no fraction and no transform: the three totals
+# inside the annotation, then each cell type's own count. Every value in the
+# table above is arcsin(sqrt()) of a ratio of two numbers on this one, so the
+# fractions can be re-derived, re-normalised, or checked without the FlowPath tree.
+counts_ct <- ct |>
+  transmute(pid, aneuploidy_class, cell_type, n_cell) |>
+  pivot_wider(id_cols = c(pid, aneuploidy_class),
+              names_from = cell_type, values_from = n_cell)
+
+totals <- ct |>
+  distinct(pid, n_inside, n_tumor_inside, n_cd45_inside) |>
+  transmute(pid,
+            CD45pos_cells      = n_cd45_inside,
+            Tumor_cells        = n_tumor_inside,
+            Total_cells_inside = n_inside)
+
+counts <- counts_ct |> left_join(totals, by = "pid") |> arrange(pid)
+counts <- counts[, c("pid", "aneuploidy_class", "CD45pos_cells", "Tumor_cells",
+                     "Total_cells_inside",
+                     sort(setdiff(names(counts),
+                                  c("pid", "aneuploidy_class", "CD45pos_cells",
+                                    "Tumor_cells", "Total_cells_inside"))))]
+
+f_counts <- file.path(out_dir, "celltype_counts.csv")
+write_csv(counts, f_counts)
+
 cat("\npatients :", nrow(wide), if (mmrd_only) "(MMR-deficient only)" else "", "\n")
-cat("columns  :", ncol(wide) - 2L, "(2 computed + ", ncol(wide) - 4L, " cell types)\n")
+cat("columns  :", ncol(wide) - 4L, "cell types + Tumor_cells + CD45pos_cells\n")
 print(table(aneuploidy = wide$aneuploidy_class, useNA = "ifany"))
+
 n_na <- sum(is.na(as.matrix(wide[, -(1:2), drop = FALSE])))
 if (n_na > 0)
-  cat("\n", n_na, "empty cells — these are NOT zeros; see the comment above `wide`.\n")
-cat("\nwrote:", f_out, "\n")
+  cat("\n", n_na, "empty cells - these are NOT zeros; see the comment above `wide`.\n")
+
+# Do the cell-type labels account for every cell inside? process_patient_celltypes()
+# drops cells whose `phenotype` has no parenthetical label, so the per-type counts
+# can sum to less than Total_cells_inside. Printed rather than corrected: a shortfall
+# means unlabelled cells exist, which changes what "fraction of all cells inside" is
+# a fraction OF, and only the FlowPath export can say whether that is expected.
+ct_cols  <- setdiff(names(counts), c("pid", "aneuploidy_class", "CD45pos_cells",
+                                     "Tumor_cells", "Total_cells_inside"))
+summed   <- rowSums(as.matrix(counts[, ct_cols, drop = FALSE]), na.rm = TRUE)
+shortfall <- counts$Total_cells_inside - summed
+if (any(shortfall != 0))
+  cat("\nNOTE: cell-type counts do not sum to Total_cells_inside for",
+      sum(shortfall != 0), "of", nrow(counts), "patients",
+      "(median gap", median(shortfall), "cells) - unlabelled phenotypes.\n")
+
+cat("\nwrote:\n  ", f_out, "\n  ", f_counts, "\n")
