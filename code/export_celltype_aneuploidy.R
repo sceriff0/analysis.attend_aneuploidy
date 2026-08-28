@@ -2,6 +2,11 @@
 # =============================================================================
 # export_celltype_aneuploidy.R  —  the arcsin(sqrt) composition table, as a CSV
 #
+# MMR-DEFICIENT ONLY by default — the cohort report 05 Part 2 plots. --all lifts
+# the restriction to every patient carrying both imaging and an aneuploidy class,
+# which is report 06's wider column. Both write the same filenames, so a run with
+# --all overwrites one without it unless you redirect with --out.
+#
 # One row per patient: pid, aneuploidy_class, then one column per cell type
 # holding arcsin(sqrt(n_cell / all cells inside the annotation)) — the exact
 # quantity report 05's `box-inside-arcsin` panels plot, and report 06's.
@@ -15,8 +20,8 @@
 # drift from the knitted figures.
 #
 # Run on the cluster (needs the FlowPath tree + the master's HPC inputs):
-#   Rscript code/export_celltype_aneuploidy.R
-#   Rscript code/export_celltype_aneuploidy.R --mmrd        # MMRd only, as in report 05
+#   Rscript code/export_celltype_aneuploidy.R               # MMRd only, as in report 05
+#   Rscript code/export_celltype_aneuploidy.R --all         # every imaged patient
 #   Rscript code/export_celltype_aneuploidy.R --out /path/dir
 #
 # A companion CSV carries the RAW COUNTS behind all of the above — the numerators
@@ -38,7 +43,7 @@ source(here("code", "load_phenotypes.R"))  # load_ihc_celltypes()
 # load_imaging_data() arrives via build_master.R -> load_clinical.R
 
 args      <- commandArgs(trailingOnly = TRUE)
-mmrd_only <- "--mmrd" %in% args
+mmrd_only <- !("--all" %in% args)   # MMRd is the default; --all opts out
 out_dir   <- if ("--out" %in% args) args[which(args == "--out") + 1L] else
                here("output", "clean_data")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -54,6 +59,7 @@ ct <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
 
 if (mmrd_only) {
   # Same is_mmrd() call reports 05/07/09 use, so the restriction cannot drift.
+  # is_mmrd() reads IHC only — MSI is deliberately not a criterion (00-methods).
   mmrd_pids <- add_scna_group(master) |> filter(mmr_group == "MMRd") |> pull(pid)
   ct <- ct |> filter(pid %in% mmrd_pids)
 }
@@ -129,7 +135,8 @@ counts <- counts[, c("pid", "aneuploidy_class", "CD45pos_cells", "Tumor_cells",
 f_counts <- file.path(out_dir, "celltype_counts.csv")
 write_csv(counts, f_counts)
 
-cat("\npatients :", nrow(wide), if (mmrd_only) "(MMR-deficient only)" else "", "\n")
+cat("\ncohort   :", if (mmrd_only) "MMR-deficient only" else "ALL imaged patients (--all)", "\n")
+cat("patients :", nrow(wide), "\n")
 cat("columns  :", ncol(wide) - 4L, "cell types + Tumor_cells + CD45pos_cells\n")
 print(table(aneuploidy = wide$aneuploidy_class, useNA = "ifany"))
 
