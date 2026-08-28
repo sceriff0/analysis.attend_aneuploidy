@@ -3,13 +3,12 @@
 # export_celltype_aneuploidy.R  —  the arcsin(sqrt) composition table, as a CSV
 #
 # One row per patient: pid, aneuploidy_class, then one column per cell type
-# holding arcsin(sqrt(fraction)) — the exact quantity report 05's `box-*-arcsin`
-# panels plot, and report 06's. One file per denominator, because the denominator
-# changes the question and a single table mixing them buries that:
+# holding arcsin(sqrt(n_cell / all cells inside the annotation)) — the exact
+# quantity report 05's `box-inside-arcsin` panels plot, and report 06's.
 #
-#   _inside.csv  n_cell / all cells inside     what fraction of the tissue is this
-#   _tumor.csv   n_cell / tumour cells inside  this cell type per unit of tumour
-#   _cd45.csv    n_cell / CD45+ cells inside   composition OF the immune compartment
+# Two extra columns carry tumour and leukocyte content on the SAME denominator:
+#   Tumor_cells    n_tumor_inside / n_inside
+#   CD45pos_cells  n_cd45_inside  / n_inside
 #
 # Nothing is re-derived: the composition comes from ihc_celltype_metrics() and
 # the class from get_master() |> add_molecular_classes(), so this CSV cannot
@@ -20,7 +19,7 @@
 #   Rscript code/export_celltype_aneuploidy.R --mmrd        # MMRd only, as in report 05
 #   Rscript code/export_celltype_aneuploidy.R --out /path/dir
 #
-# Writes output/clean_data/celltype_aneuploidy_{inside,tumor,cd45}.csv
+# Writes output/clean_data/celltype_aneuploidy.csv
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -33,17 +32,17 @@ source(here("code", "attend_ihc.R"))       # ihc_celltype_metrics(), arcsin_sqrt
 source(here("code", "load_phenotypes.R"))  # load_ihc_celltypes()
 # load_imaging_data() arrives via build_master.R -> load_clinical.R
 
-args     <- commandArgs(trailingOnly = TRUE)
+args      <- commandArgs(trailingOnly = TRUE)
 mmrd_only <- "--mmrd" %in% args
-out_dir  <- if ("--out" %in% args) args[which(args == "--out") + 1L] else
-              here("output", "clean_data")
+out_dir   <- if ("--out" %in% args) args[which(args == "--out") + 1L] else
+               here("output", "clean_data")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 master <- get_master() |> add_molecular_classes()
 
 # Pools each patient's images (counts and denominators summed), inside the
-# annotated region only. Carries all three fractions — frac_inside / frac_tumor /
-# frac_cd45 — so the three exports below share one count and one pooling step.
+# annotated region only. frac_inside is n_cell / n_inside — the "all cells
+# inside" normalisation, the only one exported here.
 ct <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
   inner_join(master |> select(pid, aneuploidy_class), by = "pid") |>
   filter(!is.na(aneuploidy_class))
@@ -54,51 +53,53 @@ if (mmrd_only) {
   ct <- ct |> filter(pid %in% mmrd_pids)
 }
 
-# Columns are the cell-type labels verbatim (phenotype_clean, the parenthetical
+# --- the per-cell-type columns ----------------------------------------------
+# Headers are the cell-type labels verbatim (phenotype_clean, the parenthetical
 # label in FlowPath's `phenotype`), so a header matches its facet in the figure.
-# A patient with no row for a cell type comes through NA rather than 0: the
+# A patient with no row for a cell type comes through empty rather than 0: the
 # multiplex panel differs between batches, so an absent label can mean "no cells
 # of this type" OR "this marker was not stained for this patient", and only the
 # FlowPath export can tell those apart.
-#
-# arcsin_sqrt() clamps to [0, 1] before asin(sqrt()). That is not cosmetic for the
-# tumour and CD45+ denominators: a cell type more abundant than the denominator
-# gives a fraction above 1, which asin() would return NaN for. Clamped, it lands
-# on pi/2 — a visible ceiling in the data rather than a silent hole. The run
-# reports how many cells hit it.
-write_one <- function(frac_col, suffix) {
-  wide <- ct |>
-    transmute(pid, aneuploidy_class, cell_type,
-              y = arcsin_sqrt(.data[[frac_col]])) |>
-    pivot_wider(id_cols = c(pid, aneuploidy_class),
-                names_from = cell_type, values_from = y) |>
-    arrange(pid)
+wide <- ct |>
+  transmute(pid, aneuploidy_class, cell_type,
+            y = arcsin_sqrt(frac_inside)) |>
+  pivot_wider(id_cols = c(pid, aneuploidy_class),
+              names_from = cell_type, values_from = y)
 
-  # Alphabetical cell-type columns, so the header order is stable between runs
-  # rather than following whichever patient FlowPath happened to read first.
-  wide <- wide[, c("pid", "aneuploidy_class",
-                   sort(setdiff(names(wide), c("pid", "aneuploidy_class"))))]
+# --- tumour and leukocyte content, same denominator -------------------------
+# These are NOT cell-type columns and do not partition with them: a tumour cell
+# is also counted in whatever phenotype column it belongs to, and the two are
+# derived differently upstream — n_tumor_inside matches "Tumor" in `phenotype`,
+# n_cd45_inside is CD45_sign == "+" (load_phenotypes.R). They are read off the
+# per-patient constants ihc_celltype_metrics() already carries, so they use the
+# same pooled n_inside as every column beside them.
+extra <- ct |>
+  distinct(pid, n_inside, n_tumor_inside, n_cd45_inside) |>
+  transmute(pid,
+            Tumor_cells   = arcsin_sqrt(n_tumor_inside / n_inside),
+            CD45pos_cells = arcsin_sqrt(n_cd45_inside  / n_inside))
 
-  f_out <- file.path(out_dir, paste0("celltype_aneuploidy_", suffix, ".csv"))
-  write_csv(wide, f_out)
+clash <- intersect(c("Tumor_cells", "CD45pos_cells"), names(wide))
+if (length(clash))
+  stop("a FlowPath cell-type label collides with a computed column: ",
+       paste(clash, collapse = ", "), " — rename the computed column")
 
-  vals    <- as.matrix(wide[, -(1:2), drop = FALSE])
-  n_na    <- sum(is.na(vals))
-  n_ceil  <- sum(!is.na(vals) & vals >= pi / 2 - 1e-9)
-  cat(sprintf("%-8s %3d patients x %2d cell types  |  %d empty  |  %d clamped at pi/2  ->  %s\n",
-              suffix, nrow(wide), ncol(wide) - 2L, n_na, n_ceil, basename(f_out)))
-  invisible(wide)
-}
+# Tumour and CD45+ lead, then the cell types alphabetically, so the header order
+# is stable between runs rather than following whichever patient FlowPath read first.
+wide <- wide |>
+  left_join(extra, by = "pid") |>
+  arrange(pid)
+wide <- wide[, c("pid", "aneuploidy_class", "Tumor_cells", "CD45pos_cells",
+                 sort(setdiff(names(wide), c("pid", "aneuploidy_class",
+                                             "Tumor_cells", "CD45pos_cells"))))]
 
-cat("\npatients:", n_distinct(ct$pid), if (mmrd_only) "(MMR-deficient only)" else "", "\n")
-print(table(aneuploidy = ct |> distinct(pid, aneuploidy_class) |> pull(aneuploidy_class),
-            useNA = "ifany"))
-cat("\n")
+f_out <- file.path(out_dir, "celltype_aneuploidy.csv")
+write_csv(wide, f_out)
 
-# (fraction column on the ct table, file suffix) — the three denominators of
-# report 05 Part 2, in the order that report shows them.
-invisible(purrr::imap(c(inside = "frac_inside", tumor = "frac_tumor", cd45 = "frac_cd45"),
-                      function(col, suffix) write_one(col, suffix)))
-
-cat("\nEmpty cells are NOT zeros — see the comment above write_one() before filling them.\n")
-cat("wrote to:", out_dir, "\n")
+cat("\npatients :", nrow(wide), if (mmrd_only) "(MMR-deficient only)" else "", "\n")
+cat("columns  :", ncol(wide) - 2L, "(2 computed + ", ncol(wide) - 4L, " cell types)\n")
+print(table(aneuploidy = wide$aneuploidy_class, useNA = "ifany"))
+n_na <- sum(is.na(as.matrix(wide[, -(1:2), drop = FALSE])))
+if (n_na > 0)
+  cat("\n", n_na, "empty cells — these are NOT zeros; see the comment above `wide`.\n")
+cat("\nwrote:", f_out, "\n")
