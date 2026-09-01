@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-08-11" />
 
-<title>ATTEND — 0. Methods</title>
+<title>ATTEND — 00. Methods</title>
 
 <script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -374,7 +374,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">ATTEND — 0. Methods</h1>
+<h1 class="title toc-ignore">ATTEND — 00. Methods</h1>
 <h4 class="author">sceriff0</h4>
 <h4 class="date">2026-08-11</h4>
 
@@ -405,7 +405,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-13
+<strong>Last updated:</strong> 2026-09-01
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -537,15 +537,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree1592d06f7d7925c78f7e90bbaab80e03a8832a40targetblank1592d06a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/attend_aneuploidy/tree/1592d06f7d7925c78f7e90bbaab80e03a8832a40" target="_blank">1592d06</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree1592d06f7d7925c78f7e90bbaab80e03a8832a40targetblank1592d06a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -555,7 +555,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/attend_aneuploidy/tree/1592d06f7d7925c78f7e90bbaab80e03a8832a40" target="_blank">1592d06</a>.
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -570,24 +570,23 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .RData
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/aneu_scores.csv
     Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
     Ignored:    data/clinical_gianlu_data.csv
     Ignored:    data/cnv_annotations/
     Ignored:    data/gistic/
     Ignored:    data/hrd_scores.csv
     Ignored:    data/msi_scores.csv
+    Ignored:    data/old_gistic/
     Ignored:    data/seg/
     Ignored:    data/tcga_2013/
     Ignored:    data/tmb_scores.csv
     Ignored:    data/variant_annotations/
     Ignored:    output/clean_data/
-
-Untracked files:
-    Untracked:  data/attend_data.xlsx
-    Untracked:  data/old_gistic/
 
 </code></pre>
 <p>
@@ -638,7 +637,113 @@ Message
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/attend_aneuploidy/blob/1592d06f7d7925c78f7e90bbaab80e03a8832a40/analysis/00-methods.Rmd" target="_blank">1592d06</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/fe030a06ece013e06310bc148f203612e9781d24/analysis/00-methods.Rmd" target="_blank">fe030a0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:bug: Report 07’s oncoplots were skipped by a gate that could not say
+why
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/6e6af27fc1f41dff101e80ba6901cbc334dbef20/analysis/00-methods.Rmd" target="_blank">6e6af27</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:recycle: Switch the CN clustering metric to Euclidean — 1 - Pearson was
+discarding the quiet cluster
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/a68533f5d8b4d0b239da86e1383edb048137e149/analysis/00-methods.Rmd" target="_blank">a68533f</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:bug: Report 09 drew its clustering matrix, not TCGA Fig. 1a — display
+the genome
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/f77f7e8ff847d4417f9064a0ed9fb8e12f67ae7a/analysis/00-methods.Rmd" target="_blank">f77f7e8</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:art: Repalette the figure system on Tol vibrant; fix the silently-dead
+highlight
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/628db0904c393a52a77012b3f3700f46ba00ed4f/analysis/00-methods.Rmd" target="_blank">628db09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-14
+</td>
+<td>
+:art: Standardize the figure system across every report
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.attend_aneuploidy/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/00-methods.html" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:wrench: first site
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/1592d06f7d7925c78f7e90bbaab80e03a8832a40/analysis/00-methods.Rmd" target="_blank">1592d06</a>
 </td>
 <td>
 bolt3x
@@ -656,7 +761,7 @@ bolt3x
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/attend_aneuploidy/blob/809ba92c6af69a523dff367051ad745a616c2825/analysis/00-methods.Rmd" target="_blank">809ba92</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/809ba92c6af69a523dff367051ad745a616c2825/analysis/00-methods.Rmd" target="_blank">809ba92</a>
 </td>
 <td>
 bolt3x
@@ -696,20 +801,68 @@ its coefficients and effect are shown rather than asserted.</p>
 <pre class="r"><code>master &lt;- get_master() |&gt; add_molecular_classes()
 have_master &lt;- !is.null(master)</code></pre>
 <div
-id="copy-number-clustering-why-1-pearson-distance-with-ward.d2-linkage"
+id="copy-number-clustering-why-euclidean-distance-with-ward.d2-linkage"
 class="section level2">
-<h2>Copy-number clustering — why 1 − Pearson distance with Ward.D2
+<h2>Copy-number clustering — why Euclidean distance with Ward.D2
 linkage</h2>
 <p>Kandoth et al. (<em>Nature</em> 2013) Suppl. Methods S2 names no
-metric or linkage for the <em>copy-number</em> clustering, though it
-names 1 − Pearson / Ward for its mRNA and methylation clusterings. This
-pipeline applies that same pair to the copy-number matrix, set via
+metric or linkage for the <em>copy-number</em> clustering. It does name
+1 − Pearson / Ward for its <strong>mRNA and methylation</strong>
+clusterings, and this pipeline previously borrowed that pair on those
+grounds. That borrowing was wrong, and the reason is a property of
+copy-number data rather than a matter of taste.</p>
+<p><strong>Correlation distance is undefined for a flat
+profile.</strong> A copy-number-quiet tumour has no alteration at any
+significant peak, so its profile has zero variance and its correlation
+with every other sample is undefined; <code>cluster_arm_matrix()</code>
+has to drop such samples rather than invent a distance for them. TCGA’s
+own published cluster 1 <strong>is</strong> the quiet cluster — mean
+|log2| 0.0043, against 0.216 for cluster 4 — so a correlation metric
+discards most of the one cluster it would most need to recover, and the
+heatmap loses the large pale block the paper’s Fig. 1a plainly has.</p>
+<p>Measured on TCGA UCEC 2013, whose answer is published — 365 tumours,
+TCGA’s own hg19 segments and 79 published peaks, both partitions
+burden-ordered and scored against <code>CNA_CLUSTER_K4</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>distance</th>
+<th>clustered</th>
+<th>published cluster 1 retained</th>
+<th>ARI</th>
+<th>diagonal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 − Pearson</td>
+<td>281 / 365</td>
+<td>7 of 86</td>
+<td>0.222</td>
+<td>41.1%</td>
+</tr>
+<tr class="even">
+<td><strong>Euclidean</strong></td>
+<td><strong>365 / 365</strong></td>
+<td><strong>86 of 86</strong></td>
+<td><strong>0.423</strong></td>
+<td><strong>64.7%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Euclidean loses no tumours, recovers the quiet cluster completely,
+nearly doubles the adjusted Rand index, and separates TCGA’s serous-like
+group cleanly (published cluster 4 → recomputed cluster 4 at 79/93, with
+no leakage into clusters 1–3). Under Euclidean a flat sample is not
+undefined; it sits near the origin, which is the correct geometry for
+“no alteration”.</p>
+<p>So the pair is <strong>Euclidean + Ward.D2</strong>, set via
 cnv_method / cnv_dist in attend_classes.R and passed to
-cluster_arm_matrix(). It is the only distance/linkage combination the
-pipeline uses.</p>
-<p>Euclidean with complete linkage is the obvious alternative. Comparing
-the two shows how sensitive the copy-number groups are to a metric
-choice the source paper never fixed.</p>
+cluster_arm_matrix(). It remains the only distance/linkage combination
+the pipeline uses. <a
+href="10-tcga2013-fig1a.html">10-tcga2013-fig1a</a> re-runs the
+comparison above on every knit, so this is a claim the site keeps
+checking rather than one it asserts once.</p>
 </div>
 <div
 id="how-the-serous-like-cluster-is-chosen-and-why-it-is-directional"
@@ -754,19 +907,50 @@ own derivations.</p>
 <h3>The clustering</h3>
 <p><em>Follows:</em> Suppl. Methods S2 exactly — thresholded CN in
 GISTIC significant peaks, hierarchical clustering. <em>Differs:</em>
-DRAGEN WES .seg rather than SNP6; 1 − Pearson / Ward.D2 (S2 leaves the
-CN metric unspecified but uses this pair for mRNA/methylation); the
-cascade reads a single cut (k_cnv in attend_classes.R), while the
-k-sweep heatmap shows a range of cuts around it; and the
-integrated-class and aneuploidy-score annotation bars are ATTEND
-additions, not Fig. 1a elements.</p>
+DRAGEN WES .seg rather than SNP6; Euclidean / Ward.D2 (S2 leaves the CN
+metric unspecified but uses this pair for mRNA/methylation); the cascade
+reads a single cut (k_cnv in attend_classes.R), while the k-sweep
+heatmap shows a range of cuts around it; and the integrated-class and
+aneuploidy-score annotation bars are ATTEND additions, not Fig. 1a
+elements.</p>
+</div>
+<div id="the-heatmap-a-different-matrix-from-the-clustering"
+class="section level3">
+<h3>The heatmap — a different matrix from the clustering</h3>
+<p><em>Follows:</em> the Fig. 1a legend exactly. TCGA describe the
+figure as <em>“SCNAs in each tumour (horizontal axis) plotted by
+chromosomal location (vertical axis)”</em> — the <strong>whole
+genome</strong>, on a <strong>continuous</strong> colour scale. That is
+not the matrix they clustered, and the paper does not claim it is:
+Suppl. Methods S2 clusters <strong>thresholded</strong> copy number
+<strong>restricted to significant peaks</strong>. Two matrices, one
+figure, both from the same GISTIC run.</p>
+<p>So report 09 clusters <code>all_thresholded.by_genes.txt</code>
+inside the significant peaks (<code>load_gistic_thresholded()</code>)
+and <strong>draws</strong> <code>all_data_by_genes.txt</code>
+genome-wide and continuous (<code>load_gistic_continuous()</code>), with
+the columns split and coloured by the peak-based clusters. Drawing the
+clustering matrix instead — which is what this report used to do —
+yields a few hundred peak genes on a five-step colour scale:
+genome-<em>ordered</em>, but not the genomic landscape, and not
+continuous. The clustering is unchanged by this, and GISTIC is still
+required, because the clustering feature is still TCGA’s.</p>
+<p>The rule generalises past this report: <strong>the matrix that
+answers a question and the matrix that shows it need not be the same
+matrix</strong>, and forcing them to be the same is what made this
+figure wrong. What must be shared is the <em>partition</em> — the
+clusters drawn are the clusters computed, never a re-clustering of the
+display values.</p>
+<p><em>Differs:</em> nothing in kind; the display genes are ATTEND’s own
+GISTIC output rather than SNP6 probes, so the vertical resolution is
+gene-level by cytoband rather than probe-level.</p>
 </div>
 <div id="the-k-sweep" class="section level3">
 <h3>The k-sweep</h3>
 <p>TCGA fixed a single k (4). This panel is an ATTEND diagnostic: it
 exposes the whole cut spectrum on the Fig-1a canvas so the k = 4 parity
 cut used by the cascade can be judged against its neighbours, under the
-Pearson/Ward metric.</p>
+Euclidean/Ward metric.</p>
 </div>
 <div id="the-aneuploidy-enrichment-cross-check" class="section level3">
 <h3>The aneuploidy-enrichment cross-check</h3>
@@ -844,7 +1028,8 @@ definitions and never silently picks one:</p>
 the master because the recalibration is fitted on top of robust. They
 are intermediates: tmb_defs_present() cannot return them, so no figure
 can show them. How the recalibration works is in <a
-href="00-methods.html">00-methods</a>.</p>
+href="#how-the-nassar-et-al-recalibration-actually-works">How the Nassar
+et al. recalibration actually works</a>, below.</p>
 <p>Every definition is re-binarised at the same 10 mut/Mb cutoff by
 tmb_class_of(), so panels that differ only in definition differ only in
 who crossed the cut. The ancestry-corrected column stays all-NA until
@@ -998,14 +1183,18 @@ if (have_master &amp;&amp; length(tmb_recomp) &gt;= 2) {
 
   print(
     ggplot(long, aes(def, tmb)) +
-      geom_boxplot(outlier.shape = NA, fill = &quot;#FDBF6F&quot;, width = 0.6) +
+      # Deliberately NOT attend_box(): this is a paired design — each point must sit at the
+      # same x as its patient&#39;s connecting line, so the points cannot be jittered. Every
+      # definition is measured on the whole cohort, so the box is supported at any n.
+      geom_boxplot(outlier.shape = NA, fill = attend_neutral, width = 0.6) +
       geom_line(aes(group = pid), alpha = 0.15) +
       geom_point(size = 0.7, alpha = 0.4) +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = &quot;grey40&quot;) +
       labs(title = &quot;Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions&quot;,
-           subtitle = &quot;lines connect the same patient; dashed = TMB-high cutoff&quot;,
+           subtitle = paste0(&quot;lines connect the same patient; dashed = TMB-high cutoff; n = &quot;,
+                             dplyr::n_distinct(long$pid), &quot; patients&quot;),
            x = &quot;TMB definition&quot;, y = &quot;TMB (mut/Mb)&quot;) +
-      theme_minimal(base_size = 12)
+      attend_theme()
   )
 
   # How many patients are TMB-high under each definition (the reclassification).
@@ -1020,6 +1209,43 @@ if (have_master &amp;&amp; length(tmb_recomp) &gt;= 2) {
           &quot;the gnomAD-annotated MAFs synced into data/variant_annotations/.&quot;)
 }</code></pre>
 <p><img src="figure/00-methods.Rmd/ancestry-tmb-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-ancestry-tmb-1">
+Past versions of ancestry-tmb-1.svg
+</button>
+</p>
+<div id="fig-ancestry-tmb-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/00-methods.Rmd/ancestry-tmb-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <table>
 <caption>TMB-high (&gt;= 10 mut/Mb) count per definition — the
 ancestry-driven reclassification</caption>
@@ -1072,14 +1298,15 @@ if (!is.null(anc) &amp;&amp; all(c(&quot;tmb__TMB_SCORE&quot;,&quot;tmb__TMB_nas
     filter(!is.na(removed))
   if (nrow(g) &gt; 0) {
     ggplot(g, aes(subpop, removed)) +
-      geom_boxplot(outlier.shape = NA, fill = &quot;#CAB2D6&quot;) +
-      geom_jitter(width = 0.15, size = 0.8, alpha = 0.5) +
+      # Sub-populations are the smallest groups in the pipeline — the note above says group
+      # sizes here &quot;can be much smaller than the cohort&quot; — so the mark is chosen per group.
+      attend_box(g, x = &quot;subpop&quot;, y = &quot;removed&quot;) +
       geom_hline(yintercept = 0, linetype = 2, colour = &quot;grey50&quot;) +
       labs(title = &quot;TMB removed by the ancestry correction, by ancestry&quot;,
-           subtitle = &quot;TMB (normal) - TMB (ancestry corrected), mut/Mb; larger = more germline contamination removed&quot;,
+           subtitle = &quot;TMB (normal) - TMB (ancestry corrected); larger = more germline contamination removed&quot;,
            x = &quot;gnomAD sub-population (from self-reported ancestry)&quot;,
-           y = &quot;mut/Mb removed&quot;) +
-      theme_minimal(base_size = 12)
+           y = &quot;TMB removed (mut/Mb)&quot;) +
+      attend_theme()
   } else message(&quot;No patients with both TMB definitions and a mapped ancestry.&quot;)
 } else {
   message(&quot;Need the clinical ancestry column (attend_ancestry$clinical_col = &#39;&quot;,
@@ -1087,6 +1314,43 @@ if (!is.null(anc) &amp;&amp; all(c(&quot;tmb__TMB_SCORE&quot;,&quot;tmb__TMB_nas
           &quot;for the by-ancestry view.&quot;)
 }</code></pre>
 <p><img src="figure/00-methods.Rmd/ancestry-tmb-by-group-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-ancestry-tmb-by-group-1">
+Past versions of ancestry-tmb-by-group-1.svg
+</button>
+</p>
+<div id="fig-ancestry-tmb-by-group-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/00-methods.Rmd/ancestry-tmb-by-group-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="nassar-recalibration-coefficients" class="section level2">
@@ -1218,7 +1482,7 @@ if (have_master &amp;&amp; all(need %in% names(master)) &amp;&amp; !is.null(anc)
                                if (nc$identity) &quot; | recalibration coefficients are identity, so this is the germline filter alone&quot; else &quot;&quot;),
              x = &quot;TMB (normal), mut/Mb&quot;, y = &quot;TMB (ancestry corrected), mut/Mb&quot;,
              colour = NULL) +
-        theme_minimal(base_size = 12)
+        attend_theme()
     )
     reclass_n &lt;- eff |&gt; group_by(group) |&gt;
       summarise(n = n(),
@@ -1236,6 +1500,43 @@ if (have_master &amp;&amp; all(need %in% names(master)) &amp;&amp; !is.null(anc)
           &quot;to show the correction effect.&quot;)
 }</code></pre>
 <p><img src="figure/00-methods.Rmd/nassar-effect-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-nassar-effect-1">
+Past versions of nassar-effect-1.svg
+</button>
+</p>
+<div id="fig-nassar-effect-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/00-methods.Rmd/nassar-effect-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <table>
 <caption>TMB-high (&gt;= 10 mut/Mb) reclassification between the two
 definitions, by ancestry group. changed_call = patients whose high/low
@@ -1336,17 +1637,36 @@ ASCETS score are NA and are dropped from class comparisons.</p>
 </div>
 <div id="highlighted-patients" class="section level2">
 <h2>Highlighted patients</h2>
-<p>Two overlay groups are drawn on top of the base colouring by
+<p>One overlay group is drawn on top of the base colouring by
 highlight_points(), which partitions the data so no patient is plotted
 twice:</p>
 <ul>
-<li><strong>polipo</strong> — sample 21S188, in magenta.</li>
-<li><strong>cohort</strong> — the multi-modal subset, in gold: patients
-who also have IHC or imaging data, and so appear in the concordance and
-composition reports.</li>
+<li><strong>polipo</strong> — sample 21S188, in blue
+(<code>#0077BB</code>).</li>
 </ul>
-<p>polipo is declared first in attend_highlight, and matching is
-first-match-wins, so 21S188 is never absorbed into cohort.</p>
+<p>It is drawn on <strong>every</strong> report that plots per-patient
+points, with no per-report opt-out. Marking one sample is only useful if
+a reader can locate it in each distribution it appears in; a report that
+quietly omits it looks identical on the page to one that never carried
+it.</p>
+<p>The overlay colour is the one hue in the palette that no semantic
+scale may claim, because highlight points are drawn <em>on top of</em>
+boxes filled with the MMR, aneuploidy, TP53 and response colours — a
+highlight sharing a hex is invisible on exactly the box it exists to
+mark.</p>
+<p><code>21S188</code> is a sequencing <strong>barcode</strong>, while
+most figures are built from the master and keyed on <code>pid</code>.
+The configured ids are therefore expanded through the barcode→pid and
+image→pid crosswalks before matching, so the overlay resolves in every
+id space. Before that resolution existed the match failed silently and
+the mark simply did not appear.</p>
+<p>A second group, <strong>cohort</strong> (the multi-modal subset with
+IHC or imaging data, in yellow), was retired. It covered roughly 16 of
+~40 patients, so it read as a second competing fill rather than as a
+mark, and it encoded <strong>data availability</strong> — which the
+master already carries as its <code>in_*</code> membership columns and
+<a href="01-data-integration.html">01-data-integration</a> already draws
+as a set diagram.</p>
 </div>
 <div id="what-mmr-deficient-only-means" class="section level2">
 <h2>What “MMR-deficient only” means</h2>
@@ -1409,7 +1729,7 @@ loaded via a namespace (and not attached):
  [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
 [13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
 [17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
-[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.2       
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.3       
 [25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
 [29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
 [33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         
@@ -1458,7 +1778,7 @@ loaded via a namespace (and not attached):
  [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
 [13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
 [17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
-[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.2       
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.0.5        withr_3.0.3       
 [25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
 [29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
 [33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         

@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-08-13" />
 
-<title>ATTEND — 10. Data integration: the join, and what it cost</title>
+<title>ATTEND — 01. Data integration: the join, and what it cost</title>
 
 <script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -374,7 +374,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">ATTEND — 10. Data integration: the join,
+<h1 class="title toc-ignore">ATTEND — 01. Data integration: the join,
 and what it cost</h1>
 <h4 class="author">sceriff0</h4>
 <h4 class="date">2026-08-13</h4>
@@ -406,7 +406,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-13
+<strong>Last updated:</strong> 2026-09-01
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -538,15 +538,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree809ba92c6af69a523dff367051ad745a616c2825targetblank809ba92a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/attend_aneuploidy/tree/809ba92c6af69a523dff367051ad745a616c2825" target="_blank">809ba92</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0attendaneuploidytree809ba92c6af69a523dff367051ad745a616c2825targetblank809ba92a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -556,7 +556,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/attend_aneuploidy/tree/809ba92c6af69a523dff367051ad745a616c2825" target="_blank">809ba92</a>.
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -571,24 +571,23 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .RData
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/aneu_scores.csv
     Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
     Ignored:    data/clinical_gianlu_data.csv
     Ignored:    data/cnv_annotations/
     Ignored:    data/gistic/
     Ignored:    data/hrd_scores.csv
     Ignored:    data/msi_scores.csv
+    Ignored:    data/old_gistic/
     Ignored:    data/seg/
     Ignored:    data/tcga_2013/
     Ignored:    data/tmb_scores.csv
     Ignored:    data/variant_annotations/
     Ignored:    output/clean_data/
-
-Untracked files:
-    Untracked:  data/attend_data.xlsx
-    Untracked:  data/old_gistic/
 
 </code></pre>
 <p>
@@ -639,7 +638,77 @@ Message
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/attend_aneuploidy/blob/809ba92c6af69a523dff367051ad745a616c2825/analysis/01-data-integration.Rmd" target="_blank">809ba92</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/fe030a06ece013e06310bc148f203612e9781d24/analysis/01-data-integration.Rmd" target="_blank">fe030a0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:bug: Report 07’s oncoplots were skipped by a gate that could not say
+why
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/f77f7e8ff847d4417f9064a0ed9fb8e12f67ae7a/analysis/01-data-integration.Rmd" target="_blank">f77f7e8</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:art: Repalette the figure system on Tol vibrant; fix the silently-dead
+highlight
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/628db0904c393a52a77012b3f3700f46ba00ed4f/analysis/01-data-integration.Rmd" target="_blank">628db09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-14
+</td>
+<td>
+:art: Standardize the figure system across every report
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.attend_aneuploidy/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/01-data-integration.html" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+<td>
+:wrench: first site
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/809ba92c6af69a523dff367051ad745a616c2825/analysis/01-data-integration.Rmd" target="_blank">809ba92</a>
 </td>
 <td>
 bolt3x
@@ -1305,21 +1374,62 @@ loss</code></pre>
 <pre class="r"><code>cat(&quot;Patients present in ANY dataset:&quot;, length(Reduce(union, sets)), &quot;\n&quot;)</code></pre>
 <pre><code>Patients present in ANY dataset: 245 </code></pre>
 <p>The same table as a figure. Each bar is one dataset’s <strong>native
-IDs</strong>, split into mapped (green) and unmapped (orange) — both in
-the same unit, so the bar is genuinely additive and its full length is
-the dataset’s raw size. Orange is where linkage is failing.</p>
+IDs</strong>, split into mapped (grey) and unmapped (red) — both in the
+same unit, so the bar is genuinely additive and its full length is the
+dataset’s raw size. Red is where linkage is failing.</p>
 <pre class="r"><code>loss_long &lt;- loss |&gt;
   transmute(dataset, mapped = n_ids_mapped, unmapped = n_ids_unmapped) |&gt;
   pivot_longer(-dataset, names_to = &quot;status&quot;, values_to = &quot;n&quot;)
 
 ggplot(loss_long, aes(reorder(dataset, n), n, fill = status)) +
   geom_col() + coord_flip() +
-  scale_fill_manual(values = c(mapped = &quot;#1D9E75&quot;, unmapped = &quot;#D85A30&quot;)) +
-  labs(x = NULL, y = &quot;native IDs&quot;, fill = NULL,
+  # Rule [A]: the state a reader should NOT look at (successfully mapped) is grey, so the
+  # unmapped remainder is the only thing carrying colour. Was a green/orange pair from no
+  # palette in particular, which made &quot;mapped&quot; the loudest element of a loss figure.
+  scale_fill_manual(values = c(mapped = attend_neutral,
+                               unmapped = unname(ATTEND_PALETTE[&quot;red&quot;]))) +
+  labs(x = NULL, y = &quot;Native IDs (count)&quot;, fill = NULL,
        title    = &quot;Per-dataset coverage and ID-conversion loss&quot;,
        subtitle = &quot;Native-ID units; mapped + unmapped is additive&quot;) +
-  theme_minimal(base_size = 12)</code></pre>
+  attend_theme()</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-loss-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-loss-1">
+Past versions of plot-loss-1.svg
+</button>
+</p>
+<div id="fig-plot-loss-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-loss-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="which-patients-have-which-modalities" class="section level3">
 <h3>Which patients have which modalities</h3>
@@ -1337,6 +1447,43 @@ distinct-patient total.</p>
       sets.x.label    = &quot;patients per dataset&quot;,
       text.scale = c(1.3, 1.2, 1.1, 1.0, 1.2, 1.1))</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-upset-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-upset-1">
+Past versions of plot-upset-1.svg
+</button>
+</p>
+<div id="fig-plot-upset-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-upset-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>UpSet answers <em>which</em> combination; this answers <em>how
 complete</em>. For each <strong>k</strong>, the number of patients
 appearing in exactly <em>k</em> of the eight datasets. The right-most
@@ -1347,17 +1494,55 @@ membership &lt;- sapply(sets, function(s) all_pids %in% s)
 degree_tbl &lt;- tibble(pid = all_pids, k = rowSums(membership))
 
 ggplot(degree_tbl, aes(factor(k))) +
-  geom_bar(fill = &quot;#4C72B0&quot;) +
+  geom_bar(fill = attend_pal(1)) +
   geom_text(stat = &quot;count&quot;, aes(label = after_stat(count)), vjust = -0.3, size = 3.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
   labs(title = &quot;Cohort completeness&quot;,
-       x = &quot;number of datasets a patient appears in (k)&quot;, y = &quot;patients&quot;) +
-  theme_minimal(base_size = 12)</code></pre>
+       subtitle = paste0(&quot;n = &quot;, nrow(degree_tbl), &quot; patients across &quot;, length(sets), &quot; datasets&quot;),
+       x = &quot;Number of datasets a patient appears in (k)&quot;, y = &quot;Patients (count)&quot;) +
+  attend_theme()</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-degree-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-degree-1">
+Past versions of plot-degree-1.svg
+</button>
+</p>
+<div id="fig-plot-degree-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-degree-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The per-patient view of the same information, read off the master’s
 in_<dataset> flags. One row per patient, ordered by how many modalities
-they have (least complete at the bottom); blue = present, beige =
-absent. Vertical beige stripes are the bottleneck modalities; the solid
+they have (least complete at the bottom); blue = present, pale grey =
+absent. Vertical pale stripes are the bottleneck modalities; the solid
 blue block at the top is the complete cohort.</p>
 <pre class="r"><code>presence &lt;- master |&gt;
   select(pid, starts_with(&quot;in_&quot;)) |&gt;
@@ -1369,12 +1554,51 @@ pid_order &lt;- presence |&gt; group_by(pid) |&gt; summarise(k = sum(present), .
 
 ggplot(presence, aes(dataset, factor(pid, levels = pid_order), fill = present)) +
   geom_tile() +
-  scale_fill_manual(values = c(`TRUE` = &quot;#185FA5&quot;, `FALSE` = &quot;#F1EFE8&quot;)) +
-  labs(title = &quot;Patient x dataset availability&quot;, x = NULL, y = &quot;patients&quot;, fill = &quot;present&quot;) +
-  theme_minimal(base_size = 11) +
+  scale_fill_manual(values = c(`TRUE` = attend_pal(1), `FALSE` = &quot;grey93&quot;)) +
+  labs(title = &quot;Patient x dataset availability&quot;,
+       subtitle = paste0(&quot;n = &quot;, dplyr::n_distinct(presence$pid), &quot; patients&quot;),
+       x = NULL, y = &quot;Patients (one row each)&quot;, fill = &quot;present&quot;) +
+  attend_theme() +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-availability-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-availability-1">
+Past versions of plot-availability-1.svg
+</button>
+</p>
+<div id="fig-plot-availability-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-availability-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div id="two-datasets-that-are-loaded-but-never-joined"
 class="section level4">
 <h4>Two datasets that are loaded but never joined</h4>
@@ -1513,6 +1737,43 @@ summary (skimr). Both optional.</p>
 25 hrd__LOH_Score                      48     19.6
 # ℹ 46 more rows</code></pre>
 <p><img src="figure/01-data-integration.Rmd/eda-naniar-skimr-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-eda-naniar-skimr-1">
+Past versions of eda-naniar-skimr-1.svg
+</button>
+</p>
+<div id="fig-eda-naniar-skimr-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/eda-naniar-skimr-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>if (requireNamespace(&quot;skimr&quot;, quietly = TRUE)) skimr::skim(master) else
   message(&quot;skimr not installed — skipping typed EDA summary.&quot;)</code></pre>
 <table>
@@ -2466,16 +2727,54 @@ blur.</p>
 
 if (nrow(score_long) &gt; 0) {
   ggplot(score_long, aes(value)) +
-    geom_histogram(bins = 30, fill = &quot;#4C72B0&quot;) +
+    geom_histogram(bins = 30, fill = attend_pal(1)) +
     facet_wrap(~ metric, scales = &quot;free&quot;, ncol = 3) +
     labs(title = &quot;Distributions of the genomic score columns (master)&quot;,
-         subtitle = &quot;Check for impossible values, spikes at 0, and bimodality&quot;,
-         x = NULL, y = &quot;patients&quot;) +
-    theme_minimal(base_size = 11)
+         subtitle = paste0(&quot;Check for impossible values, spikes at 0, and bimodality; n = &quot;,
+                           dplyr::n_distinct(score_long$pid), &quot; patients&quot;),
+         x = &quot;Score (units differ per panel; see 00-methods)&quot;, y = &quot;Patients (count)&quot;) +
+    attend_theme()
 } else {
   message(&quot;No numeric score columns matched in master — check column prefixes.&quot;)
 }</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-score-dist-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-score-dist-1">
+Past versions of plot-score-dist-1.svg
+</button>
+</p>
+<div id="fig-plot-score-dist-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-score-dist-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The continuous WES MSI score (msi__MSI_SCORE, percent unstable sites,
 from data/msi.20250831.csv) against the clinical MSI status the clinical
 table calls independently. The two arrive through different ID spaces —
@@ -2501,17 +2800,58 @@ if (have_cols(master, msi_score_col, attend_cols$msi_status)) {
   }, error = function(e) NULL)
 
   ggplot(msi_df, aes(status, score)) +
-    geom_boxplot(outlier.shape = NA, fill = &quot;#A6CEE3&quot;, width = 0.6) +
+    # points = FALSE: highlight_points() below supplies the partitioned point layer, so
+    # attend_box() contributes only the box (or, where a stratum is under n=10, the median
+    # crossbar) and the per-group n. The old fill was #A6CEE3 — which attend_plots.R defines
+    # as &quot;aneuploidy-low&quot;, a meaning this figure does not have.
+    attend_box(msi_df, x = &quot;status&quot;, y = &quot;score&quot;, points = FALSE) +
     highlight_points(msi_df, &quot;status&quot;, &quot;score&quot;, base_size = 0.7, base_alpha = 0.4, base_const = &quot;black&quot;) +
     labs(title = &quot;WES MSI score by clinical MSI status&quot;,
-         subtitle = p_lab, x = &quot;clinical MSI status&quot;,
+         subtitle = p_lab, x = &quot;Clinical MSI status&quot;,
          y = &quot;WES MSI score (% unstable sites)&quot;) +
-    theme_minimal(base_size = 11)
+    attend_theme()
 } else {
   message(&quot;Both msi__MSI_SCORE and &quot;, attend_cols$msi_status,
           &quot; must be in the master — skipping MSI concordance plot.&quot;)
 }</code></pre>
 <p><img src="figure/01-data-integration.Rmd/msi-score-vs-status-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-msi-score-vs-status-1">
+Past versions of msi-score-vs-status-1.svg
+</button>
+</p>
+<div id="fig-msi-score-vs-status-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/msi-score-vs-status-1.svg" target="_blank">ed3a227</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>R version 4.3.2 (2023-10-31)
 Platform: x86_64-pc-linux-gnu (64-bit)
@@ -2549,7 +2889,7 @@ loaded via a namespace (and not attached):
 [29] naniar_1.0.0       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
 [33] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
 [37] cli_3.6.6          magrittr_2.0.5     base64enc_0.1-3    dichromat_2.0-0.1 
-[41] utf8_1.2.6         withr_3.0.2        scales_1.4.0       promises_1.5.0    
+[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
 [45] bit64_4.0.5        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
 [49] otel_0.2.0         gridExtra_2.3      workflowr_1.7.2    cellranger_1.1.0  
 [53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
@@ -2600,7 +2940,7 @@ loaded via a namespace (and not attached):
 [29] naniar_1.0.0       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
 [33] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
 [37] cli_3.6.6          magrittr_2.0.5     base64enc_0.1-3    dichromat_2.0-0.1 
-[41] utf8_1.2.6         withr_3.0.2        scales_1.4.0       promises_1.5.0    
+[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
 [45] bit64_4.0.5        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
 [49] otel_0.2.0         gridExtra_2.3      workflowr_1.7.2    cellranger_1.1.0  
 [53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
