@@ -306,6 +306,43 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
 }
 
 # ============================================================================
+# shared_frac_y() — one y axis for every facet of a composition figure.
+# ============================================================================
+# The IHC cell-type panels in reports 05 and 06 faceted on `scales = "free_y"`, which
+# rescales every panel to its own data. A cell type at 0.4% of the tissue and one at 40%
+# then drew boxes of the same height at the same place: the panel RANGE carried the
+# abundance, and the reader could not see it. On a shared axis the height of a facet is
+# the abundance, which is what a composition figure is for. The cost is real and is the
+# accepted trade: a rare cell type flattens toward zero, so a difference that free_y
+# magnified into the full panel becomes the small difference it is.
+#
+# Two things have to move with the scale, which is why this is a helper and not a
+# `scales = "fixed"` in five places:
+#
+#  1. ggpubr places its p-value at each PANEL's own data maximum. On a shared axis that
+#     drops the label onto the boxes of every low-abundance facet. `label_y` puts every
+#     p-value on one line above the GLOBAL maximum instead, so the labels also read as a
+#     row rather than tracking each facet's ceiling.
+#  2. attend_box(label_n = TRUE) appends its own scale_y_continuous() for the n= labels at
+#     y = -Inf. A second one REPLACES it, silently. Call sites pass `expand_y = FALSE` and
+#     take the bottom expansion from here, so the n= labels keep their room.
+#
+# Returns list(scale = <layer>, label_y = <numeric>). Base R only — attend_plots.R is
+# sourced in the bootstrap env, so ggplot2 may only be touched at call time.
+shared_frac_y <- function(values, bottom = 0.12, top = 0.14, label_frac = 0.04) {
+  v <- values[is.finite(values)]
+  # An empty or single-valued vector gives a zero-width range; fall back to letting
+  # ggplot pick, and to ggpubr's own placement (label_y = NULL is "use the default").
+  rng <- if (length(v) == 0) c(NA_real_, NA_real_) else range(v)
+  span <- if (length(v) == 0 || !is.finite(diff(rng)) || diff(rng) == 0) NA_real_ else diff(rng)
+  list(
+    scale = ggplot2::scale_y_continuous(
+      expand = ggplot2::expansion(mult = c(bottom, top))),
+    label_y = if (is.na(span)) NULL else rng[2] + label_frac * span
+  )
+}
+
+# ============================================================================
 # attend_fig_save() — the manuscript path.
 # ============================================================================
 # attend_theme() is sized for the HTML site. A figure headed for the paper needs
