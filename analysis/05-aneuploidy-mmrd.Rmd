@@ -350,14 +350,14 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 ```
 
 ```{r box-helpers, include=FALSE}
-# One boxplot per cell type, aneuploidy-high vs -low, for ONE abundance tier. Boxes are
+# One boxplot per cell type, aneuploidy-high vs -low, all cell types on one axis. Boxes are
 # filled by aneuploidy class; the highlight overlay is drawn on top in its own colour scale
 # (colour != fill, so the two legends do not collide), partitioned so no patient is plotted
 # twice. `arcsin` switches BOTH the y variable and the test, so the raw/Wilcoxon and the
 # arcsin/t-test versions cannot drift apart the way two copied functions did.
-# The y variable is always `.v`, prepared by draw_tiers() — the transform happens there
-# because the tiering has to see the same values the panel plots.
-box_by_aneu <- function(df, denom_label, tier_label, arcsin = FALSE) {
+# The y variable is always `.v`, prepared by draw_composition() — the transform happens there
+# because the axis has to be computed on the same values the panels plot.
+box_by_aneu <- function(df, denom_label, arcsin = FALSE) {
   d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   method <- if (arcsin) "t.test" else "wilcox.test"
@@ -379,28 +379,24 @@ box_by_aneu <- function(df, denom_label, tier_label, arcsin = FALSE) {
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label,
-                        " — ", tier_label, " cell types"),
+    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label),
          subtitle = paste0(sub, yy$note), x = NULL, y = unit) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 
-# Tier ONCE per normalization, on the whole restricted cohort, then draw one figure per
-# tier, abundant first. Tiering inside the loop would let a tier's membership depend on
-# which tier was being drawn.
-draw_tiers <- function(frac_col, denom_label, arcsin = FALSE) {
+# ONE figure per normalization, every cell type in it, on one axis. The transform happens
+# here rather than in box_by_aneu() because the axis has to be computed on the same values
+# the panels plot.
+draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
   d <- ct |>
     mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
     filter(is.finite(.v))
   if (nrow(d) == 0) {
     message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
   }
-  d <- abundance_tiers(d, ".v", "cell_type")
-  for (tv in levels(d$.tier)) {
-    p <- box_by_aneu(filter(d, .tier == tv), denom_label, tv, arcsin)
-    if (!is.null(p)) print(p)
-  }
+  p <- box_by_aneu(d, denom_label, arcsin)
+  if (!is.null(p)) print(p)
 }
 ```
 
@@ -410,38 +406,38 @@ One panel per cell type, aneuploidy-high vs -low, within MMRd, from the ct table
 above. Each normalization is shown as a raw-fraction/Wilcoxon figure followed by its
 arcsine/t-test companion.
 
-Each normalization is drawn as **one figure per abundance tier** — abundant, intermediate,
-rare — assigned by `abundance_tiers()` from each cell type's median, in equal-ratio bands on
-a log scale. Within a figure every facet shares one y axis, so a panel's height reads as
-that cell type's abundance relative to its neighbours; between figures the band changes and
-the axis says so. Tiering is what makes the shared axis usable: these cell types span four
-orders of magnitude on the tumour-cell denominator, and one axis over all of them leaves
-every panel but the most abundant a flat line. The tier is computed once per normalization
-over the whole restricted cohort, so it does not depend on which tier is being drawn.
+Every cell type is drawn in **one figure per normalization, on a single shared y axis**.
+A panel's height therefore reads as that cell type's abundance relative to every other one,
+which is the comparison the figure exists to support: `Macrophages` is read against
+`T cytotoxic` on the same scale, not against a rescaled axis of its own. `scales = "free_y"`
+would give each panel its own range and make a cell type at a fraction of a percent of the
+tissue draw the same box, in the same place, as one at half the tissue. The cost is accepted
+deliberately — on the tumour-cell denominator these cell types span orders of magnitude, so
+the rarest panels sit low against a scale set by the most abundant.
 
-The shared axis is drawn to the **largest upper whisker** in the figure (Q3 + 1.5 IQR over
-every class x cell-type cell), not to the largest value, and the p-value label is placed
-inside that range by the same call. Both follow from one measurement: ggpubr derives its
-default label height from the plot-wide maximum, so a single extreme patient simultaneously
-flattened every box and parked every p-value at the ceiling, where it read as no p-value at
-all. The range is a **zoom** (`coord_cartesian()`), so every patient is still in the box
-statistics and in the test — nothing is dropped, and a point above the axis is counted in
-the subtitle.
+The axis stops at the **largest upper whisker** in the figure (Q3 + 1.5 IQR over every class
+x cell-type cell), not at the largest value, and the p-value label is placed inside that
+range by the same call. Both follow from one measurement: ggpubr derives its default label
+height from the plot-wide maximum, so a single extreme patient simultaneously flattened
+every box and parked every p-value at the ceiling, where it read as no p-value at all. The
+range is a **zoom** (`coord_cartesian()`), so every patient is still in the box statistics
+and in the test — nothing is dropped, and a point above the axis is counted in the subtitle.
+Groups smaller than `attend_min_box_n` still show a median crossbar instead of a box.
 
 #### Normalized by all cells inside
 
 Each cell type as a fraction of every cell in the annotation, so a panel reads "how much
 of the tissue is this". Raw fractions, Wilcoxon.
 
-```{r box-inside, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_inside", "all cells inside")
+```{r box-inside, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_inside", "all cells inside", arcsin = TRUE)
+```{r box-inside-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
 #### Normalized by tumour cells inside
@@ -449,14 +445,14 @@ draw_tiers("frac_inside", "all cells inside", arcsin = TRUE)
 Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon.
 
-```{r box-tumor, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_tumor", "tumour cells inside")
+```{r box-tumor, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_tumor", "tumour cells inside", arcsin = TRUE)
+```{r box-tumor-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
 #### Normalized by CD45+ cells inside
@@ -464,14 +460,14 @@ draw_tiers("frac_tumor", "tumour cells inside", arcsin = TRUE)
 Composition *of the immune compartment*: the denominator is leukocytes, so tumour-content
 differences between patients cannot drive the contrast. Raw fractions, Wilcoxon.
 
-```{r box-cd45, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_cd45", "CD45+ cells inside")
+```{r box-cd45, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
-draw_tiers("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
+```{r box-cd45-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
 ### Immune content — the headline contrast

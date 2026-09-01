@@ -241,7 +241,12 @@ attend_theme <- function(base_size = 11) {
 #
 # Returns a list of ggplot layers, so it composes: ggplot(d, aes(...)) + attend_box(...).
 # Base R only (aggregate, not dplyr) — attend_plots.R is sourced in the bootstrap env.
-attend_min_box_n <- 10L
+# 5, not 10. ATTEND's aneuploidy-high arm is ~5 patients, and at 10 that arm drew as a bare
+# median line beside a full box — which reads as "no data here" rather than "few patients
+# here", and made every composition panel look collapsed. Quartiles from 5 points are noisy
+# and that is a real cost, but the n is printed under every group, so the reader can discount
+# a box the same way they would discount the crossbar. Below 5 the crossbar still applies.
+attend_min_box_n <- 5L
 
 attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
                        jitter_width = 0.18, point_size = 0.8, point_alpha = 0.55,
@@ -306,19 +311,22 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
 }
 
 # ============================================================================
-# shared_frac_y() / abundance_tiers() — one axis per figure, for facets that can share one.
+# shared_frac_y() / frac_display_y() — one axis for every facet in a figure.
 # ============================================================================
 # The IHC cell-type panels faceted on `scales = "free_y"`, which rescales every panel to its
 # own data: a cell type at a fraction of a percent of the tissue and one at half the tissue
 # drew the same box in the same place, so the panel RANGE carried the abundance and the
-# reader could not see it. A shared axis fixes that — but only among panels of comparable
-# magnitude. Measured on the tumour-cell normalisation, the cell types span four orders of
-# magnitude, and one shared axis over all of them left every panel but `Tumor` a flat line
-# occupying ~2% of its panel height.
+# reader could not see it. One shared axis over every cell type in the figure fixes that, and
+# is what the reports ask for: Macrophages must be readable against T cytotoxic on the same
+# scale, not against a rescaled axis of its own.
 #
-# So the two go together: abundance_tiers() groups the facets into bands of similar
-# magnitude, and shared_frac_y() gives each band its own single axis. Within a tier a
-# panel's height is the abundance; across tiers the reader is told the band changed.
+# An intermediate design split the facets into abundance tiers and gave each tier its own
+# figure and its own shared axis. It is gone — a reader comparing two cell types should not
+# have to check which figure each landed in, and the tier boundaries were a property of the
+# cohort rather than of the biology. The cost is real and is accepted deliberately: on the
+# tumour-cell denominator these cell types span orders of magnitude, so the rarest panels sit
+# low against a scale set by the most abundant. frac_display_y() is what keeps that from
+# being hopeless — the axis stops at the largest whisker, not the largest point.
 #
 # The p-value label MUST be placed explicitly, by frac_display_y(). ggpubr derives its
 # default `label.y` from the PLOT-WIDE y range, not from the panel's own data, so on a shared
@@ -389,42 +397,6 @@ shared_frac_y <- function(y = NULL, bottom = 0.12, top = 0.10) {
   if (!is.null(y) && !is.null(y$ylim))
     out <- c(out, list(ggplot2::coord_cartesian(ylim = y$ylim)))
   out
-}
-
-# Assign each level of `facet_col` to an abundance tier from its MEDIAN of `value_col`.
-# Tiers are equal-width on log10, i.e. equal RATIO span, which is what "similar scale"
-# means for a fraction: a tier holds cell types within a bounded fold-change of each other,
-# whatever their absolute level. Returns `df` with a `.tier` factor ordered abundant -> rare.
-#
-# The median, not the max: one patient with a tiny denominator can throw a single ratio
-# orders of magnitude out, and tiering on that would move the whole cell type into the wrong
-# band. Zero and negative medians are floored to (max median / floor_ratio) rather than
-# dropped, because a cell type that is absent in most patients is a real, rare cell type.
-abundance_tiers <- function(df, value_col, facet_col, n_tiers = 3L, floor_ratio = 1e4) {
-  f   <- as.character(df[[facet_col]])
-  med <- tapply(df[[value_col]], f, function(x) stats::median(x[is.finite(x)]))
-  ok  <- names(med)[is.finite(med)]
-  # Degenerate cases keep the figure drawable: nothing finite, or one level, is one tier.
-  if (length(ok) == 0) { df$.tier <- factor("all cell types"); return(df) }
-
-  k    <- max(1L, min(as.integer(n_tiers), length(ok)))
-  hi   <- max(med[ok])
-  lg   <- log10(pmax(med[ok], if (hi > 0) hi / floor_ratio else 1))
-  # A flat set of medians has zero width, which cut() cannot split — one tier.
-  idx  <- if (diff(range(lg)) == 0 || k == 1L) rep(1L, length(lg)) else {
-    br <- seq(min(lg), max(lg), length.out = k + 1L); br[1] <- br[1] - 1e-9
-    as.integer(cut(lg, breaks = br, labels = FALSE, include.lowest = TRUE))
-  }
-  k <- length(unique(idx))                       # tiers that actually got members
-  words <- if (k == 1L) "all cell types" else if (k == 2L) c("abundant", "rare") else
-           if (k == 3L) c("abundant", "intermediate", "rare") else paste("tier", seq_len(k))
-  # cut() numbers low -> high; the reader reads abundant first, so reverse.
-  rank  <- match(idx, sort(unique(idx), decreasing = TRUE))
-  lut   <- stats::setNames(words[rank], ok)
-  # A level with no finite median has no data to plot; park it in the last tier so the
-  # row survives to the filter that drops it rather than becoming a silent NA facet.
-  df$.tier <- factor(ifelse(is.na(lut[f]), words[k], lut[f]), levels = words)
-  df
 }
 
 # ============================================================================
