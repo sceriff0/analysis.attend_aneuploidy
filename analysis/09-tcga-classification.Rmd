@@ -471,7 +471,14 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
   D_sil <- if (identical(cnv_dist, "correlation"))
              stats::as.dist(1 - stats::cor(t(cl$matrix), use = "pairwise.complete.obs"))
            else stats::dist(cl$matrix, method = cnv_dist)
-  sil <- cluster::silhouette(cl$cluster[rownames(cl$matrix)], D_sil)
+  # cl$cluster is a FACTOR after relabel_clusters_by_burden() (levels "1".."k"), and
+  # cluster::silhouette() validates its codes with `all(x == round(x))` — round() on a factor
+  # is an error, not a coercion, so the knit dies here with "'round' not meaningful for
+  # factors". The k-sweep chunk above never hit it because cutree() hands back a plain
+  # integer. Coerce through as.character(): as.integer() on a factor returns LEVEL CODES, so
+  # a level set that is ever not in sorted order would silently renumber the burden-ordered
+  # clusters — the one property relabel_clusters_by_burden() exists to guarantee.
+  sil <- cluster::silhouette(as.integer(as.character(cl$cluster[rownames(cl$matrix)])), D_sil)
   plot(sil, main = paste0("Silhouette (Euclidean/Ward), k = ", k_cnv), col = "grey40")
 }
 ```
