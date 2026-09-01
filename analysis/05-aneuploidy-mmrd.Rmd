@@ -365,18 +365,23 @@ box_by_aneu <- function(df, denom_label, tier_label, arcsin = FALSE) {
             else        paste0("fraction of ", denom_label)
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
+  # The ceiling and the p-value height come from ONE call: ggpubr's default label.y is the
+  # PLOT-WIDE maximum, so on this shared axis a single extreme patient parks every label at
+  # the ceiling and squashes every box. See frac_display_y() in attend_plots.R.
+  yy <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
   ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
     attend_box(d, x = "aneuploidy_class", y = ".v", by = "cell_type", fill = NULL,
                points = FALSE, expand_y = FALSE) +
     highlight_points(d, "aneuploidy_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = method, label = "p.format", size = 3) +
-    shared_frac_y() +
+    stat_compare_means(method = method, label = "p.format", size = 3,
+                       label.y = yy$label_y) +
+    shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
     labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label,
                         " — ", tier_label, " cell types"),
-         subtitle = sub, x = NULL, y = unit) +
+         subtitle = paste0(sub, yy$note), x = NULL, y = unit) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
@@ -413,6 +418,15 @@ the axis says so. Tiering is what makes the shared axis usable: these cell types
 orders of magnitude on the tumour-cell denominator, and one axis over all of them leaves
 every panel but the most abundant a flat line. The tier is computed once per normalization
 over the whole restricted cohort, so it does not depend on which tier is being drawn.
+
+The shared axis is drawn to the **largest upper whisker** in the figure (Q3 + 1.5 IQR over
+every class x cell-type cell), not to the largest value, and the p-value label is placed
+inside that range by the same call. Both follow from one measurement: ggpubr derives its
+default label height from the plot-wide maximum, so a single extreme patient simultaneously
+flattened every box and parked every p-value at the ceiling, where it read as no p-value at
+all. The range is a **zoom** (`coord_cartesian()`), so every patient is still in the box
+statistics and in the test — nothing is dropped, and a point above the axis is counted in
+the subtitle.
 
 #### Normalized by all cells inside
 
@@ -493,17 +507,19 @@ box_immune <- function(df, denom_, arcsin = FALSE) {
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
+  yy <- frac_display_y(d, "frac", c("aneuploidy_class", "metric"))
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
     attend_box(d, x = "aneuploidy_class", y = "frac", by = "metric", fill = NULL,
                points = FALSE, expand_y = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
-    stat_compare_means(method = method, label = "p.format", size = 3) +
-    shared_frac_y() +
+    stat_compare_means(method = method, label = "p.format", size = 3,
+                       label.y = yy$label_y) +
+    shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
     labs(title = paste0("Immune content by aneuploidy (MMRd only) — ", ttl),
-         subtitle = paste0("normalized by ", denom_), x = NULL, y = ylab) +
+         subtitle = paste0("normalized by ", denom_, yy$note), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }

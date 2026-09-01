@@ -320,10 +320,24 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
 # magnitude, and shared_frac_y() gives each band its own single axis. Within a tier a
 # panel's height is the abundance; across tiers the reader is told the band changed.
 #
-# NOT a `label_y` for the p-value. An earlier version pinned every p-value to one line above
-# the GLOBAL maximum, which read well until one facet stretched the range — then every label
-# sat at a ceiling up to 48x above its own boxes, and the p-values looked absent. ggpubr's
-# own per-panel placement puts each label just above the data it belongs to. Leave it alone.
+# The p-value label MUST be placed explicitly, by frac_display_y(). ggpubr derives its
+# default `label.y` from the PLOT-WIDE y range, not from the panel's own data, so on a shared
+# axis every facet gets the same default, pinned to the global maximum. Measured on a four-
+# facet repro with one patient at 10x the rest: all four labels land at y = 0.60 while their
+# boxes sit under 0.09 — adrift at the ceiling, which on the page reads as no p-value at all.
+# An earlier fix deleted an explicit label_y on the grounds that ggpubr "places each label
+# just above the data it belongs to". That is true under `scales = "free_y"`, which these
+# facets used until the shared axis landed, and false after. The label height and the axis
+# ceiling are therefore ONE decision, and frac_display_y() returns both from one call.
+#
+# frac_display_y() also removes what set the labels adrift: a single extreme patient ranging
+# the whole figure. `outlier.shape = NA` hides the outlier glyph but not its pull on the
+# scale, and highlight_points() redraws every patient regardless. The ceiling is the largest
+# upper whisker over all (x, facet) cells, so no box and no whisker is ever cut, and it is
+# applied with coord_cartesian() — a ZOOM. scale_y_continuous(limits=) would drop the
+# off-scale rows BEFORE stat_boxplot computes and silently move the medians it is supposed to
+# be showing. Points above the ceiling are counted, never quietly dropped: `$note` carries
+# the count into the subtitle.
 #
 # attend_box(label_n = TRUE) appends its own scale_y_continuous() for the n= labels at
 # y = -Inf, and a second one REPLACES it, silently — so call sites pass `expand_y = FALSE`
@@ -331,8 +345,50 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
 #
 # Base R only — attend_plots.R is sourced in the bootstrap env, so ggplot2 may only be
 # touched at call time.
-shared_frac_y <- function(bottom = 0.12, top = 0.10) {
-  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(bottom, top)))
+# The display range for one shared-axis figure, and the label height that has to sit inside
+# it. `keys` are the columns whose combination is one box (the x variable and the facet).
+# Returns $ylim, $label_y, $n_above and a $note for the subtitle; every field is NULL/0/""
+# when there is nothing finite to scale, so a call site can pass the result through blind.
+frac_display_y <- function(df, value_col, keys, headroom = 0.18, whisker_mult = 1.5) {
+  none <- list(ylim = NULL, label_y = NULL, n_above = 0L, note = "")
+  v  <- suppressWarnings(as.numeric(df[[value_col]]))
+  ok <- is.finite(v)
+  if (!any(ok)) return(none)
+
+  # One upper whisker per (x, facet) cell. Same \r-joined key idiom as attend_box(), which
+  # has to survive factor levels that contain the separator.
+  cells <- do.call(paste, c(lapply(keys, function(k) as.character(df[[k]])[ok]), sep = "\r"))
+  uw <- tapply(v[ok], cells, function(x) {
+    q <- stats::quantile(x, c(0.25, 0.75), names = FALSE, na.rm = TRUE)
+    q[2] + whisker_mult * (q[2] - q[1])
+  })
+  uw  <- uw[is.finite(uw)]
+  top <- if (length(uw)) max(uw) else max(v[ok])
+  lo  <- min(0, min(v[ok]))
+  # Nothing above the floor (every value at or below 0) leaves no range to zoom into.
+  # A flat set at a non-zero level is NOT degenerate: [0, v*(1+headroom)] is the right
+  # window for it, and the boxes land where the reader expects.
+  if (!is.finite(top) || top <= lo) return(none)
+
+  span <- top - lo
+  ceil <- lo + span * (1 + headroom)
+  n_above <- sum(v[ok] > ceil)
+  list(ylim    = c(lo, ceil),
+       label_y = lo + span * (1 + headroom * 0.45),
+       n_above = n_above,
+       note    = if (n_above > 0)
+                   sprintf("; %d point%s above the axis (every patient is in the boxes and the test)",
+                           n_above, if (n_above == 1L) "" else "s")
+                 else "")
+}
+
+# Pass the frac_display_y() result to apply its zoom; called with no argument this is the
+# bare expansion it has always been.
+shared_frac_y <- function(y = NULL, bottom = 0.12, top = 0.10) {
+  out <- list(ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(bottom, top))))
+  if (!is.null(y) && !is.null(y$ylim))
+    out <- c(out, list(ggplot2::coord_cartesian(ylim = y$ylim)))
+  out
 }
 
 # Assign each level of `facet_col` to an abundance tier from its MEDIAN of `value_col`.

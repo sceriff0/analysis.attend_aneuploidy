@@ -196,18 +196,22 @@ box_by_resp <- function(df, denom_label, cohort_label, tier_label, arcsin = FALS
             else        paste0("fraction of ", denom_label)
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
+  # One call fixes the ceiling and the p-value height together — see box_by_aneu() in
+  # report 05 and frac_display_y() in attend_plots.R for why they cannot be separate.
+  yy <- frac_display_y(d, ".v", c("response_class", "cell_type"))
   ggplot(d, aes(response_class, .v, fill = response_class)) +
     attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
                points = FALSE, expand_y = FALSE) +
     highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = method, label = "p.format", size = 3) +
-    shared_frac_y() +
+    stat_compare_means(method = method, label = "p.format", size = 3,
+                       label.y = yy$label_y) +
+    shared_frac_y(yy) +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = paste0("Cell-type presence by response (", cohort_label, ") — by ",
                         denom_label, " — ", tier_label, " cell types"),
-         subtitle = sub, x = NULL, y = ylab) +
+         subtitle = paste0(sub, yy$note), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
@@ -250,6 +254,15 @@ The tier is assigned once on **all patients** and reused for the MMR-deficient s
 the two cohort figures under each heading group the cell types identically. Their axis
 limits are still computed per figure, so compare the two on which cell types moved, not on
 absolute box heights.
+
+The shared axis is drawn to the **largest upper whisker** in the figure (Q3 + 1.5 IQR over
+every class x cell-type cell), not to the largest value, and the p-value label is placed
+inside that range by the same call. Both follow from one measurement: ggpubr derives its
+default label height from the plot-wide maximum, so a single extreme patient simultaneously
+flattened every box and parked every p-value at the ceiling, where it read as no p-value at
+all. The range is a **zoom** (`coord_cartesian()`), so every patient is still in the box
+statistics and in the test — nothing is dropped, and a point above the axis is counted in
+the subtitle.
 
 ### Normalized by all cells inside
 
@@ -334,17 +347,19 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE) {
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
+  yy <- frac_display_y(d, "frac", c("response_class", "metric"))
   ggplot(d, aes(response_class, frac, fill = response_class)) +
     attend_box(d, x = "response_class", y = "frac", by = "metric", fill = NULL,
                points = FALSE, expand_y = FALSE) +
     highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
-    stat_compare_means(method = method, label = "p.format", size = 3) +
-    shared_frac_y() +
+    stat_compare_means(method = method, label = "p.format", size = 3,
+                       label.y = yy$label_y) +
+    shared_frac_y(yy) +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = paste0("Immune content by response (", cohort_label, ") — ", ttl),
-         subtitle = paste0("normalized by ", denom_), x = NULL, y = ylab) +
+         subtitle = paste0("normalized by ", denom_, yy$note), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
