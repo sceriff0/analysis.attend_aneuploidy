@@ -129,6 +129,21 @@ attend_highlight <- list(
   )
 )
 
+# ONE switch, pipeline-wide, for whether the highlight MARK is drawn.
+#
+# FALSE draws every patient in the plain base colour and omits the blue polipo point and
+# its legend. The base points themselves are unaffected — at the call sites that pass
+# `points = FALSE` to attend_box(), highlight_points() IS the points layer, so switching
+# the mark off must not take the cohort with it.
+#
+# It lives here, as a single global, and NOT as an argument a report passes. The ban
+# test_figure_system.R enforces is on a report opting out on its own: reports 05 and 06
+# each used to carry a wrapper that dropped the overlay, so the mark was present in some
+# distributions and absent in others, and a reader could not tell "not this patient" from
+# "not this figure". A global keeps every report saying the same thing, whichever way it
+# is set. Flip it here and the whole site follows.
+attend_highlight_show <- FALSE
+
 # --- 3. Gene panels ---------------------------------------------------------
 # `attend_gene_panel` is THE MMR PANEL and nothing else. It is used two ways:
 # one gene at a time (per-gene <GENE>-mut/<GENE>-wt) and as a union (>=1

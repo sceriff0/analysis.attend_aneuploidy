@@ -180,15 +180,15 @@ for (nm in names(ct_cohorts)) {
 ```
 
 ```{r box-helpers, include=FALSE}
-# One boxplot per cell type, responder vs non-responder. Boxes are filled by response
-# class; the highlight overlay is drawn on top in its own colour scale (colour != fill, so
-# the two legends do not collide), partitioned so no patient is plotted twice. `arcsin`
-# switches BOTH the y variable and the test, so the raw/Wilcoxon and arcsin/t-test versions
-# can never drift apart the way two copied functions would.
-box_by_resp <- function(df, frac_col, denom_label, cohort_label, arcsin = FALSE) {
-  d <- df |> filter(is.finite(.data[[frac_col]]), !is.na(response_class)) |>
-    mutate(.y = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
-    droplevels()
+# One boxplot per cell type, responder vs non-responder, for ONE abundance tier and ONE
+# cohort. Boxes are filled by response class; the highlight overlay is drawn on top in its
+# own colour scale (colour != fill, so the two legends do not collide), partitioned so no
+# patient is plotted twice. `arcsin` switches BOTH the y variable and the test, so the
+# raw/Wilcoxon and arcsin/t-test versions can never drift apart. The y variable is always
+# `.v`, prepared by draw_tiers() — the transform happens there because the tiering has to
+# see the same values the panel plots.
+box_by_resp <- function(df, denom_label, cohort_label, tier_label, arcsin = FALSE) {
+  d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
   method <- if (arcsin) "t.test"                             else "wilcox.test"
@@ -196,46 +196,60 @@ box_by_resp <- function(df, frac_col, denom_label, cohort_label, arcsin = FALSE)
             else        paste0("fraction of ", denom_label)
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
-  # One y axis across every cell type (see shared_frac_y()), the same as report 05's
-  # panels: a facet's height is now the abundance. expand_y = FALSE hands the bottom
-  # expansion to that scale so the n= labels are not evicted by the replacement.
-  sc <- shared_frac_y(d$.y)
-  ggplot(d, aes(response_class, .y, fill = response_class)) +
-    attend_box(d, x = "response_class", y = ".y", by = "cell_type", fill = NULL,
+  ggplot(d, aes(response_class, .v, fill = response_class)) +
+    attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
                points = FALSE, expand_y = FALSE) +
-    highlight_points(d, "response_class", ".y", base_size = 0.5, base_alpha = 0.35,
+    highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
-                       label.y = sc$label_y) +
-    sc$scale +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    shared_frac_y() +
     scale_fill_manual(values = attend_resp_cols) +
-    labs(title = paste0("Cell-type presence by response (", cohort_label,
-                        ") — normalized by ", denom_label),
+    labs(title = paste0("Cell-type presence by response (", cohort_label, ") — by ",
+                        denom_label, " — ", tier_label, " cell types"),
          subtitle = sub, x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 
-# Draw one normalization for BOTH cohorts, in a fixed order, so the two are always adjacent
-# in the knitted page and a cohort that degrades to a skip says so instead of vanishing.
-draw_both <- function(frac_col, denom_label, arcsin = FALSE) {
-  for (nm in names(ct_cohorts)) {
-    p <- box_by_resp(ct_cohorts[[nm]], frac_col, denom_label, nm, arcsin)
-    if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
-                            " — no finite fractions, or only one response arm present.")
-    else print(p)
+# One figure per (tier, cohort), tier outer so the two cohorts of a tier stay adjacent in
+# the knitted page and a cohort that degrades to a skip says so instead of vanishing.
+#
+# The tier is assigned on the WIDER cohort and REUSED for the MMR-deficient subset. Tiering
+# each cohort separately would group the cell types differently in the two figures, and the
+# pair is drawn adjacent precisely so it can be read across.
+draw_tiers <- function(frac_col, denom_label, arcsin = FALSE) {
+  d_all <- ct_all |>
+    mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
+    filter(is.finite(.v))
+  if (nrow(d_all) == 0) {
+    message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
   }
+  d_all   <- abundance_tiers(d_all, ".v", "cell_type")
+  cohorts <- list(`all patients`  = d_all,
+                  `MMR-deficient` = filter(d_all, pid %in% mmrd_pids))
+  for (tv in levels(d_all$.tier))
+    for (nm in names(cohorts)) {
+      p <- box_by_resp(filter(cohorts[[nm]], .tier == tv), denom_label, nm, tv, arcsin)
+      if (is.null(p)) message("Skipped: ", nm, " / ", denom_label, " / ", tv,
+                              " — no finite fractions, or only one response arm present.")
+      else print(p)
+    }
 }
 ```
 
-Every facet within a figure shares one y axis, the same as report 05's panels, so a panel's
-height reads as that cell type's abundance relative to the others rather than filling
-whatever range it happens to occupy. A rare cell type therefore flattens toward zero, and a
-difference a per-panel axis would magnify is drawn at the size it is. The limits are
-computed per figure, so the two cohort figures under each heading below are each internally
-comparable but **not** comparable to each other: the MMR-deficient subset has its own
-maximum, and its axis follows it.
+Each normalization is drawn as one figure per **abundance tier** — abundant, intermediate,
+rare — assigned by `abundance_tiers()` from each cell type's median, in equal-ratio bands on
+a log scale, exactly as in report 05. Within a figure every facet shares one y axis, so a
+panel's height reads as that cell type's abundance relative to its neighbours; between
+figures the band changes and the axis says so. Tiering is what makes the shared axis usable:
+these cell types span orders of magnitude, and one axis over all of them leaves every panel
+but the most abundant a flat line.
+
+The tier is assigned once on **all patients** and reused for the MMR-deficient subset, so
+the two cohort figures under each heading group the cell types identically. Their axis
+limits are still computed per figure, so compare the two on which cell types moved, not on
+absolute box heights.
 
 ### Normalized by all cells inside
 
@@ -243,15 +257,15 @@ Each cell type as a fraction of every cell in the annotation, so a panel reads "
 the tissue is this". Raw fractions with a Wilcoxon, drawn for all patients and then for the
 MMR-deficient subset.
 
-```{r box-inside, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_inside", "all cells inside")
+```{r box-inside, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_inside", "all cells inside", arcsin = TRUE)
+```{r box-inside-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
 ### Normalized by tumour cells inside
@@ -260,14 +274,14 @@ Each cell type per unit of tumour: the denominator is tumour cells only, so a sh
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-tumor, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_tumor", "tumour cells inside")
+```{r box-tumor, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_tumor", "tumour cells inside", arcsin = TRUE)
+```{r box-tumor-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
 ### Normalized by CD45+ cells inside
@@ -276,14 +290,14 @@ Composition *of the immune compartment*: the denominator is leukocytes, so diffe
 tumour content between patients cannot drive the contrast. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-cd45, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_cd45", "CD45+ cells inside")
+```{r box-cd45, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-draw_both("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
+```{r box-cd45-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
 ## Immune content — the headline contrast
@@ -307,47 +321,53 @@ cat("metrics present:", paste(sort(unique(imm_all$metric)), collapse = ", "), "\
 ```
 
 ```{r immune-box-helper, include=FALSE}
-# Same construction as box_by_resp(), faceted by metric x normalization instead of by
-# cell type, so all six immune panels sit on one figure per cohort.
-box_immune_resp <- function(df, cohort_label, arcsin = FALSE) {
-  d <- df |> filter(is.finite(frac), !is.na(response_class)) |> droplevels()
+# Same construction as box_by_resp(), faceted by metric, ONE FIGURE PER DENOMINATOR. The
+# five immune rows carry three different denominators, so on one shared axis the panels that
+# are not being compared set the scale for the ones that are — CD3+CD45+ over CD45+ sits an
+# order of magnitude above the same numerator over all cells inside. A shared axis is only
+# honest between panels that are fractions of the same thing.
+box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE) {
+  d <- df |> filter(is.finite(frac), !is.na(response_class),
+                    denom_label == denom_) |> droplevels()
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
   if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
-  sc <- shared_frac_y(d$frac)                 # shared axis, as in the cell-type panels
   ggplot(d, aes(response_class, frac, fill = response_class)) +
-    attend_box(d, x = "response_class", y = "frac", by = c("metric", "denom_label"),
-               fill = NULL, points = FALSE, expand_y = FALSE) +
+    attend_box(d, x = "response_class", y = "frac", by = "metric", fill = NULL,
+               points = FALSE, expand_y = FALSE) +
     highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
-    facet_wrap(~ metric + denom_label) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
-                       label.y = sc$label_y) +
-    sc$scale +
+    facet_wrap(~ metric) +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    shared_frac_y() +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = paste0("Immune content by response (", cohort_label, ") — ", ttl),
-         x = NULL, y = ylab) +
+         subtitle = paste0("normalized by ", denom_), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```
 
-CD45+ total and CD3+CD45+ fractions by response class, one facet per metric ×
-normalization, raw then arcsine, for each cohort in turn. Shared y axis, as above — and
-here the facets carry three different denominators, so the axis is what makes visible that
+CD45+ total and CD3+CD45+ fractions by response class, faceted by metric, raw then arcsine,
+for each cohort in turn. One figure per denominator rather than one figure with all three: a
+shared axis is only honest between panels that are fractions of the same thing, and
 CD3+CD45+ over CD45+ sits an order of magnitude above the same numerator over all cells
-inside. Read a facet against its own denominator label; only the two panels sharing a
-denominator compare directly.
+inside. The denominator is named in each subtitle.
 
 ```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
-for (nm in names(imm_cohorts)) {
-  for (tr in c(FALSE, TRUE)) {
-    p <- box_immune_resp(imm_cohorts[[nm]], nm, arcsin = tr)
-    if (is.null(p)) message("Skipped immune panel: ", nm, if (tr) " (arcsin)" else " (raw)",
-                            " — no finite metrics, or only one response arm present.")
-    else print(p)
+# Denominator outer so the two cohorts of a denominator stay adjacent, as in the
+# composition panels above.
+for (dn in unique(imm_all$denom_label)) {
+  for (nm in names(imm_cohorts)) {
+    for (tr in c(FALSE, TRUE)) {
+      p <- box_immune_resp(imm_cohorts[[nm]], dn, nm, arcsin = tr)
+      if (is.null(p)) message("Skipped immune panel: ", nm, " / ", dn,
+                              if (tr) " (arcsin)" else " (raw)",
+                              " — no finite metrics, or only one response arm present.")
+      else print(p)
+    }
   }
 }
 ```

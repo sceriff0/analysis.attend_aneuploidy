@@ -132,6 +132,44 @@ register_highlight_xwalk()
 stopifnot(identical(highlight_expand_ids("21S188"), "21S188"))
 cat("palette + highlight: verified\n")
 
+## --- attend_highlight_show: switching the MARK off must not drop the PATIENT ---------
+## The flag is ONE global in attend_classes.R, not a per-report argument: the ban above is
+## on a report opting out alone, which left the mark present in some distributions and
+## absent in others. A global keeps every report saying the same thing either way.
+hl_flag <- grep("^attend_highlight_show\\s*<-", cls, value = TRUE)
+if (length(hl_flag) != 1)
+  stop("attend_classes.R must define attend_highlight_show exactly once (found ",
+       length(hl_flag), ") — the highlight switch is global, never per-report.")
+stopifnot(any(grepl("^attend_highlight_show\\s*<-\\s*(TRUE|FALSE)\\s*$", hl_flag)))
+
+## A CALIBRATION check, not a unit check. highlight_points() splits the cohort into the
+## highlighted rows and the rest, and `base` is the is.na(.hl) half — so gating the mark
+## anywhere after that split silently DELETES the highlighted patient from the figure. At
+## every composition call site attend_box() is passed points = FALSE and highlight_points()
+## IS the points layer, so the loss is a missing patient, drawn without an error. That is
+## the same failure the id-expansion block above exists for: an overlay that fails quietly.
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  register_highlight_xwalk(data.frame(barcode = "21S188", pid = "P021",
+                                      stringsAsFactors = FALSE))
+  d_hl <- data.frame(pid = c("P021", "P019", "P007", "P003"), g = c("a", "a", "b", "b"),
+                     y = c(1, 2, 3, 4), stringsAsFactors = FALSE)
+  plotted <- function(show) {
+    attend_highlight_show <<- show
+    b <- ggplot2::ggplot_build(ggplot2::ggplot(d_hl, ggplot2::aes(g, y)) +
+                                 highlight_points(d_hl, "g", "y", highlight = hl_cfg))
+    sum(vapply(b$data, nrow, integer(1)))
+  }
+  on  <- plotted(TRUE)
+  off <- plotted(FALSE)
+  if (on != nrow(d_hl) || off != nrow(d_hl))
+    stop("attend_highlight_show drops patients: ", on, " plotted with the mark on, ",
+         off, " with it off, of ", nrow(d_hl), ". The flag suppresses the MARK only.")
+  rm(attend_highlight_show)
+  register_highlight_xwalk()
+  cat("highlight switch: mark toggles, cohort does not (", on, "/", off, " of ",
+      nrow(d_hl), ")\n", sep = "")
+}
+
 ## --- attend_box(): the mark is chosen per group, from the data ---------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   d <- data.frame(g = rep(c("big", "small"), times = c(20, 4)),

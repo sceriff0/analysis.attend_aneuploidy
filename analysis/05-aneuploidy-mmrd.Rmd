@@ -350,53 +350,52 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 ```
 
 ```{r box-helpers, include=FALSE}
-# One boxplot per cell type: aneuploidy-high vs -low. Boxes are filled by aneuploidy
-# class; the highlight overlay is drawn on top in its own colour scale (colour != fill,
-# so the two legends do not collide), partitioned so no patient is plotted twice.
-box_by_aneu <- function(df, frac_col, denom_label) {
-  d <- df |> filter(is.finite(.data[[frac_col]]))
+# One boxplot per cell type, aneuploidy-high vs -low, for ONE abundance tier. Boxes are
+# filled by aneuploidy class; the highlight overlay is drawn on top in its own colour scale
+# (colour != fill, so the two legends do not collide), partitioned so no patient is plotted
+# twice. `arcsin` switches BOTH the y variable and the test, so the raw/Wilcoxon and the
+# arcsin/t-test versions cannot drift apart the way two copied functions did.
+# The y variable is always `.v`, prepared by draw_tiers() — the transform happens there
+# because the tiering has to see the same values the panel plots.
+box_by_aneu <- function(df, denom_label, tier_label, arcsin = FALSE) {
+  d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
-  # One y axis across every cell type (see shared_frac_y()): a facet's height is now
-  # the abundance. expand_y = FALSE hands the bottom expansion to that scale so the
-  # n= labels are not evicted by the replacement.
-  sc <- shared_frac_y(d[[frac_col]])
-  ggplot(d, aes(aneuploidy_class, .data[[frac_col]], fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = frac_col, by = "cell_type",
-               fill = NULL, points = FALSE, expand_y = FALSE) +
-    highlight_points(d, "aneuploidy_class", frac_col, base_size = 0.5, base_alpha = 0.35,
+  method <- if (arcsin) "t.test" else "wilcox.test"
+  unit   <- if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
+            else        paste0("fraction of ", denom_label)
+  sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
+            else        "raw fraction; Wilcoxon rank-sum"
+  ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
+    attend_box(d, x = "aneuploidy_class", y = ".v", by = "cell_type", fill = NULL,
+               points = FALSE, expand_y = FALSE) +
+    highlight_points(d, "aneuploidy_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3,
-                       label.y = sc$label_y) +
-    sc$scale +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    shared_frac_y() +
     scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — normalized by ", denom_label),
-         x = NULL, y = paste0("fraction of ", denom_label)) +
+    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label,
+                        " — ", tier_label, " cell types"),
+         subtitle = sub, x = NULL, y = unit) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 
-# Variance-stabilised companion: same panels, arcsine-square-root fraction + t-test.
-box_by_aneu_arcsin <- function(df, frac_col, denom_label) {
-  d <- df |> filter(is.finite(.data[[frac_col]])) |>
-    mutate(.y = arcsin_sqrt(.data[[frac_col]]))
-  if (nrow(d) == 0) return(NULL)
-  sc <- shared_frac_y(d$.y)                   # shared axis, as above
-  ggplot(d, aes(aneuploidy_class, .y, fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = ".y", by = "cell_type", fill = NULL,
-               points = FALSE, expand_y = FALSE) +
-    highlight_points(d, "aneuploidy_class", ".y", base_size = 0.5, base_alpha = 0.35,
-                     base_const = "black") +
-    facet_wrap(~ cell_type) +
-    stat_compare_means(method = "t.test", label = "p.format", size = 3,
-                       label.y = sc$label_y) +
-    sc$scale +
-    scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — arcsin(sqrt), by ", denom_label),
-         subtitle = "arcsine-square-root transformed fraction; two-sample t-test",
-         x = NULL, y = paste0("arcsin(sqrt(fraction of ", denom_label, "))")) +
-    attend_theme() +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+# Tier ONCE per normalization, on the whole restricted cohort, then draw one figure per
+# tier, abundant first. Tiering inside the loop would let a tier's membership depend on
+# which tier was being drawn.
+draw_tiers <- function(frac_col, denom_label, arcsin = FALSE) {
+  d <- ct |>
+    mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
+    filter(is.finite(.v))
+  if (nrow(d) == 0) {
+    message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
+  }
+  d <- abundance_tiers(d, ".v", "cell_type")
+  for (tv in levels(d$.tier)) {
+    p <- box_by_aneu(filter(d, .tier == tv), denom_label, tv, arcsin)
+    if (!is.null(p)) print(p)
+  }
 }
 ```
 
@@ -406,27 +405,29 @@ One panel per cell type, aneuploidy-high vs -low, within MMRd, from the ct table
 above. Each normalization is shown as a raw-fraction/Wilcoxon figure followed by its
 arcsine/t-test companion.
 
-Every facet in a figure shares one y axis, so a panel's height reads as that cell type's
-abundance relative to the others. This changes what the panels say: on the per-panel axis
-these figures used to carry, a cell type at a fraction of a percent and one at half the
-tissue drew the same box in the same place. The cost is that a rare cell type flattens
-toward zero, and a difference the per-panel axis magnified into the full panel is now
-drawn at the size it is.
+Each normalization is drawn as **one figure per abundance tier** — abundant, intermediate,
+rare — assigned by `abundance_tiers()` from each cell type's median, in equal-ratio bands on
+a log scale. Within a figure every facet shares one y axis, so a panel's height reads as
+that cell type's abundance relative to its neighbours; between figures the band changes and
+the axis says so. Tiering is what makes the shared axis usable: these cell types span four
+orders of magnitude on the tumour-cell denominator, and one axis over all of them leaves
+every panel but the most abundant a flat line. The tier is computed once per normalization
+over the whole restricted cohort, so it does not depend on which tier is being drawn.
 
 #### Normalized by all cells inside
 
 Each cell type as a fraction of every cell in the annotation, so a panel reads "how much
 of the tissue is this". Raw fractions, Wilcoxon.
 
-```{r box-inside, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu(ct, "frac_inside", "all cells inside")
+```{r box-inside, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu_arcsin(ct, "frac_inside", "all cells inside")
+```{r box-inside-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
 #### Normalized by tumour cells inside
@@ -434,14 +435,14 @@ box_by_aneu_arcsin(ct, "frac_inside", "all cells inside")
 Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon.
 
-```{r box-tumor, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu(ct, "frac_tumor", "tumour cells inside")
+```{r box-tumor, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu_arcsin(ct, "frac_tumor", "tumour cells inside")
+```{r box-tumor-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
 #### Normalized by CD45+ cells inside
@@ -449,14 +450,14 @@ box_by_aneu_arcsin(ct, "frac_tumor", "tumour cells inside")
 Composition *of the immune compartment*: the denominator is leukocytes, so tumour-content
 differences between patients cannot drive the contrast. Raw fractions, Wilcoxon.
 
-```{r box-cd45, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu(ct, "frac_cd45", "CD45+ cells inside")
+```{r box-cd45, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=15, fig.height=11, out.width="100%"}
-box_by_aneu_arcsin(ct, "frac_cd45", "CD45+ cells inside")
+```{r box-cd45-arcsin, fig.width=13, fig.height=5.5, out.width="100%"}
+draw_tiers("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
 ### Immune content — the headline contrast
@@ -480,41 +481,48 @@ cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
 ```
 
 ```{r immune-box-helper, include=FALSE}
-box_immune <- function(df, arcsin = FALSE) {
-  d <- df |> filter(is.finite(frac))
+# One figure PER DENOMINATOR, faceted by metric. The five immune rows carry three different
+# denominators, and on one shared axis CD3+CD45+ over CD45+ sits an order of magnitude above
+# the same numerator over all cells inside — so the panels that are not being compared set
+# the scale for the ones that are. Splitting on denom_label means every panel in a figure is
+# a fraction OF THE SAME THING, which is the only case where a shared axis is honest.
+box_immune <- function(df, denom_, arcsin = FALSE) {
+  d <- df |> filter(is.finite(frac), denom_label == denom_) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
-  sc <- shared_frac_y(d$frac)                 # shared axis, as in the cell-type panels
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = "frac", by = c("metric", "denom_label"),
-               fill = NULL, points = FALSE, expand_y = FALSE) +
+    attend_box(d, x = "aneuploidy_class", y = "frac", by = "metric", fill = NULL,
+               points = FALSE, expand_y = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
-    facet_wrap(~ metric + denom_label) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
-                       label.y = sc$label_y) +
-    sc$scale +
+    facet_wrap(~ metric) +
+    stat_compare_means(method = method, label = "p.format", size = 3) +
+    shared_frac_y() +
     scale_fill_manual(values = attend_aneu_cols) +
     labs(title = paste0("Immune content by aneuploidy (MMRd only) — ", ttl),
-         x = NULL, y = ylab) +
+         subtitle = paste0("normalized by ", denom_), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```
 
 CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy class, one facet per
-normalization, within MMRd. Shared y axis, as above — and here the facets carry three
-different denominators, so the axis is what makes visible that CD3+CD45+ over CD45+ sits
-an order of magnitude above the same numerator over all cells inside. Read a facet against
-its own denominator label; only the two panels sharing a denominator compare directly.
+normalization, within MMRd. One figure per denominator rather than one figure with all
+three: a shared axis is only honest between panels that are fractions of the same thing,
+and CD3+CD45+ over CD45+ sits an order of magnitude above the same numerator over all cells
+inside. The denominator is named in each subtitle.
 
 ```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
 if (nrow(filter(imm_metrics, is.finite(frac))) > 2) {
-  print(box_immune(imm_metrics, arcsin = FALSE))
-  print(box_immune(imm_metrics, arcsin = TRUE))
+  # Denominator order is the order ihc_immune_metrics() declares its specs in, so the
+  # figures come out widest-denominator first however the table happened to be sorted.
+  for (dn in unique(imm_metrics$denom_label))
+    for (asin in c(FALSE, TRUE)) {
+      p <- box_immune(imm_metrics, dn, asin); if (!is.null(p)) print(p)
+    }
 } else message("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")
 ```
 
