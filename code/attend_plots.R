@@ -104,14 +104,21 @@ feature_positions <- function(features, cytoband = NULL) {
 #       filled with the semantic colours, so a highlight sharing a hex is invisible
 #       on exactly the box it exists to mark. Keeping one hue unclaimed is what
 #       makes that guarantee cheap. test_figure_system.R pins it.
-ATTEND_PALETTE <- c(blue    = "#0077BB",   # RESERVED — the polipo highlight, rule [C]
-                    cyan    = "#33BBEE",   # aneuploidy-low
-                    teal    = "#009988",   # responder
-                    orange  = "#EE7733",   # MMRd
-                    red     = "#CC3311",   # aneuploidy-high
-                    magenta = "#EE3377",   # TP53-abnormal, and non-responder (rule [B])
-                    grey    = "#999999",   # every reference state, rule [A]
-                    black   = "#000000")   # non-semantic filler, cluster bars only
+# `pale_blue`/`salmon` are not Tol's: they are ColorBrewer #A6CEE3 / #E31A1C as they render
+# at ~50% alpha, carried in the palette rather than written at the call site so the rule
+# "colour comes from the palette, never from the call site" still holds. `cyan` and `red`
+# stay in the vector — attend_pal() and the cluster bar draw from it positionally, and
+# removing two slots would resequence every cluster colour in reports 09 and 10.
+ATTEND_PALETTE <- c(blue      = "#0077BB",   # RESERVED — the polipo highlight, rule [C]
+                    cyan      = "#33BBEE",   # (was aneuploidy-low; kept for attend_pal())
+                    teal      = "#009988",   # responder
+                    orange    = "#EE7733",   # MMRd
+                    red       = "#CC3311",   # (was aneuploidy-high; kept for attend_pal())
+                    magenta   = "#EE3377",   # TP53-abnormal, and non-responder (rule [B])
+                    grey      = "#999999",   # every reference state, rule [A]
+                    black     = "#000000",   # non-semantic filler, cluster bars only
+                    pale_blue = "#D6E5F0",   # aneuploidy-low
+                    salmon    = "#E3918F")   # aneuploidy-high
 
 # TCGA Fig. 1a colour for the copy-number clusters, matching the paper's Cluster bar.
 # Covers up to 8 clusters so the k = 2..8 sweep (fig1a_heatmap_ksweep()) always has a
@@ -157,8 +164,20 @@ attend_mmr_cols <- c(MMRp = unname(ATTEND_PALETTE["grey"]),
 # is a red, where the earlier Okabe-Ito stand-ins (#56B4E9 sky blue / #D55E00
 # vermillion) forced the warm pole to be called red while rendering as dark orange next
 # to MMRd's own orange.
-attend_aneu_low  <- unname(ATTEND_PALETTE["cyan"])
-attend_aneu_high <- unname(ATTEND_PALETTE["red"])
+# The pre-f77f7e8 pair, restored on request so the composition figures match the reference
+# figure the manuscript is built around. Sampled from it: these are ColorBrewer #A6CEE3 /
+# #E31A1C as they RENDER at ~50% alpha. Baked in at full opacity rather than set as an alpha,
+# so the points and the polipo highlight drawn on top stay crisp instead of compositing.
+#
+# The documented reason #A6CEE3 was retired -- it was simultaneously "aneuploidy-low" and
+# "no grouping", so unrelated boxplots read as aneuploidy-low -- no longer applies: the
+# no-grouping fill is attend_neutral #BFBFBF and has been since the neutral was split out.
+# The light-blue (quiet) -> red (altered) direction the repalette existed to protect is
+# unchanged, and both stay separable in greyscale (luminance 228 vs 168) and against MMRd's
+# orange. Rule [C] holds: the highlight blue #0077BB is solid and larger, so it reads on top
+# of the pale box rather than into it.
+attend_aneu_low  <- unname(ATTEND_PALETTE["pale_blue"])
+attend_aneu_high <- unname(ATTEND_PALETTE["salmon"])
 attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
                       `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,
                       `MMRd aneuploidy-low` = attend_aneu_low,

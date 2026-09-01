@@ -78,6 +78,15 @@ attend_thresholds <- list(
   response_months = 6 # responder if progression-free beyond 6 months (see add_response_class)
 )
 
+# --- IHC composition: the focus set -----------------------------------------------
+# The cell types the composition figure is FOR. Reports 05 and 06 draw these on one axis of
+# their own BEFORE the all-cell-types figure, because a shared axis that also carries `Tumor`
+# (~1.0 on the arcsin scale) flattens everything under 0.3 -- which is all four of these.
+# Configured here, not at the two call sites, so the reports cannot drift apart. Strings must
+# match `cell_type` in the FlowPath export exactly; a name that matches nothing is reported
+# as a skip rather than drawn as an empty panel.
+attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
+
 attend_levels <- list(
   msi_unstable  = "Instable (MSI)",  # gianlu MSI_STATUS unstable label (verified; stable = "Stable (MSS)")
   mmr_deficient = "Deficient"        # gianlu MMR_STATUS deficient label (verified; proficient = "Intact")

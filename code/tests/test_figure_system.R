@@ -5,8 +5,16 @@ source(file.path("code", "attend_plots.R"))  # base-R-sourceable: no top-level l
 ## The palette is Paul Tol's "vibrant" scheme, NOT Okabe-Ito: Okabe-Ito has no true red, so
 ## the aneuploidy scale could not be the light-blue -> red pair the project describes in prose
 ## without lying about the hex. See the palette block in attend_plots.R.
+## The length pin is about attend_pal() and the k = 2..8 cluster bar, which draw from this
+## vector POSITIONALLY and must get 8 distinct colours without recycling. So what has to hold
+## is that the FIRST EIGHT slots are the cluster set and are unchanged; the aneuploidy pair
+## appended after them (pale_blue/salmon, the restored ColorBrewer look) cannot resequence a
+## cluster colour. A bare `== 8L` would have failed that append while pinning nothing extra.
 stopifnot(is.character(ATTEND_PALETTE),
-          length(ATTEND_PALETTE) == 8L,
+          length(ATTEND_PALETTE) >= 8L,
+          identical(names(ATTEND_PALETTE)[1:8],
+                    c("blue", "cyan", "teal", "orange", "red", "magenta", "grey", "black")),
+          !any(duplicated(ATTEND_PALETTE)),
           !any(duplicated(ATTEND_PALETTE)),
           identical(unname(ATTEND_PALETTE[["grey"]]), "#999999"))
 
@@ -22,8 +30,8 @@ stopifnot(is.character(attend_mmr_cols),
           attend_mmr_cols[["MMR proficient"]] == "#999999",
           attend_mmr_cols[["MMR deficient"]] == "#EE7733")
 
-stopifnot(identical(attend_aneu_low, "#33BBEE"),   # light blue = aneuploidy-low
-          identical(attend_aneu_high, "#CC3311"),  # red        = aneuploidy-high
+stopifnot(identical(attend_aneu_low, "#D6E5F0"),   # pale blue = aneuploidy-low
+          identical(attend_aneu_high, "#E3918F"),  # salmon    = aneuploidy-high
           attend_aneu_high != attend_tp53_cols[["mut"]],  # must not clash with the adjacent
           attend_aneu_high != attend_mmr_cols[["MMRd"]],  # Fig-1a annotation bars
           is.character(attend_aneu_cols),

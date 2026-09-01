@@ -187,7 +187,7 @@ for (nm in names(ct_cohorts)) {
 # raw/Wilcoxon and arcsin/t-test versions can never drift apart. The y variable is always
 # `.v`, prepared by draw_composition() — the transform happens there because the axis has to
 # see the same values the panel plots.
-box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE) {
+box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL) {
   d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
@@ -210,7 +210,7 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE) {
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = paste0("Cell-type presence by response (", cohort_label, ") — by ",
-                        denom_label),
+                        denom_label, if (is.null(scope)) "" else paste0(" — ", scope)),
          subtitle = paste0(sub, yy$note), x = NULL, y = ylab) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
@@ -229,14 +229,26 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
   }
   cohorts <- list(`all patients`  = d_all,
                   `MMR-deficient` = filter(d_all, pid %in% mmrd_pids))
+  # Focus set first for each cohort, then every cell type — same reason as report 05.
   for (nm in names(cohorts)) {
-    p <- box_by_resp(cohorts[[nm]], denom_label, nm, arcsin)
+    foc <- filter(cohorts[[nm]], cell_type %in% attend_ihc_focus)
+    if (nrow(foc) > 0) {
+      p <- box_by_resp(foc, denom_label, nm, arcsin, scope = "focus set")
+      if (!is.null(p)) print(p)
+    }
+    p <- box_by_resp(cohorts[[nm]], denom_label, nm, arcsin, scope = "all cell types")
     if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
                             " — no finite fractions, or only one response arm present.")
     else print(p)
   }
 }
 ```
+
+Each normalization is drawn **twice**: first the cell types in `attend_ihc_focus`
+(`T cytotoxic`, `T helper`, `Macrophages`, `M1`) on an axis of their own, then every cell
+type on one axis. The focus figure exists because `Tumor` reaches ~1.0 on the arcsine scale
+while all four of these sit under ~0.6, so an axis wide enough for `Tumor` leaves them
+unreadable — and these four are what the figure is for.
 
 Every cell type is drawn in **one figure per normalization and cohort, on a single shared y
 axis**, exactly as in report 05: a panel's height reads as that cell type's abundance

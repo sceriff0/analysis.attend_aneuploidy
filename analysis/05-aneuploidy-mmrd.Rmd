@@ -357,7 +357,7 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 # arcsin/t-test versions cannot drift apart the way two copied functions did.
 # The y variable is always `.v`, prepared by draw_composition() — the transform happens there
 # because the axis has to be computed on the same values the panels plot.
-box_by_aneu <- function(df, denom_label, arcsin = FALSE) {
+box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL) {
   d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   method <- if (arcsin) "t.test" else "wilcox.test"
@@ -379,7 +379,8 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE) {
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label),
+    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label,
+                        if (is.null(scope)) "" else paste0(" — ", scope)),
          subtitle = paste0(sub, yy$note), x = NULL, y = unit) +
     attend_theme() +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
@@ -395,7 +396,18 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
   if (nrow(d) == 0) {
     message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
   }
-  p <- box_by_aneu(d, denom_label, arcsin)
+  # The focus set first, on an axis of its own: these four sit under ~0.6 on the arcsin
+  # scale, so sharing an axis with `Tumor` (~1.0) leaves them unreadable. Then every cell
+  # type on one axis, which is the comparison the shared scale exists for.
+  foc <- filter(d, cell_type %in% attend_ihc_focus)
+  if (nrow(foc) > 0) {
+    p <- box_by_aneu(foc, denom_label, arcsin, scope = "focus set")
+    if (!is.null(p)) print(p)
+  } else {
+    message("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
+            paste(attend_ihc_focus, collapse = ", "), ").")
+  }
+  p <- box_by_aneu(d, denom_label, arcsin, scope = "all cell types")
   if (!is.null(p)) print(p)
 }
 ```
@@ -405,6 +417,12 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
 One panel per cell type, aneuploidy-high vs -low, within MMRd, from the ct table built
 above. Each normalization is shown as a raw-fraction/Wilcoxon figure followed by its
 arcsine/t-test companion.
+
+Each normalization is drawn **twice**: first the cell types in `attend_ihc_focus`
+(`T cytotoxic`, `T helper`, `Macrophages`, `M1`) on an axis of their own, then every cell
+type on one axis. The focus figure exists because `Tumor` reaches ~1.0 on the arcsine scale
+while all four of these sit under ~0.6, so an axis wide enough for `Tumor` leaves them
+unreadable — and these four are what the figure is for.
 
 Every cell type is drawn in **one figure per normalization, on a single shared y axis**.
 A panel's height therefore reads as that cell type's abundance relative to every other one,
