@@ -320,6 +320,15 @@ ct_all <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
   filter(!is.na(aneuploidy_class))
 ct <- ct_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
 
+# The leukocyte metrics are built HERE, beside ct, not in the immune section further down:
+# the tissue-content panels above that section need imm_metrics, and a chunk that reads a
+# variable a LATER chunk assigns knits fine in an interactive session (where it is already
+# in the global env) and dies on a clean build with "object not found".
+imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class))
+imm_metrics <- imm_all |> filter(pid %in% mmrd_pids)      # <- the MMRd restriction
+
 # per-patient continuous covariates + TP53 status, restricted the same way
 numcol <- function(col) if (col %in% names(master)) suppressWarnings(as.numeric(master[[col]])) else NA_real_
 pt_all <- tibble(
@@ -588,11 +597,6 @@ requires a CD3_sign column in the FlowPath export; without it those rows are NA 
 their facets drop out on their own.
 
 ```{r immune-data}
-imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class))
-imm_metrics <- imm_all |> filter(pid %in% mmrd_pids)      # <- the MMRd restriction
-
 cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
     "| metrics present:", paste(sort(unique(imm_metrics$metric)), collapse = ", "), "\n")
 ```

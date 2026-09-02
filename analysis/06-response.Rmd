@@ -165,6 +165,16 @@ ct_mmrd <- ct_all |> filter(pid %in% mmrd_pids)
 
 ct_cohorts <- list(`all patients` = ct_all, `MMR-deficient` = ct_mmrd)
 
+# Built HERE, beside ct_all, not in the immune section below: the tissue-content panels
+# above that section read imm_all, and a chunk that reads a variable a LATER chunk assigns
+# knits in an interactive session and dies on a clean build with "object not found".
+imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class))
+imm_mmrd <- imm_all |> filter(pid %in% mmrd_pids)
+
+imm_cohorts <- list(`all patients` = imm_all, `MMR-deficient` = imm_mmrd)
+
 cat("patients with cell-type metrics + a response class:", n_distinct(ct_all$pid), "\n")
 cat("  ... of them MMR-deficient                       :", n_distinct(ct_mmrd$pid), "\n")
 cat("cell types measured                               :", n_distinct(ct_all$cell_type), "\n\n")
@@ -404,13 +414,6 @@ normalization, joined to the response class on pid. CD3+CD45+ requires a `CD3_si
 in the FlowPath export; without it those rows are NA and their facets drop out on their own.
 
 ```{r immune-data}
-imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
-  left_join(master |> select(pid, response_class), by = "pid") |>
-  filter(!is.na(response_class))
-imm_mmrd <- imm_all |> filter(pid %in% mmrd_pids)
-
-imm_cohorts <- list(`all patients` = imm_all, `MMR-deficient` = imm_mmrd)
-
 cat("patients with immune metrics + a response class:", n_distinct(imm_all$pid),
     "| of them MMR-deficient:", n_distinct(imm_mmrd$pid), "\n")
 cat("metrics present:", paste(sort(unique(imm_all$metric)), collapse = ", "), "\n")
