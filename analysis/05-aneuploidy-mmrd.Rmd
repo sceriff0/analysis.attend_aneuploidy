@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 source(here("code", "build_master.R"))       # get_master() — builds on demand, no build order
 source(here("code", "attend_harmonise.R"))   # build_barcode_pid(), make_id_cfg()
 source(here("code", "attend_plots.R"))       # highlight_points(), attend_theme()
-source(here("code", "attend_ihc.R"))         # ihc_celltype_metrics()
+source(here("code", "attend_ihc.R"))         # ihc_celltype_metrics(), ihc_content_metrics()
 source(here("code", "load_phenotypes.R"))    # load_ihc_celltypes()
 
 master <- get_master() |> add_molecular_classes() |>
@@ -357,7 +357,8 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 # arcsin/t-test versions cannot drift apart the way two copied functions did.
 # The y variable is always `.v`, prepared by draw_composition() — the transform happens there
 # because the axis has to be computed on the same values the panels plot.
-box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL) {
+box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
+                        width_in = 13, height_in = 11) {
   d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   method <- if (arcsin) "t.test" else "wilcox.test"
@@ -368,21 +369,28 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL) {
   # The ceiling and the p-value height come from ONE call: ggpubr's default label.y is the
   # PLOT-WIDE maximum, so on this shared axis a single extreme patient parks every label at
   # the ceiling and squashes every box. See frac_display_y() in attend_plots.R.
-  yy <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
+  what <- if (is.null(scope)) "Cell types"
+          else switch(scope, `focus set` = "Cell types (focus)",
+                             `all cell types` = "Cell types (all)",
+                             `tissue content` = "Tissue content", scope)
+  sty <- ihc_fig_style()
+  yy  <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
   ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
     attend_box(d, x = "aneuploidy_class", y = ".v", by = "cell_type", fill = NULL,
-               points = FALSE, expand_y = FALSE) +
+               points = FALSE, expand_y = FALSE,
+               linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "aneuploidy_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
+    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Cell-type presence by aneuploidy (MMRd only) — by ", denom_label,
-                        if (is.null(scope)) "" else paste0(" — ", scope)),
-         subtitle = paste0(sub, yy$note), x = NULL, y = unit) +
-    attend_theme() +
+    labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only"),
+                               width_in, sty$title_size, sty$gutter_in),
+         subtitle = wrap_fig_text(paste0(sub, yy$note), width_in, sty$sub_size, sty$gutter_in),
+         x = NULL, y = wrap_fig_text(unit, height_in, sty$sub_size)) +
+    attend_theme(base_size = sty$base_size) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 
@@ -488,6 +496,35 @@ The arcsine/t-test companion of the panels above.
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
+#### Tissue content: tumour and leukocyte, on one axis
+
+How much of the annotation is tumour, and how much is leukocyte, as fractions of the same
+denominator so the two are directly comparable. `Tumor` is a cell-type row from
+`ihc_celltype_metrics()`; CD45+ is a per-image denominator constant that only
+`ihc_immune_metrics()` surfaces, so `ihc_content_metrics()` unions the two tables onto one
+`cell_type` column. **`all cells inside` is the only denominator on which both are
+meaningful** — `Tumor` over tumour cells and CD45+ over CD45+ cells are both identically 1
+— so this panel is drawn once, not once per normalization. Raw fractions with a Wilcoxon,
+then the arcsine/t-test companion.
+
+```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
+ct_content <- ihc_content_metrics(
+  ct, imm_metrics,
+  denom_label     = attend_ihc_content$denom_label,
+  frac_col        = attend_ihc_content$frac_col,
+  tumor_cell_type = attend_ihc_content$tumor_cell_type,
+  immune_metric   = attend_ihc_content$immune_metric) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class))
+
+for (asin in c(FALSE, TRUE)) {
+  d <- ct_content |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+  p <- box_by_aneu(d, attend_ihc_content$denom_label, asin, scope = "tissue content",
+                   width_in = 13, height_in = 7)
+  if (!is.null(p)) print(p)
+}
+```
+
 ### Immune content — the headline contrast
 
 The question this report exists for: among MMR-deficient tumours, is aneuploidy-high
@@ -514,27 +551,30 @@ cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
 # the same numerator over all cells inside — so the panels that are not being compared set
 # the scale for the ones that are. Splitting on denom_label means every panel in a figure is
 # a fraction OF THE SAME THING, which is the only case where a shared axis is honest.
-box_immune <- function(df, denom_, arcsin = FALSE) {
+box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 11) {
   d <- df |> filter(is.finite(frac), denom_label == denom_) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
-  yy <- frac_display_y(d, "frac", c("aneuploidy_class", "metric"))
+  sty <- ihc_fig_style()
+  yy  <- frac_display_y(d, "frac", c("aneuploidy_class", "metric"))
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
     attend_box(d, x = "aneuploidy_class", y = "frac", by = "metric", fill = NULL,
-               points = FALSE, expand_y = FALSE) +
+               points = FALSE, expand_y = FALSE,
+               linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
+    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_aneu_cols) +
-    labs(title = paste0("Immune content by aneuploidy (MMRd only) — ", ttl),
-         subtitle = paste0("normalized by ", denom_, yy$note), x = NULL, y = ylab) +
-    attend_theme() +
+    labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only) — ", ttl), width_in, sty$title_size, sty$gutter_in),
+         subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
+         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+    attend_theme(base_size = sty$base_size) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```

@@ -267,10 +267,15 @@ attend_theme <- function(base_size = 11) {
 # a box the same way they would discount the crossbar. Below 5 the crossbar still applies.
 attend_min_box_n <- 5L
 
+# `linewidth` and `label_size` are arguments rather than constants because a theme cannot
+# reach either: the box border is a geom linewidth in mm and the n= label is a geom_text
+# size in mm, so attend_theme(base_size =) scales the axes around them and leaves both at
+# their site defaults. The composition figures pass ihc_fig_style()'s values.
 attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
                        jitter_width = 0.18, point_size = 0.8, point_alpha = 0.55,
                        box_width = 0.6, label_n = TRUE, point_colour = "black",
-                       fill = attend_neutral, points = TRUE, expand_y = label_n) {
+                       fill = attend_neutral, points = TRUE, expand_y = label_n,
+                       linewidth = 0.5, label_size = 2.4) {
   keys <- c(x, by)
   d <- data[stats::complete.cases(data[, c(keys, y), drop = FALSE]), , drop = FALSE]
   if (nrow(d) == 0) return(list())
@@ -289,7 +294,8 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
     # fill = NULL means "inherit the parent aes(fill = ...)" — for the rare panel whose
     # fill encodes something the x axis does NOT already carry. Every other call gets the
     # neutral grey, because a box coloured by its own x position is redundant ink.
-    box_args <- list(data = d_dense, outlier.shape = NA, width = box_width)
+    box_args <- list(data = d_dense, outlier.shape = NA, width = box_width,
+                     linewidth = linewidth)
     if (!is.null(fill)) box_args$fill <- fill
     layers <- c(layers, list(do.call(ggplot2::geom_boxplot, box_args)))
   }
@@ -298,7 +304,7 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
     # so the two branches line up when they appear in adjacent facets.
   {
     cb_args <- list(data = d_sparse, fun = stats::median, geom = "crossbar",
-                    width = box_width, linewidth = 0.5)
+                    width = box_width, linewidth = linewidth)
     if (!is.null(fill)) cb_args$fill <- fill
     layers <- c(layers, list(do.call(ggplot2::stat_summary, cb_args)))
   }
@@ -317,7 +323,7 @@ attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
     layers <- c(layers, list(ggplot2::geom_text(
       data = cnt, inherit.aes = FALSE,
       mapping = ggplot2::aes(x = .data[[x]], y = -Inf, label = .data$.lab),
-      vjust = -0.6, size = 2.4, colour = "grey35")))
+      vjust = -0.6, size = label_size, colour = "grey35")))
     # ggplot's default 5% bottom expansion is not enough room for a label at y = -Inf: a
     # group whose points sit on the panel floor collides with its own n. Widen the bottom
     # only. Pass expand_y = FALSE at a call site that sets its own y scale (e.g.
@@ -416,6 +422,67 @@ shared_frac_y <- function(y = NULL, bottom = 0.12, top = 0.10) {
   if (!is.null(y) && !is.null(y$ylim))
     out <- c(out, list(ggplot2::coord_cartesian(ylim = y$ylim)))
   out
+}
+
+# ============================================================================
+# ihc_fig_style() — one scale for every size in a composition figure.
+# ============================================================================
+# The composition panels are read at a glance, so they carry larger type and heavier box
+# borders than the site default. Four sizes have to grow together, and only ONE of them is
+# owned by the theme:
+#
+#   base_size    -> attend_theme(), which sizes title, axes, strip text
+#   label_size   -> geom_text size (mm) for the n= labels, inside attend_box()
+#   p_size       -> stat_compare_means() size (mm), at the call site
+#   linewidth    -> geom_boxplot/crossbar border (mm), inside attend_box()
+#
+# Scaling the theme alone leaves the n=, the p-value and the border at their site defaults,
+# so the figure grows unevenly and the borders look thinner as the type gets bigger. Hence
+# one bundle, derived from one number, rather than a multiplication at four call sites —
+# the same reason frac_display_y() returns the ceiling and the label height together.
+#
+# Base R only, and it holds no ggplot objects: attend_plots.R is sourced in the bootstrap
+# env, so ggplot2 may only be touched at call time.
+# Defined HERE, not in attend_classes.R, and this is the k_cnv rule: attend_plots.R is
+# sourced in the bootstrap env, so a default argument reaching into attend_classes.R dies
+# with "object 'attend_ihc_text_scale' not found" for any caller that sources the plots
+# layer alone -- every test in code/tests/ among them. Visibility follows the source()
+# graph, not the directory listing. It is a figure constant, so it belongs beside
+# attend_min_box_n.
+attend_ihc_text_scale <- 2.5
+
+# Wrap a figure title/subtitle to the canvas it will be drawn on. ggplot does NOT wrap and
+# does NOT warn: an over-long title is clipped at the device edge, so at 2.5x type the first
+# render lost the right-hand half of every title silently. `width_in` is the chunk's
+# fig.width; 0.5 * size_pt is the mean glyph advance for this face, close enough that the
+# result never overruns and rarely wraps a line early.
+wrap_fig_text <- function(txt, width_in, size_pt, gutter = 0) {
+  if (!length(txt) || !nzchar(txt)) return(txt)
+  # 0.62, not 0.5: measured against the rendered title, a half-em advance over-estimates how
+  # much fits and the line still ran off the canvas. `gutter` is the width the y-axis title
+  # and tick labels take before the panel starts -- the plot title is left-aligned to the
+  # PANEL, not the device, so a wrap computed on the full figure width overruns by exactly
+  # that much. Callers pass it for titles and leave it 0 for an axis label.
+  ch <- max(12L, as.integer(max(width_in - gutter, 1) * 72 / (0.62 * size_pt)))
+  paste(strwrap(txt, width = ch), collapse = "\n")
+}
+
+ihc_fig_style <- function(scale = attend_ihc_text_scale) {
+  if (!is.numeric(scale) || length(scale) != 1L || !is.finite(scale) || scale <= 0)
+    stop("ihc_fig_style(): `scale` must be one positive finite number.")
+  list(scale      = scale,
+       base_size  = 11  * scale,   # attend_theme()'s default
+       label_size = 2.4 * scale,   # attend_box()'s n= label
+       p_size     = 3   * scale,   # stat_compare_means()
+       title_size = 11 * scale + 1,  # attend_theme()'s plot.title
+       sub_size   = 11 * scale - 1,  # attend_theme()'s plot.subtitle
+       # Width the y-axis title + tick labels consume before the panel begins. Grows with
+       # the type, which is why it cannot be a constant at the call site.
+       gutter_in  = 0.10 * (11 * scale - 1),
+       # The border grows on a SQUARE ROOT of the scale, not linearly. At 2.5x a linear
+       # 1.25mm border on a box a few mm tall reads as a filled slab and swallows the
+       # median line; sqrt keeps it visibly heavier while the box still reads as a box.
+       linewidth  = 0.5 * sqrt(scale))
 }
 
 # ============================================================================

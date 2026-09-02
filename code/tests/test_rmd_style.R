@@ -25,6 +25,11 @@ MAX_LINES <- 800L
 # one file. An exemption that is no longer needed FAILS as stale, so the list cannot quietly
 # become the new cap.
 OVER_CAP <- c(
+  "05-aneuploidy-mmrd.Rmd" =
+    paste("the composition question is asked at three normalizations x two transforms, and",
+          "each pair now carries a focus panel and an all-cell-types panel; plus the",
+          "tumour/leukocyte content panel, the immune contrast and the MMR interaction",
+          "model, which needs MMRp patients and so cannot move to a report scoped MMRd"),
   "07-mutation-and-cna.Rmd" =
     paste("three resolutions of one question (genes, arms, genome) plus both inference",
           "families: the pre-specified TCGA panel and the data-driven counterpart, which",

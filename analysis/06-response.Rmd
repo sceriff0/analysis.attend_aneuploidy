@@ -187,7 +187,8 @@ for (nm in names(ct_cohorts)) {
 # raw/Wilcoxon and arcsin/t-test versions can never drift apart. The y variable is always
 # `.v`, prepared by draw_composition() — the transform happens there because the axis has to
 # see the same values the panel plots.
-box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL) {
+box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL,
+                        width_in = 13, height_in = 11) {
   d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
@@ -198,21 +199,28 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
             else        "raw fraction; Wilcoxon rank-sum"
   # One call fixes the ceiling and the p-value height together — see box_by_aneu() in
   # report 05 and frac_display_y() in attend_plots.R for why they cannot be separate.
-  yy <- frac_display_y(d, ".v", c("response_class", "cell_type"))
+  what <- if (is.null(scope)) "Cell types"
+          else switch(scope, `focus set` = "Cell types (focus)",
+                             `all cell types` = "Cell types (all)",
+                             `tissue content` = "Tissue content", scope)
+  sty <- ihc_fig_style()
+  yy  <- frac_display_y(d, ".v", c("response_class", "cell_type"))
   ggplot(d, aes(response_class, .v, fill = response_class)) +
     attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
-               points = FALSE, expand_y = FALSE) +
+               points = FALSE, expand_y = FALSE,
+               linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
     facet_wrap(~ cell_type) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
+    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_resp_cols) +
-    labs(title = paste0("Cell-type presence by response (", cohort_label, ") — by ",
-                        denom_label, if (is.null(scope)) "" else paste0(" — ", scope)),
-         subtitle = paste0(sub, yy$note), x = NULL, y = ylab) +
-    attend_theme() +
+    labs(title = wrap_fig_text(paste0(what, " by response — ", cohort_label),
+                               width_in, sty$title_size, sty$gutter_in),
+         subtitle = wrap_fig_text(paste0(sub, yy$note), width_in, sty$sub_size, sty$gutter_in),
+         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+    attend_theme(base_size = sty$base_size) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 
@@ -314,6 +322,36 @@ The arcsine/t-test companion of the panels above.
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
+### Tissue content: tumour and leukocyte, on one axis
+
+The same content panel as report 05, keyed on response instead of aneuploidy: how much of
+the annotation is tumour and how much is leukocyte, as fractions of the same denominator.
+`Tumor` is a cell-type row and CD45+ is a denominator constant, so `ihc_content_metrics()`
+unions the two tables; `all cells inside` is the only denominator on which both are
+non-trivial, so this is drawn once rather than once per normalization. Both cohorts, raw
+fractions with a Wilcoxon then the arcsine/t-test companion.
+
+```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
+content_all <- ihc_content_metrics(
+  ct_all, imm_all,
+  denom_label     = attend_ihc_content$denom_label,
+  frac_col        = attend_ihc_content$frac_col,
+  tumor_cell_type = attend_ihc_content$tumor_cell_type,
+  immune_metric   = attend_ihc_content$immune_metric) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class))
+
+content_cohorts <- list(`all patients`  = content_all,
+                        `MMR-deficient` = filter(content_all, pid %in% mmrd_pids))
+for (nm in names(content_cohorts))
+  for (asin in c(FALSE, TRUE)) {
+    d <- content_cohorts[[nm]] |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+    p <- box_by_resp(d, attend_ihc_content$denom_label, nm, asin, scope = "tissue content",
+                     width_in = 13, height_in = 7)
+    if (!is.null(p)) print(p)
+  }
+```
+
 ## Immune content — the headline contrast
 
 Two leukocyte metrics counted inside the annotation by `ihc_immune_metrics()` — **CD45+
@@ -340,7 +378,8 @@ cat("metrics present:", paste(sort(unique(imm_all$metric)), collapse = ", "), "\
 # are not being compared set the scale for the ones that are — CD3+CD45+ over CD45+ sits an
 # order of magnitude above the same numerator over all cells inside. A shared axis is only
 # honest between panels that are fractions of the same thing.
-box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE) {
+box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in = 13,
+                            height_in = 11) {
   d <- df |> filter(is.finite(frac), !is.na(response_class),
                     denom_label == denom_) |> droplevels()
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
@@ -348,20 +387,23 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE) {
   method <- if (arcsin) "t.test"                 else "wilcox.test"
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
-  yy <- frac_display_y(d, "frac", c("response_class", "metric"))
+  sty <- ihc_fig_style()
+  yy  <- frac_display_y(d, "frac", c("response_class", "metric"))
   ggplot(d, aes(response_class, frac, fill = response_class)) +
     attend_box(d, x = "response_class", y = "frac", by = "metric", fill = NULL,
-               points = FALSE, expand_y = FALSE) +
+               points = FALSE, expand_y = FALSE,
+               linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
-    stat_compare_means(method = method, label = "p.format", size = 3,
+    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
     scale_fill_manual(values = attend_resp_cols) +
-    labs(title = paste0("Immune content by response (", cohort_label, ") — ", ttl),
-         subtitle = paste0("normalized by ", denom_, yy$note), x = NULL, y = ylab) +
-    attend_theme() +
+    labs(title = wrap_fig_text(paste0("Immune content by response (", cohort_label, ") — ", ttl), width_in, sty$title_size, sty$gutter_in),
+         subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
+         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+    attend_theme(base_size = sty$base_size) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```

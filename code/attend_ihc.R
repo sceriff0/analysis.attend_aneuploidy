@@ -68,6 +68,51 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
                   frac_cd45   = n_cell / n_cd45_inside)
 }
 
+# TISSUE CONTENT: how much of the annotation is tumour, and how much is leukocyte, on one
+# axis. The two do not come from one table -- `Tumor` is a cell_type row in
+# ihc_celltype_metrics(), while CD45+ is a per-image DENOMINATOR constant (n_cd45_inside)
+# that only ihc_immune_metrics() surfaces -- so this unions them onto a shared `cell_type`
+# column and returns pid / cell_type / frac, the shape the composition box helpers already
+# facet on.
+#
+# `all cells inside` is the only denominator where BOTH are meaningful, which is why it is
+# the default rather than a loop over all three: Tumor/tumour_inside is identically 1, and
+# CD45+/cd45_inside is identically 1 and is already dropped upstream. A caller asking for
+# another denominator gets whichever series survives, and a message naming the one that did
+# not -- silently drawing a panel of 1.0 would look like a result.
+#
+# Returns a zero-row frame (not NULL) when neither series is present, so a call site can
+# nrow()-check it the same way it checks every other composition table.
+ihc_content_metrics <- function(celltype_metrics, immune_metrics,
+                                denom_label = "all cells inside",
+                                frac_col    = "frac_inside",
+                                tumor_cell_type = "Tumor",
+                                immune_metric   = "CD45+") {
+  empty <- data.frame(pid = character(0), cell_type = character(0), frac = numeric(0))
+
+  tum <- if (!is.null(celltype_metrics) && nrow(celltype_metrics) &&
+             frac_col %in% names(celltype_metrics)) {
+    d <- celltype_metrics[celltype_metrics$cell_type == tumor_cell_type, , drop = FALSE]
+    if (nrow(d)) data.frame(pid = d$pid, cell_type = tumor_cell_type,
+                            frac = d[[frac_col]], stringsAsFactors = FALSE) else empty
+  } else empty
+
+  imm <- if (!is.null(immune_metrics) && nrow(immune_metrics)) {
+    d <- immune_metrics[immune_metrics$metric == immune_metric &
+                        immune_metrics$denom_label == denom_label, , drop = FALSE]
+    if (nrow(d)) data.frame(pid = d$pid, cell_type = immune_metric,
+                            frac = d$frac, stringsAsFactors = FALSE) else empty
+  } else empty
+
+  if (!nrow(tum)) message("Content panel: no '", tumor_cell_type, "' rows for ", denom_label, ".")
+  if (!nrow(imm)) message("Content panel: no '", immune_metric, "' rows for ", denom_label, ".")
+
+  out <- rbind(tum, imm)
+  # Tumour first, then immune — the reader's order, and it must not depend on rbind().
+  out$cell_type <- factor(out$cell_type, levels = c(tumor_cell_type, immune_metric))
+  out[is.finite(out$frac), , drop = FALSE]
+}
+
 # Arcsine-square-root transform for a proportion in [0, 1] — the classic
 # variance-stabiliser for fraction data, which is what makes a parametric t-test
 # defensible on these composition fractions. Clamps out-of-range inputs.

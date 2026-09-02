@@ -87,6 +87,16 @@ attend_thresholds <- list(
 # as a skip rather than drawn as an empty panel.
 attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
 
+# The tissue-content panel: how much of the annotation is tumour, how much is leukocyte.
+# `Tumor` is a cell_type and CD45+ is a denominator constant, so ihc_content_metrics()
+# unions the two tables; `all cells inside` is the one denominator on which both are
+# non-trivial. Names must match the FlowPath export exactly.
+attend_ihc_content <- list(tumor_cell_type = "Tumor",
+                           immune_metric   = "CD45+",
+                           denom_label     = "all cells inside",
+                           frac_col        = "frac_inside")
+
+
 attend_levels <- list(
   msi_unstable  = "Instable (MSI)",  # gianlu MSI_STATUS unstable label (verified; stable = "Stable (MSS)")
   mmr_deficient = "Deficient"        # gianlu MMR_STATUS deficient label (verified; proficient = "Intact")
