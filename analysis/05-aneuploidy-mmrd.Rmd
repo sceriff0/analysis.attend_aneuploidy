@@ -642,7 +642,8 @@ cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
 # the same numerator over all cells inside — so the panels that are not being compared set
 # the scale for the ones that are. Splitting on denom_label means every panel in a figure is
 # a fraction OF THE SAME THING, which is the only case where a shared axis is honest.
-box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 11) {
+box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13,
+                       ncol = NULL, free_y = FALSE) {
   d <- df |> filter(is.finite(frac), denom_label == denom_) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))

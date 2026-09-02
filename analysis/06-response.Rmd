@@ -461,7 +461,7 @@ cat("metrics present:", paste(sort(unique(imm_all$metric)), collapse = ", "), "\
 # order of magnitude above the same numerator over all cells inside. A shared axis is only
 # honest between panels that are fractions of the same thing.
 box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in = 13,
-                            height_in = 11) {
+                            height_in = 13, ncol = NULL, free_y = FALSE) {
   d <- df |> filter(is.finite(frac), !is.na(response_class),
                     denom_label == denom_) |> droplevels()
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
