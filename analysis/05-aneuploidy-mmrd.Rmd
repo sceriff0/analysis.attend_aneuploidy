@@ -437,7 +437,10 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     message("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
             paste(attend_ihc_focus, collapse = ", "), ").")
   }
-  p <- box_by_aneu(d, denom_label, arcsin, scope = "all cell types")
+  # Tumour phenotypes are dropped here: at ~1.0 on the arcsine scale one of them flattens
+  # every immune panel under 0.35 into a line, and tumour content has its own panel below.
+  d_nt <- filter(d, !grepl(attend_ihc_tumor_pattern, cell_type))
+  p <- box_by_aneu(d_nt, denom_label, arcsin, scope = "all cell types")
   if (!is.null(p)) print(p)
 }
 ```
@@ -462,6 +465,11 @@ would give each panel its own range and make a cell type at a fraction of a perc
 tissue draw the same box, in the same place, as one at half the tissue. The cost is accepted
 deliberately — on the tumour-cell denominator these cell types span orders of magnitude, so
 the rarest panels sit low against a scale set by the most abundant.
+
+The **tumour phenotypes are excluded** from that figure. The export carries them separately
+(`PanCK+ Tumor`, `VIM+ Tumor`), and on one shared axis a tumour phenotype near 1.0 on the
+arcsine scale compresses every immune panel under 0.35 into a flat line. Tumour content is
+reported on its own panel below, against the same denominator, so nothing is lost.
 
 The axis stops at the **largest upper whisker** in the figure (Q3 + 1.5 IQR over every class
 x cell-type cell), not at the largest value, and the p-value label is placed inside that

@@ -86,8 +86,10 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
 # The general form: pull an arbitrary set of series out of the two IHC tables and stack them
 # onto one `cell_type` column, in the order given. `spec` is a list of entries:
 #
-#   list(label = "Tumor / all cells inside", source = "celltype",
-#        key = "Tumor", frac_col = "frac_inside")
+#   list(label = "Tumor cells / all cells inside", source = "constant",
+#        num = "n_tumor_inside", den = "n_inside")
+#   list(label = "T helper / all cells inside", source = "celltype",
+#        key = "T helper", frac_col = "frac_inside")
 #   list(label = "CD45+ / tumour cells inside", source = "immune",
 #        key = "CD45+", denom_label = "tumour cells inside")
 #
@@ -97,7 +99,20 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
 ihc_series_metrics <- function(celltype_metrics, immune_metrics, spec) {
   empty <- data.frame(pid = character(0), cell_type = character(0), frac = numeric(0))
   one <- function(e) {
-    if (identical(e$source, "celltype")) {
+    if (identical(e$source, "constant")) {
+      # A per-patient DENOMINATOR ratio, e.g. n_tumor_inside / n_inside. This is the only
+      # correct way to ask for tumour content: load_phenotypes.R builds n_tumor_inside as
+      # sum(str_detect(phenotype, "Tumor")), a SUBSTRING match that pools every tumour
+      # phenotype (PanCK+ Tumor, VIM+ Tumor, ...), while `cell_type` carries the exact
+      # phenotype. So there is no `cell_type == "Tumor"` row to select -- asking for one
+      # returned nothing and the panel silently drew CD45+ alone. Reading the constants
+      # instead makes the numerator identical to the denominator the other panels divide by.
+      d <- celltype_metrics
+      if (is.null(d) || !nrow(d) || !all(c(e$num, e$den) %in% names(d))) return(empty)
+      d <- unique(d[, c("pid", e$num, e$den), drop = FALSE])
+      data.frame(pid = d$pid, cell_type = e$label, frac = d[[e$num]] / d[[e$den]],
+                 stringsAsFactors = FALSE)
+    } else if (identical(e$source, "celltype")) {
       d <- celltype_metrics
       if (is.null(d) || !nrow(d) || !(e$frac_col %in% names(d))) return(empty)
       d <- d[d$cell_type == e$key, , drop = FALSE]

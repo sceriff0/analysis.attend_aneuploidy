@@ -87,6 +87,14 @@ attend_thresholds <- list(
 # as a skip rather than drawn as an empty panel.
 attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
 
+# Tumour phenotypes, matched as a PATTERN because the export carries them separately
+# ("PanCK+ Tumor", "VIM+ Tumor", ...) and load_phenotypes.R already pools them the same way
+# to build n_tumor_inside. They are excluded from the all-cell-types composition figure: on
+# one shared axis a tumour phenotype at ~1.0 flattens every immune panel under 0.35 into a
+# line, and tumour content has its own dedicated panel, so keeping it here bought a
+# redundant panel at the cost of the ten it sits beside.
+attend_ihc_tumor_pattern <- "Tumor"
+
 # The tissue-content panel: how much of the annotation is tumour, how much is leukocyte.
 # `Tumor` is a cell_type and CD45+ is a denominator constant, so ihc_content_metrics()
 # unions the two tables; `all cells inside` is the one denominator on which both are
@@ -97,10 +105,10 @@ attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
 # learn what each fraction is divided by, and in the mixed panel the two are divided by
 # different things.
 attend_ihc_content <- list(
-  list(label = "Tumor cells\n/ all cells inside", source = "celltype",
-       key = "Tumor", frac_col = "frac_inside"),
-  list(label = "CD45+ cells\n/ all cells inside", source = "immune",
-       key = "CD45+", denom_label = "all cells inside"))
+  list(label = "Tumor cells\n/ all cells inside", source = "constant",
+       num = "n_tumor_inside", den = "n_inside"),
+  list(label = "CD45+ cells\n/ all cells inside", source = "constant",
+       num = "n_cd45_inside",  den = "n_inside"))
 
 # Tumour burden beside immune infiltration per unit of tumour.
 #
@@ -109,10 +117,10 @@ attend_ihc_content <- list(
 # pi/2 and the arcsine/t-test companion would compare a wall of identical values. This
 # panel is therefore drawn RAW ONLY, with the >1 count printed on the figure.
 attend_ihc_content_mixed <- list(
-  list(label = "Tumor cells\n/ all cells inside", source = "celltype",
-       key = "Tumor", frac_col = "frac_inside"),
-  list(label = "CD45+ cells\n/ tumour cells inside", source = "immune",
-       key = "CD45+", denom_label = "tumour cells inside"))
+  list(label = "Tumor cells\n/ all cells inside",    source = "constant",
+       num = "n_tumor_inside", den = "n_inside"),
+  list(label = "CD45+ cells\n/ tumour cells inside", source = "constant",
+       num = "n_cd45_inside",  den = "n_tumor_inside"))
 
 
 attend_levels <- list(

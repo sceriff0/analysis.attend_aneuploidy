@@ -267,7 +267,10 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
       p <- box_by_resp(foc, denom_label, nm, arcsin, scope = "focus set")
       if (!is.null(p)) print(p)
     }
-    p <- box_by_resp(cohorts[[nm]], denom_label, nm, arcsin, scope = "all cell types")
+    # Tumour phenotypes dropped -- see report 05: one of them at ~1.0 flattens every
+    # immune panel, and tumour content has its own panel below.
+    p <- box_by_resp(filter(cohorts[[nm]], !grepl(attend_ihc_tumor_pattern, cell_type)),
+                     denom_label, nm, arcsin, scope = "all cell types")
     if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
                             " — no finite fractions, or only one response arm present.")
     else print(p)
@@ -286,6 +289,11 @@ axis**, exactly as in report 05: a panel's height reads as that cell type's abun
 relative to every other one, rather than against a rescaled axis of its own. Each cohort's
 axis is computed from its own patients, so read the adjacent pair on which cell types moved,
 not on absolute box heights.
+
+The **tumour phenotypes are excluded** from that figure. The export carries them separately
+(`PanCK+ Tumor`, `VIM+ Tumor`), and on one shared axis a tumour phenotype near 1.0 on the
+arcsine scale compresses every immune panel under 0.35 into a flat line. Tumour content is
+reported on its own panel below, against the same denominator, so nothing is lost.
 
 The axis stops at the **largest upper whisker** in the figure (Q3 + 1.5 IQR over every class
 x cell-type cell), not at the largest value, and the p-value label is placed inside that
