@@ -199,7 +199,7 @@ for (nm in names(ct_cohorts)) {
 # see the same values the panel plots.
 box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL,
                         width_in = 13, height_in = 11, unit_override = NULL,
-                        extra_note = "") {
+                        extra_note = "", ncol = NULL) {
   d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
@@ -228,7 +228,8 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
                linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
-    facet_wrap(~ cell_type) +
+    facet_wrap(~ cell_type, ncol = ncol) +
+    scale_x_discrete(labels = short_class_labels) +
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
@@ -242,7 +243,7 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
     attend_theme(base_size = sty$base_size) +
     # attend_theme() sizes the title off base_size, so these two must be restated after it:
     # the plot type is scaled up, the labelling deliberately is not.
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+    theme(legend.position = "none",
           plot.title    = element_text(size = sty$title_size, face = "bold"),
           plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
@@ -270,7 +271,7 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     # Tumour phenotypes dropped -- see report 05: one of them at ~1.0 flattens every
     # immune panel, and tumour content has its own panel below.
     p <- box_by_resp(filter(cohorts[[nm]], !grepl(attend_ihc_tumor_pattern, cell_type)),
-                     denom_label, nm, arcsin, scope = "all cell types")
+                     denom_label, nm, arcsin, scope = "all cell types", ncol = 4)
     if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
                             " — no finite fractions, or only one response arm present.")
     else print(p)
@@ -451,6 +452,7 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
+    scale_x_discrete(labels = short_class_labels) +
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = yy$label_y) +
     shared_frac_y(yy) +
@@ -462,7 +464,7 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     attend_theme(base_size = sty$base_size) +
     # attend_theme() sizes the title off base_size, so these two must be restated after it:
     # the plot type is scaled up, the labelling deliberately is not.
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+    theme(legend.position = "none",
           plot.title    = element_text(size = sty$title_size, face = "bold"),
           plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }

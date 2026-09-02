@@ -470,6 +470,31 @@ wrap_fig_text <- function(txt, width_in, size_pt, gutter = 0) {
   paste(strwrap(txt, width = ch), collapse = "\n")
 }
 
+# Tick labels for a two-group x axis carrying large type.
+#
+# At 2.5x, "aneuploidy-high" angled at 20 degrees runs off the LEFT edge of the device and
+# ggplot clips it without warning -- the reported symptom was the leading "aneu" missing from
+# the first label of every figure. Angling is also expensive vertically at this size, and
+# that height comes straight out of the panels.
+#
+# So the labels are shortened and drawn HORIZONTAL. The prefix every level shares carries no
+# information the title does not already give ("... by aneuploidy"), so
+# aneuploidy-high/aneuploidy-low become high/low. Levels with nothing in common are left
+# alone and merely broken over two lines: responder/non-responder keep both words, because
+# there the words ARE the contrast.
+short_class_labels <- function(x) {
+  v <- as.character(x)
+  if (length(v) > 1L && !anyNA(v) && all(nzchar(v))) {
+    n <- min(nchar(v)); k <- 0L
+    while (k < n && length(unique(substr(v, 1L, k + 1L))) == 1L) k <- k + 1L
+    pre <- substr(v[1], 1L, k)
+    # Trim the shared prefix back to its last separator, so a partial word is never cut.
+    cut <- suppressWarnings(max(c(0L, gregexpr("[- ]", pre)[[1]])))
+    if (cut > 0L && all(nchar(v) > cut)) v <- substring(v, cut + 1L)
+  }
+  ifelse(nchar(v) > 8L, sub("([- ])", "\\1\n", v), v)
+}
+
 ihc_fig_style <- function(scale = attend_ihc_text_scale, title_scale = 1) {
   for (nm in c("scale", "title_scale")) {
     v <- get(nm)
