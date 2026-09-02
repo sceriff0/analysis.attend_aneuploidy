@@ -95,6 +95,19 @@ attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
 # redundant panel at the cost of the ten it sits beside.
 attend_ihc_tumor_pattern <- "Tumor"
 
+# Does the ALL-CELL-TYPES overview give each panel its own y axis?
+#
+# TRUE, and the two composition figures differ deliberately. The focus set is where a shared
+# axis earns its cost: those four cell types are of comparable abundance and the question is
+# how they move relative to each other, so Macrophages must be readable against T cytotoxic
+# on one scale. The overview spans every measured cell type, where one abundant type sets a
+# ceiling the rest never approach and panels that are boxes in the focus figure flatten to
+# lines. Each overview panel therefore gets its own axis and fills its space; abundance is
+# still legible from each panel's own axis, and the content panels below carry it directly.
+#
+# Set FALSE to put the overview back on one shared axis, at that cost.
+attend_ihc_all_free_y <- TRUE
+
 # The tissue-content panel: how much of the annotation is tumour, how much is leukocyte.
 # `Tumor` is a cell_type and CD45+ is a denominator constant, so ihc_content_metrics()
 # unions the two tables; `all cells inside` is the one denominator on which both are

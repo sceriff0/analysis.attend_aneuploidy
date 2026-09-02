@@ -198,8 +198,8 @@ for (nm in names(ct_cohorts)) {
 # `.v`, prepared by draw_composition() — the transform happens there because the axis has to
 # see the same values the panel plots.
 box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL,
-                        width_in = 13, height_in = 11, unit_override = NULL,
-                        extra_note = "", ncol = NULL) {
+                        width_in = 13, height_in = 13, unit_override = NULL,
+                        extra_note = "", ncol = NULL, free_y = FALSE) {
   d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
@@ -221,6 +221,19 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
                       `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
                       sub("^(.)", "\\U\\1", scope, perl = TRUE))
   sty <- ihc_fig_style()
+  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
+  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
+  # word "aneuploidy", which is information, not decoration.
+  fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
+  xlv       <- levels(droplevels(as.factor(d[["response_class"]])))
+  nc_eff    <- if (!is.null(ncol)) ncol else
+                 max(1L, ceiling(sqrt(nlevels(droplevels(as.factor(d[[fvar]]))))))
+  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
+                             max(1L, length(xlv)), sty$base_size - 2)
+  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
+  # overflows a quarter-width panel into its neighbour.
+  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
+                              1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
   yy  <- frac_display_y(d, ".v", c("response_class", "cell_type"))
   ggplot(d, aes(response_class, .v, fill = response_class)) +
     attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
@@ -228,11 +241,14 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
                linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
                      base_const = "black") +
-    facet_wrap(~ cell_type, ncol = ncol) +
-    scale_x_discrete(labels = short_class_labels) +
+    facet_wrap(~ cell_type, ncol = ncol, scales = if (free_y) "free_y" else "fixed") +
+    scale_x_discrete(labels = wrap_class_labels) +
+    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
+    # would sit at one absolute height in panels that no longer share one. NULL hands
+    # placement back to ggpubr, which is correct per panel exactly when scales are free.
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
-                       label.y = yy$label_y) +
-    shared_frac_y(yy) +
+                       label.y = if (free_y) NULL else yy$label_y) +
+    shared_frac_y(if (free_y) NULL else yy) +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = wrap_fig_text(paste0(what, " by response — ", cohort_label),
                                width_in, sty$title_size, sty$gutter_in),
@@ -244,6 +260,8 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
     # attend_theme() sizes the title off base_size, so these two must be restated after it:
     # the plot type is scaled up, the labelling deliberately is not.
     theme(legend.position = "none",
+          axis.text.x   = element_text(size = tick_size),
+          strip.text    = element_text(size = strip_size, face = "bold"),
           plot.title    = element_text(size = sty$title_size, face = "bold"),
           plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
@@ -271,7 +289,8 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     # Tumour phenotypes dropped -- see report 05: one of them at ~1.0 flattens every
     # immune panel, and tumour content has its own panel below.
     p <- box_by_resp(filter(cohorts[[nm]], !grepl(attend_ihc_tumor_pattern, cell_type)),
-                     denom_label, nm, arcsin, scope = "all cell types", ncol = 4)
+                     denom_label, nm, arcsin, scope = "all cell types", ncol = 3,
+                     free_y = attend_ihc_all_free_y)
     if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
                             " — no finite fractions, or only one response arm present.")
     else print(p)
@@ -290,6 +309,13 @@ axis**, exactly as in report 05: a panel's height reads as that cell type's abun
 relative to every other one, rather than against a rescaled axis of its own. Each cohort's
 axis is computed from its own patients, so read the adjacent pair on which cell types moved,
 not on absolute box heights.
+
+The two figures differ in one respect on purpose: the **focus set shares one y axis**, so
+those four cell types are directly comparable, while the **overview gives each panel its
+own**. Over every measured cell type a single abundant one sets a ceiling the rest never
+approach, and panels that are boxes in the focus figure flatten to lines. Abundance is still
+readable from each overview panel's own axis, and the content panels below carry it
+directly. The policy is `attend_ihc_all_free_y`.
 
 The **tumour phenotypes are excluded** from that figure. The export carries them separately
 (`PanCK+ Tumor`, `VIM+ Tumor`), and on one shared axis a tumour phenotype near 1.0 on the
@@ -311,14 +337,14 @@ Each cell type as a fraction of every cell in the annotation, so a panel reads "
 the tissue is this". Raw fractions with a Wilcoxon, drawn for all patients and then for the
 MMR-deficient subset.
 
-```{r box-inside, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-inside, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-inside-arcsin, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
@@ -328,13 +354,13 @@ Each cell type per unit of tumour: the denominator is tumour cells only, so a sh
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-tumor, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-tumor, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-tumor-arcsin, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
@@ -344,13 +370,13 @@ Composition *of the immune compartment*: the denominator is leukocytes, so diffe
 tumour content between patients cannot drive the contrast. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-cd45, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-cd45, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=13, fig.height=11, out.width="100%"}
+```{r box-cd45-arcsin, fig.width=13, fig.height=13, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
@@ -444,6 +470,19 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
   ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
   ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
   sty <- ihc_fig_style()
+  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
+  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
+  # word "aneuploidy", which is information, not decoration.
+  fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
+  xlv       <- levels(droplevels(as.factor(d[["response_class"]])))
+  nc_eff    <- if (!is.null(ncol)) ncol else
+                 max(1L, ceiling(sqrt(nlevels(droplevels(as.factor(d[[fvar]]))))))
+  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
+                             max(1L, length(xlv)), sty$base_size - 2)
+  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
+  # overflows a quarter-width panel into its neighbour.
+  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
+                              1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
   yy  <- frac_display_y(d, "frac", c("response_class", "metric"))
   ggplot(d, aes(response_class, frac, fill = response_class)) +
     attend_box(d, x = "response_class", y = "frac", by = "metric", fill = NULL,
@@ -452,10 +491,13 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     facet_wrap(~ metric) +
-    scale_x_discrete(labels = short_class_labels) +
+    scale_x_discrete(labels = wrap_class_labels) +
+    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
+    # would sit at one absolute height in panels that no longer share one. NULL hands
+    # placement back to ggpubr, which is correct per panel exactly when scales are free.
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
-                       label.y = yy$label_y) +
-    shared_frac_y(yy) +
+                       label.y = if (free_y) NULL else yy$label_y) +
+    shared_frac_y(if (free_y) NULL else yy) +
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = wrap_fig_text(paste0("Immune content by response (", cohort_label, ") — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
@@ -465,6 +507,8 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     # attend_theme() sizes the title off base_size, so these two must be restated after it:
     # the plot type is scaled up, the labelling deliberately is not.
     theme(legend.position = "none",
+          axis.text.x   = element_text(size = tick_size),
+          strip.text    = element_text(size = strip_size, face = "bold"),
           plot.title    = element_text(size = sty$title_size, face = "bold"),
           plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }

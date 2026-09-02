@@ -472,27 +472,45 @@ wrap_fig_text <- function(txt, width_in, size_pt, gutter = 0) {
 
 # Tick labels for a two-group x axis carrying large type.
 #
-# At 2.5x, "aneuploidy-high" angled at 20 degrees runs off the LEFT edge of the device and
-# ggplot clips it without warning -- the reported symptom was the leading "aneu" missing from
-# the first label of every figure. Angling is also expensive vertically at this size, and
-# that height comes straight out of the panels.
+# At 2.5x, "aneuploidy-high" angled at 20 degrees ran off the LEFT edge of the device and
+# ggplot clipped it with no warning -- the leading "aneu" simply vanished. Angling is also
+# expensive vertically at this size, and that height comes out of the panels.
 #
-# So the labels are shortened and drawn HORIZONTAL. The prefix every level shares carries no
-# information the title does not already give ("... by aneuploidy"), so
-# aneuploidy-high/aneuploidy-low become high/low. Levels with nothing in common are left
-# alone and merely broken over two lines: responder/non-responder keep both words, because
-# there the words ARE the contrast.
-short_class_labels <- function(x) {
+# The label is kept WHOLE and made to fit instead of being shortened: it is broken at its
+# separator onto two lines and drawn horizontal, so it occupies its own tick's width and
+# cannot overhang the device at either end. "aneuploidy-high" reads as "aneuploidy-" over
+# "high"; a label with no separator is left alone.
+wrap_class_labels <- function(x) {
   v <- as.character(x)
-  if (length(v) > 1L && !anyNA(v) && all(nzchar(v))) {
-    n <- min(nchar(v)); k <- 0L
-    while (k < n && length(unique(substr(v, 1L, k + 1L))) == 1L) k <- k + 1L
-    pre <- substr(v[1], 1L, k)
-    # Trim the shared prefix back to its last separator, so a partial word is never cut.
-    cut <- suppressWarnings(max(c(0L, gregexpr("[- ]", pre)[[1]])))
-    if (cut > 0L && all(nchar(v) > cut)) v <- substring(v, cut + 1L)
-  }
-  ifelse(nchar(v) > 8L, sub("([- ])", "\\1\n", v), v)
+  # Break at the LAST separator, so the two lines come out as even as the label allows.
+  vapply(v, function(s) {
+    if (is.na(s) || nchar(s) <= 8L) return(s)
+    m <- gregexpr("[- ]", s)[[1]]
+    if (m[1] == -1L) return(s)
+    k <- m[length(m)]
+    paste0(substr(s, 1L, k), "\n", substring(s, k + 1L))
+  }, character(1), USE.NAMES = FALSE)
+}
+
+# The largest type at which those labels still fit their tick, given the figure width and
+# the facet layout. Without this the size is fixed at base_size - 2 and a full-width label
+# either overlaps its neighbour or is clipped -- both of which the reader sees as a broken
+# axis rather than as type that is too big. Capped at `max_pt` so it never grows past the
+# rest of the figure, and floored so it never becomes unreadable in a very narrow panel.
+# `advance` is the mean glyph width as a fraction of the point size. 0.70, measured against
+# renders at these sizes: 0.62 left "aneuploidy-" touching its neighbour and pushed a bold
+# 11-character strip label over the panel edge. Bold runs wider still, so callers sizing a
+# bold label pass a larger value.
+fit_tick_size <- function(labels, width_in, ncol, n_groups, max_pt, gutter_in = 1.5,
+                          min_pt = 9, fill = 0.80, advance = 0.70) {
+  lab <- unlist(strsplit(as.character(labels), "\n", fixed = TRUE))
+  ch  <- suppressWarnings(max(nchar(lab), na.rm = TRUE))
+  if (!is.finite(ch) || ch <= 0 || !is.finite(ncol) || ncol < 1 || n_groups < 1)
+    return(max_pt)
+  # `fill` < 1 leaves a gap between neighbours. Sizing to exactly the slot makes two labels
+  # meet with no space at all, which reads as one run-on word ("aneuploidyaneuploidy-").
+  slot <- max((width_in - gutter_in) / ncol / n_groups, 0.2) * fill
+  max(min_pt, min(max_pt, slot * 72 / (advance * ch)))
 }
 
 ihc_fig_style <- function(scale = attend_ihc_text_scale, title_scale = 1) {
