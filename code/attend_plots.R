@@ -409,8 +409,11 @@ frac_display_y <- function(df, value_col, keys, headroom = 0.18, whisker_mult = 
   list(ylim    = c(lo, ceil),
        label_y = lo + span * (1 + headroom * 0.45),
        n_above = n_above,
+       # Terse on purpose: this rides in the subtitle, and the long form cost two extra
+       # wrapped lines. The guarantee it abbreviates -- nothing is dropped, the zoom is
+       # coord_cartesian() -- is stated once in the derivation note above the chunk.
        note    = if (n_above > 0)
-                   sprintf("; %d point%s above the axis (every patient is in the boxes and the test)",
+                   sprintf("; %d point%s off scale (all still in the boxes and the test)",
                            n_above, if (n_above == 1L) "" else "s")
                  else "")
 }
@@ -467,15 +470,23 @@ wrap_fig_text <- function(txt, width_in, size_pt, gutter = 0) {
   paste(strwrap(txt, width = ch), collapse = "\n")
 }
 
-ihc_fig_style <- function(scale = attend_ihc_text_scale) {
-  if (!is.numeric(scale) || length(scale) != 1L || !is.finite(scale) || scale <= 0)
-    stop("ihc_fig_style(): `scale` must be one positive finite number.")
+ihc_fig_style <- function(scale = attend_ihc_text_scale, title_scale = 1) {
+  for (nm in c("scale", "title_scale")) {
+    v <- get(nm)
+    if (!is.numeric(v) || length(v) != 1L || !is.finite(v) || v <= 0)
+      stop("ihc_fig_style(): `", nm, "` must be one positive finite number.")
+  }
   list(scale      = scale,
        base_size  = 11  * scale,   # attend_theme()'s default
        label_size = 2.4 * scale,   # attend_box()'s n= label
        p_size     = 3   * scale,   # stat_compare_means()
-       title_size = 11 * scale + 1,  # attend_theme()'s plot.title
-       sub_size   = 11 * scale - 1,  # attend_theme()'s plot.subtitle
+       # Title and subtitle do NOT take `scale`. They are labelling, not data: at 2.5x they
+       # cost three wrapped lines and a third of the canvas while telling the reader nothing
+       # the strips and axis do not. They stay at the site's own size, so the builders must
+       # override attend_theme(base_size=), which would otherwise scale them with everything
+       # else. `title_scale` is the knob if they ever need to grow.
+       title_size = 11 * title_scale + 1,
+       sub_size   = 11 * title_scale - 1,
        # Width the y-axis title + tick labels consume before the panel begins. Grows with
        # the type, which is why it cannot be a constant at the call site.
        gutter_in  = 0.10 * (11 * scale - 1),

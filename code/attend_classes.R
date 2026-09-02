@@ -91,10 +91,28 @@ attend_ihc_focus <- c("T cytotoxic", "T helper", "Macrophages", "M1")
 # `Tumor` is a cell_type and CD45+ is a denominator constant, so ihc_content_metrics()
 # unions the two tables; `all cells inside` is the one denominator on which both are
 # non-trivial. Names must match the FlowPath export exactly.
-attend_ihc_content <- list(tumor_cell_type = "Tumor",
-                           immune_metric   = "CD45+",
-                           denom_label     = "all cells inside",
-                           frac_col        = "frac_inside")
+# The two tissue-content panels, each a spec for ihc_series_metrics(). Both carry the
+# denominator IN THE STRIP LABEL, on a second line, because these figures are drawn with the
+# y-axis title switched off -- with no axis label the strip is the only place the reader can
+# learn what each fraction is divided by, and in the mixed panel the two are divided by
+# different things.
+attend_ihc_content <- list(
+  list(label = "Tumor cells\n/ all cells inside", source = "celltype",
+       key = "Tumor", frac_col = "frac_inside"),
+  list(label = "CD45+ cells\n/ all cells inside", source = "immune",
+       key = "CD45+", denom_label = "all cells inside"))
+
+# Tumour burden beside immune infiltration per unit of tumour.
+#
+# CD45+/tumour is a RATIO, not a proportion: it exceeds 1 whenever leukocytes outnumber
+# tumour cells. arcsin_sqrt() clamps to [0, 1], so every such patient would collapse to
+# pi/2 and the arcsine/t-test companion would compare a wall of identical values. This
+# panel is therefore drawn RAW ONLY, with the >1 count printed on the figure.
+attend_ihc_content_mixed <- list(
+  list(label = "Tumor cells\n/ all cells inside", source = "celltype",
+       key = "Tumor", frac_col = "frac_inside"),
+  list(label = "CD45+ cells\n/ tumour cells inside", source = "immune",
+       key = "CD45+", denom_label = "tumour cells inside"))
 
 
 attend_levels <- list(

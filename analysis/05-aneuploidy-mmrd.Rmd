@@ -358,21 +358,28 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 # The y variable is always `.v`, prepared by draw_composition() — the transform happens there
 # because the axis has to be computed on the same values the panels plot.
 box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
-                        width_in = 13, height_in = 11) {
+                        width_in = 13, height_in = 11, unit_override = NULL,
+                        extra_note = "") {
   d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   method <- if (arcsin) "t.test" else "wilcox.test"
-  unit   <- if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
+  unit   <- if (!is.null(unit_override)) unit_override
+            else if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
             else        paste0("fraction of ", denom_label)
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
   # The ceiling and the p-value height come from ONE call: ggpubr's default label.y is the
   # PLOT-WIDE maximum, so on this shared axis a single extreme patient parks every label at
   # the ceiling and squashes every box. See frac_display_y() in attend_plots.R.
+  # A title fragment per scope. The fallback capitalises rather than passing the scope
+  # through verbatim -- an unmapped scope produced a title starting in lower case.
   what <- if (is.null(scope)) "Cell types"
-          else switch(scope, `focus set` = "Cell types (focus)",
-                             `all cell types` = "Cell types (all)",
-                             `tissue content` = "Tissue content", scope)
+          else switch(scope,
+                      `focus set`      = "Cell types (focus)",
+                      `all cell types` = "Cell types (all)",
+                      `tissue content` = "Tissue content",
+                      `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
+                      sub("^(.)", "\\U\\1", scope, perl = TRUE))
   sty <- ihc_fig_style()
   yy  <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
   ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
@@ -388,10 +395,16 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
     scale_fill_manual(values = attend_aneu_cols) +
     labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only"),
                                width_in, sty$title_size, sty$gutter_in),
-         subtitle = wrap_fig_text(paste0(sub, yy$note), width_in, sty$sub_size, sty$gutter_in),
-         x = NULL, y = wrap_fig_text(unit, height_in, sty$sub_size)) +
+         subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
+                                  width_in, sty$sub_size, sty$gutter_in),
+         x = NULL,
+         y = if (!nzchar(unit)) NULL else wrap_fig_text(unit, height_in, sty$sub_size)) +
     attend_theme(base_size = sty$base_size) +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+    # attend_theme() sizes the title off base_size, so these two must be restated after it:
+    # the plot type is scaled up, the labelling deliberately is not.
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+          plot.title    = element_text(size = sty$title_size, face = "bold"),
+          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
 
 # ONE figure per normalization, every cell type in it, on one axis. The transform happens
@@ -508,19 +521,58 @@ meaningful** — `Tumor` over tumour cells and CD45+ over CD45+ cells are both i
 then the arcsine/t-test companion.
 
 ```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
-ct_content <- ihc_content_metrics(
-  ct, imm_metrics,
-  denom_label     = attend_ihc_content$denom_label,
-  frac_col        = attend_ihc_content$frac_col,
-  tumor_cell_type = attend_ihc_content$tumor_cell_type,
-  immune_metric   = attend_ihc_content$immune_metric) |>
+ct_content <- ihc_series_metrics(ct, imm_metrics, attend_ihc_content) |>
   left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
   filter(!is.na(aneuploidy_class))
 
 for (asin in c(FALSE, TRUE)) {
   d <- ct_content |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
-  p <- box_by_aneu(d, attend_ihc_content$denom_label, asin, scope = "tissue content",
-                   width_in = 13, height_in = 7)
+  p <- box_by_aneu(d, "all cells inside", asin, scope = "tissue content",
+                   width_in = 13, height_in = 7, unit_override = "")
+  if (!is.null(p)) print(p)
+}
+```
+
+#### Tumour burden beside immune infiltration per unit of tumour
+
+The same two populations against **different** denominators: `Tumor` over all cells inside
+(how much of the tissue is tumour) beside CD45+ over tumour cells inside (how many
+leukocytes per tumour cell). Each panel strip names its own denominator, because the y axis
+carries one unit and cannot.
+
+CD45+ / tumour cells is a **ratio, not a proportion** — it exceeds 1 wherever leukocytes
+outnumber tumour cells — and `arcsin_sqrt()` clamps its input to [0, 1]. Both versions are
+drawn, and the count of values above 1 is printed above the figures **and** in the
+transformed figure's own subtitle: those patients all land on the same value there, so a
+clamped group is a wall of identical numbers and its t-test is not interpretable. Read the
+raw/Wilcoxon panel whenever that count is non-zero; when it is zero the transform is exact
+and the two panels are the usual pair.
+
+```{r box-content-mixed, fig.width=13, fig.height=7, out.width="100%"}
+mix <- ihc_series_metrics(ct, imm_metrics, attend_ihc_content_mixed) |>
+  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
+  filter(!is.na(aneuploidy_class)) |>
+  mutate(.v = frac)
+
+n_over <- sum(mix$frac > 1, na.rm = TRUE)
+cat("patients:", n_distinct(mix$pid), "| series:",
+    paste(gsub("\n", " ", levels(mix$cell_type)), collapse = " | "),
+    "\nvalues above 1 (a ratio, not a proportion):", n_over,
+    if (n_over > 0) " <- clamped by arcsin_sqrt() in the transformed figure below" else "", "\n")
+
+# Raw, then the arcsine/t-test companion. The companion carries a CLAMP COUNT because
+# arcsin_sqrt() bounds its input to [0, 1] and CD45+/tumour is a ratio that can exceed it:
+# every value above 1 lands on pi/2, so a clamped group is a wall of identical numbers and
+# its t-test is not interpretable. When the count is 0 the transform is exact and the note
+# does not appear, which is the case this figure is drawn for.
+for (asin in c(FALSE, TRUE)) {
+  note <- if (asin && n_over > 0)
+            sprintf("; %d value%s > 1 CLAMPED to pi/2 by arcsin(sqrt()) — read the raw panel",
+                    n_over, if (n_over == 1L) "" else "s") else ""
+  d <- mix |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+  p <- box_by_aneu(d, "the denominator in each panel", arcsin = asin,
+                   scope = "tissue content, mixed denominators",
+                   width_in = 13, height_in = 7, unit_override = "", extra_note = note)
   if (!is.null(p)) print(p)
 }
 ```
@@ -573,9 +625,14 @@ box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 11
     scale_fill_manual(values = attend_aneu_cols) +
     labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only) — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
-         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+         x = NULL,
+         y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
     attend_theme(base_size = sty$base_size) +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+    # attend_theme() sizes the title off base_size, so these two must be restated after it:
+    # the plot type is scaled up, the labelling deliberately is not.
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+          plot.title    = element_text(size = sty$title_size, face = "bold"),
+          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
 ```
 

@@ -188,21 +188,28 @@ for (nm in names(ct_cohorts)) {
 # `.v`, prepared by draw_composition() — the transform happens there because the axis has to
 # see the same values the panel plots.
 box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL,
-                        width_in = 13, height_in = 11) {
+                        width_in = 13, height_in = 11, unit_override = NULL,
+                        extra_note = "") {
   d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
   # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
   if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
   method <- if (arcsin) "t.test"                             else "wilcox.test"
-  ylab   <- if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
+  ylab   <- if (!is.null(unit_override)) unit_override
+            else if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
             else        paste0("fraction of ", denom_label)
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
   # One call fixes the ceiling and the p-value height together — see box_by_aneu() in
   # report 05 and frac_display_y() in attend_plots.R for why they cannot be separate.
+  # A title fragment per scope. The fallback capitalises rather than passing the scope
+  # through verbatim -- an unmapped scope produced a title starting in lower case.
   what <- if (is.null(scope)) "Cell types"
-          else switch(scope, `focus set` = "Cell types (focus)",
-                             `all cell types` = "Cell types (all)",
-                             `tissue content` = "Tissue content", scope)
+          else switch(scope,
+                      `focus set`      = "Cell types (focus)",
+                      `all cell types` = "Cell types (all)",
+                      `tissue content` = "Tissue content",
+                      `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
+                      sub("^(.)", "\\U\\1", scope, perl = TRUE))
   sty <- ihc_fig_style()
   yy  <- frac_display_y(d, ".v", c("response_class", "cell_type"))
   ggplot(d, aes(response_class, .v, fill = response_class)) +
@@ -218,10 +225,16 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = wrap_fig_text(paste0(what, " by response — ", cohort_label),
                                width_in, sty$title_size, sty$gutter_in),
-         subtitle = wrap_fig_text(paste0(sub, yy$note), width_in, sty$sub_size, sty$gutter_in),
-         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+         subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
+                                  width_in, sty$sub_size, sty$gutter_in),
+         x = NULL,
+         y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
     attend_theme(base_size = sty$base_size) +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+    # attend_theme() sizes the title off base_size, so these two must be restated after it:
+    # the plot type is scaled up, the labelling deliberately is not.
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+          plot.title    = element_text(size = sty$title_size, face = "bold"),
+          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
 
 # One figure per (normalization, cohort), every cell type in it, on one axis. The two
@@ -332,12 +345,7 @@ non-trivial, so this is drawn once rather than once per normalization. Both coho
 fractions with a Wilcoxon then the arcsine/t-test companion.
 
 ```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
-content_all <- ihc_content_metrics(
-  ct_all, imm_all,
-  denom_label     = attend_ihc_content$denom_label,
-  frac_col        = attend_ihc_content$frac_col,
-  tumor_cell_type = attend_ihc_content$tumor_cell_type,
-  immune_metric   = attend_ihc_content$immune_metric) |>
+content_all <- ihc_series_metrics(ct_all, imm_all, attend_ihc_content) |>
   left_join(master |> select(pid, response_class), by = "pid") |>
   filter(!is.na(response_class))
 
@@ -346,8 +354,44 @@ content_cohorts <- list(`all patients`  = content_all,
 for (nm in names(content_cohorts))
   for (asin in c(FALSE, TRUE)) {
     d <- content_cohorts[[nm]] |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
-    p <- box_by_resp(d, attend_ihc_content$denom_label, nm, asin, scope = "tissue content",
-                     width_in = 13, height_in = 7)
+    p <- box_by_resp(d, "all cells inside", nm, asin, scope = "tissue content",
+                     width_in = 13, height_in = 7, unit_override = "")
+    if (!is.null(p)) print(p)
+  }
+```
+
+### Tumour burden beside immune infiltration per unit of tumour
+
+The report-05 mixed-denominator panel, keyed on response: `Tumor` over all cells inside
+beside CD45+ over tumour cells inside. Each panel strip names its own denominator, since the
+y axis carries one unit. Raw fractions and the arcsine/t-test companion, per cohort —
+CD45+ / tumour cells is a ratio that exceeds 1 where leukocytes outnumber tumour cells and
+`arcsin_sqrt()` clamps to [0, 1], so the count of clamped values is printed above the
+figures and in each transformed figure's subtitle. Read the raw panel whenever it is
+non-zero.
+
+```{r box-content-mixed, fig.width=13, fig.height=7, out.width="100%"}
+mix_all <- ihc_series_metrics(ct_all, imm_all, attend_ihc_content_mixed) |>
+  left_join(master |> select(pid, response_class), by = "pid") |>
+  filter(!is.na(response_class)) |>
+  mutate(.v = frac)
+
+n_over <- sum(mix_all$frac > 1, na.rm = TRUE)
+cat("values above 1 (a ratio, not a proportion):", n_over,
+    if (n_over > 0) " <- clamped by arcsin_sqrt() in the transformed figures" else "", "\n")
+
+# Raw then arcsine/t-test, per cohort. The companion carries the clamp count for the same
+# reason as report 05: arcsin_sqrt() bounds to [0, 1] and CD45+/tumour is a ratio.
+for (nm in c("all patients", "MMR-deficient"))
+  for (asin in c(FALSE, TRUE)) {
+    base <- if (nm == "MMR-deficient") filter(mix_all, pid %in% mmrd_pids) else mix_all
+    note <- if (asin && n_over > 0)
+              sprintf("; %d value%s > 1 CLAMPED to pi/2 by arcsin(sqrt()) — read the raw panel",
+                      n_over, if (n_over == 1L) "" else "s") else ""
+    d <- base |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+    p <- box_by_resp(d, "the denominator in each panel", nm, arcsin = asin,
+                     scope = "tissue content, mixed denominators",
+                     width_in = 13, height_in = 7, unit_override = "", extra_note = note)
     if (!is.null(p)) print(p)
   }
 ```
@@ -402,9 +446,14 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     scale_fill_manual(values = attend_resp_cols) +
     labs(title = wrap_fig_text(paste0("Immune content by response (", cohort_label, ") — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
-         x = NULL, y = wrap_fig_text(ylab, height_in, sty$sub_size)) +
+         x = NULL,
+         y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
     attend_theme(base_size = sty$base_size) +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+    # attend_theme() sizes the title off base_size, so these two must be restated after it:
+    # the plot type is scaled up, the labelling deliberately is not.
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1),
+          plot.title    = element_text(size = sty$title_size, face = "bold"),
+          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
 }
 ```
 

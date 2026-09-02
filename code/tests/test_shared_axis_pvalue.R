@@ -38,7 +38,9 @@ y <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
 ## The ceiling is the largest upper whisker, so it is nowhere near the outlier ...
 stopifnot(y$ylim[2] < 0.2, y$ylim[2] > 0.07)
 ## ... the outlier is disclosed rather than dropped ...
-stopifnot(y$n_above == 1L, grepl("1 point above the axis", y$note))
+## The wording is terse because it rides in a subtitle; what must hold is that a single
+## off-scale point is COUNTED and singular, never silently dropped.
+stopifnot(y$n_above == 1L, grepl("^; 1 point off scale", y$note))
 ## ... and the label sits inside the range, not on its edge.
 stopifnot(y$label_y > 0, y$label_y < y$ylim[2])
 

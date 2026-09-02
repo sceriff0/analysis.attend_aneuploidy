@@ -83,34 +83,55 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
 #
 # Returns a zero-row frame (not NULL) when neither series is present, so a call site can
 # nrow()-check it the same way it checks every other composition table.
+# The general form: pull an arbitrary set of series out of the two IHC tables and stack them
+# onto one `cell_type` column, in the order given. `spec` is a list of entries:
+#
+#   list(label = "Tumor / all cells inside", source = "celltype",
+#        key = "Tumor", frac_col = "frac_inside")
+#   list(label = "CD45+ / tumour cells inside", source = "immune",
+#        key = "CD45+", denom_label = "tumour cells inside")
+#
+# `label` is what the facet says, and for a MIXED-denominator panel it must name the
+# denominator: the y axis can only carry one unit, so the panel strip is the only place the
+# reader can learn that two facets are divided by different things.
+ihc_series_metrics <- function(celltype_metrics, immune_metrics, spec) {
+  empty <- data.frame(pid = character(0), cell_type = character(0), frac = numeric(0))
+  one <- function(e) {
+    if (identical(e$source, "celltype")) {
+      d <- celltype_metrics
+      if (is.null(d) || !nrow(d) || !(e$frac_col %in% names(d))) return(empty)
+      d <- d[d$cell_type == e$key, , drop = FALSE]
+      if (!nrow(d)) return(empty)
+      data.frame(pid = d$pid, cell_type = e$label, frac = d[[e$frac_col]],
+                 stringsAsFactors = FALSE)
+    } else {
+      d <- immune_metrics
+      if (is.null(d) || !nrow(d)) return(empty)
+      d <- d[d$metric == e$key & d$denom_label == e$denom_label, , drop = FALSE]
+      if (!nrow(d)) return(empty)
+      data.frame(pid = d$pid, cell_type = e$label, frac = d$frac, stringsAsFactors = FALSE)
+    }
+  }
+  parts <- lapply(spec, one)
+  for (k in seq_along(spec))
+    if (!nrow(parts[[k]])) message("Series absent, panel dropped: ", spec[[k]]$label)
+  out <- do.call(rbind, c(list(empty), parts))
+  out$cell_type <- factor(out$cell_type,
+                          levels = vapply(spec, function(e) e$label, character(1)))
+  out <- out[is.finite(out$frac), , drop = FALSE]
+  droplevels(out)
+}
+
 ihc_content_metrics <- function(celltype_metrics, immune_metrics,
                                 denom_label = "all cells inside",
                                 frac_col    = "frac_inside",
                                 tumor_cell_type = "Tumor",
                                 immune_metric   = "CD45+") {
-  empty <- data.frame(pid = character(0), cell_type = character(0), frac = numeric(0))
-
-  tum <- if (!is.null(celltype_metrics) && nrow(celltype_metrics) &&
-             frac_col %in% names(celltype_metrics)) {
-    d <- celltype_metrics[celltype_metrics$cell_type == tumor_cell_type, , drop = FALSE]
-    if (nrow(d)) data.frame(pid = d$pid, cell_type = tumor_cell_type,
-                            frac = d[[frac_col]], stringsAsFactors = FALSE) else empty
-  } else empty
-
-  imm <- if (!is.null(immune_metrics) && nrow(immune_metrics)) {
-    d <- immune_metrics[immune_metrics$metric == immune_metric &
-                        immune_metrics$denom_label == denom_label, , drop = FALSE]
-    if (nrow(d)) data.frame(pid = d$pid, cell_type = immune_metric,
-                            frac = d$frac, stringsAsFactors = FALSE) else empty
-  } else empty
-
-  if (!nrow(tum)) message("Content panel: no '", tumor_cell_type, "' rows for ", denom_label, ".")
-  if (!nrow(imm)) message("Content panel: no '", immune_metric, "' rows for ", denom_label, ".")
-
-  out <- rbind(tum, imm)
-  # Tumour first, then immune — the reader's order, and it must not depend on rbind().
-  out$cell_type <- factor(out$cell_type, levels = c(tumor_cell_type, immune_metric))
-  out[is.finite(out$frac), , drop = FALSE]
+  ihc_series_metrics(celltype_metrics, immune_metrics, list(
+    list(label = tumor_cell_type, source = "celltype",
+         key = tumor_cell_type, frac_col = frac_col),
+    list(label = immune_metric,   source = "immune",
+         key = immune_metric,   denom_label = denom_label)))
 }
 
 # Arcsine-square-root transform for a proportion in [0, 1] — the classic
