@@ -659,13 +659,32 @@ behave like MMRd (20/23) and POLEmut–p53abn like POLEmut (12/13). `add_promise
 `r attend_promise$p53_note` `r attend_promise$pole_note` MMRd is the exception — that is MMR
 protein loss by IHC, the real criterion.
 
-**Computational steps.** (1) `pole_ultramutated()` matches the seven exonuclease-domain
-hotspots against the long MAF's protein-change column (data chunk, above). (2)
-`add_promise_class()` applies the four tiers in order. (3) A patient missing any tier's
-input is returned **NA, not NSMP** — coding missing data as "no marker altered" would turn
-an unsequenced patient into a negative finding, the same failure `add_response_class()`
-refuses for its landmark. (4) `promise_counts()` prints the partition, including why each
-unclassified patient could not be called.
+**Why POLE is called on a variant list and not on the whole domain.** The exonuclease domain
+is residues `r attend_pole$edm_start`–`r attend_pole$edm_end` (exons 9–14), and it would be
+easy to call every variant in it. That over-calls. Most EDM variants are of unknown
+significance, and León-Castillo et al. (*J Pathol* 2020) exists precisely because clinical
+use "requires systematic evaluation of the pathogenicity of POLE mutations". A domain-wide
+rule is not more sensitive in any useful sense — it is less specific, and it would put a VUS
+carrier into the **top** tier of the hierarchy, above MMRd and p53abn, which under FIGO 2023
+changes that patient's stage. So the call has three tiers, not two:
+
+| Tier | Rule | Effect |
+|---|---|---|
+| **POLEmut** | one of the `r length(attend_pole$hotspots)` established pathogenic variants | enters the hierarchy at the top |
+| **EDM VUS** | a variant inside `r attend_pole$edm_start`–`r attend_pole$edm_end` that is *not* on that list | **flagged, not called** — listed below for review |
+| **no EDM** | nothing in the domain | a real negative |
+
+**Computational steps.** (1) `pole_ultramutated()` matches the established variant list
+against the long MAF's protein-change column, in either annotator spelling (`P286R` and
+`Pro286Arg` both resolve), and parses the codon to flag non-list EDM variants as VUS (data
+chunk, above). (2) `add_promise_class()` applies the four tiers in order. (3) A patient
+missing any tier's input is returned **NA, not NSMP** — coding missing data as "no marker
+altered" would turn an unsequenced patient into a negative finding, the same failure
+`add_response_class()` refuses for its landmark. A patient with **no MAF at all is NA for
+POLE**, not FALSE: an unscreened cohort is not a POLE-negative cohort, and that distinction
+is the whole reason this report can no longer say "ATTEND has no POLE cases" for free. (4)
+`promise_counts()` prints the partition, including why each unclassified patient could not
+be called.
 
 ```{r promise-counts, eval=have_master}
 if (have_promise) {
@@ -675,6 +694,37 @@ if (have_promise) {
   cat("**ProMisE not built in this build.** It needs the long MAF (for the POLE hotspot",
       "screen) and the barcode crosswalk. Absent those, every patient would be NA, which",
       "is reported as a skip rather than drawn as an empty four-group figure.\n")
+}
+```
+
+### POLE variants seen, and the ones needing a decision
+
+Every POLE variant observed in the exonuclease domain, with the tier it was assigned. The
+**EDM VUS** rows are the ones a person has to adjudicate: they are not called POLEmut here,
+and they are not a clean negative either. `attend_pole$signature` carries León-Castillo's
+genomic criteria for making that call from the data (C>A > 20%, T>G > 4%, C>G < 0.6%,
+indels < 5%, TMB > 100 mut/Mb) — every input is present in the long MAF and the master, so
+it is computable, but adjudicating a VUS is a decision that should be made explicitly rather
+than by a default buried in a helper.
+
+```{r promise-pole-variants, eval=have_master}
+if (have_master && "POLE_class" %in% names(master)) {
+  pv <- master |>
+    dplyr::filter(!is.na(POLE_variant)) |>
+    dplyr::select(pid, POLE_class, POLE_variant) |>
+    dplyr::arrange(POLE_class, pid)
+  if (nrow(pv) > 0) {
+    print(knitr::kable(pv, caption = "POLE exonuclease-domain variants observed, by tier"))
+  } else {
+    cat("No POLE exonuclease-domain variants observed in the screened patients.\n\n")
+  }
+  scr <- sum(!is.na(master$POLE_class))
+  cat("POLE was screenable in ", scr, " of ", nrow(master), " patients. The remaining ",
+      nrow(master) - scr, " have no MAF and are **NA, not POLE-negative** — a cohort-level ",
+      "claim of \"no POLE cases\" cannot be made over them.\n", sep = "")
+} else if (have_master) {
+  cat("POLE not screened in this build — no long MAF. Every patient is NA rather than",
+      "POLE-negative.\n")
 }
 ```
 
@@ -738,8 +788,15 @@ if (exists("classed") && all(c("cnv_high", "TP53_pathogenic") %in% names(classed
   if (nrow(tp) > 0 && dplyr::n_distinct(tp$cluster) >= 1) {
     tab <- tp |>
       group_by(cluster) |>
-      summarise(n = dplyr::n(), TP53_mut = sum(tp53),
-                pct_TP53 = round(100 * mean(tp53), 1), .groups = "drop")
+      # na.rm plus an explicit n_called: TP53_pathogenic is now three-valued (TRUE /
+      # sequenced-and-clean FALSE / not-sequenced NA), so a bare sum() returns NA for any
+      # group containing one unsequenced patient and the whole QC table goes blank. The
+      # percentage is taken over the patients TP53 could be called in, which is the only
+      # denominator that means anything here.
+      summarise(n = dplyr::n(), n_called = sum(!is.na(tp53)), TP53_mut = sum(tp53, na.rm = TRUE),
+                pct_TP53 = ifelse(sum(!is.na(tp53)) > 0,
+                                  round(100 * mean(tp53, na.rm = TRUE), 1), NA_real_),
+                .groups = "drop")
     knitr::kable(tab, caption = "TP53-pathogenic fraction: CN-high cluster vs the rest (TCGA serous-like cluster 4 was ~90% TP53-mut)")
 
     ct <- table(factor(tp$cluster, levels = c("other clusters", "CN-high cluster")), tp$tp53)

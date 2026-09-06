@@ -96,13 +96,30 @@ maf <- read_intermediate("maf_data")
 mut <- pathogenic_by_patient(maf, cw)   # pid, TP53_pathogenic, panel_pathogenic (MMR union)
 
 # Per-gene status for the one-gene-at-a-time panels: MMR panel + Wnt genes.
-gene_status <- cw |> distinct(pid) |>
+#
+# ⚠️ NO replace_na(mutated, FALSE) HERE. It used to sit on the line below, and it turned
+# every patient the MAF never reached — and every gene that was never statused — into
+# "<GENE>-wt". Combined with the loader statusing only TP53, that made all five MMR panels
+# and both Wnt panels a single wild-type box, captioned as though the comparison had been
+# made. An uncalled gene is NOT a wild-type gene; the class stays NA so the panel drops the
+# patient, and gene_called below reports how many were dropped and why.
+gene_long <- cw |> distinct(pid) |>
   tidyr::crossing(gene = attend_genes_per_gene) |>
   left_join(mutation_status_long(maf, cw), by = c("pid", "gene")) |>
-  mutate(mutated = replace_na(mutated, FALSE),
-         class   = if_else(mutated, paste0(gene, "-mut"), paste0(gene, "-wt"))) |>
+  mutate(class = if_else(mutated, paste0(gene, "-mut"), paste0(gene, "-wt")))  # NA stays NA
+
+gene_status <- gene_long |>
   select(pid, gene, class) |>
   pivot_wider(names_from = gene, values_from = class, names_glue = "{gene}_class")
+
+# The denominator behind every per-gene panel below: how many patients this gene could
+# actually be called in. A gene with 0 called is reported as a skip, never drawn.
+gene_called <- gene_long |>
+  group_by(gene) |>
+  summarise(called    = sum(!is.na(class)),
+            uncalled  = sum(is.na(class)),
+            mutated_n = sum(class == paste0(gene, "-mut"), na.rm = TRUE),
+            .groups = "drop")
 
 dat_all <- master |>
   select(-any_of(c("TP53_pathogenic", "panel_pathogenic"))) |>  # recompute here
@@ -198,9 +215,18 @@ panel with a handful of -mut patients will show a wide box and an unstable p-val
 
 ```{r mmr-gene-counts}
 mmr_gene_vars <- paste0(attend_gene_panel, "_class")
-if (nrow(dat) > 0)
-  knitr::kable(group_counts(dat, mmr_gene_vars),
-               caption = "Patients per group, MMR panel genes (MMR-deficient cohort)")
+if (nrow(dat) > 0) {
+  # Called vs uncalled FIRST, because it is the denominator the group counts sit inside.
+  # A gene with 0 called produces no panel at all, and that has to be visible as an absent
+  # measurement rather than inferred from a missing figure.
+  print(knitr::kable(
+    gene_called |> dplyr::filter(gene %in% attend_gene_panel),
+    caption = paste("Patients in whom each MMR panel gene could be called at all.",
+                    "`uncalled` = no MAF for that patient, or the gene was never statused —",
+                    "these are DROPPED from the panels below, not counted as wild-type")))
+  print(knitr::kable(group_counts(dat, mmr_gene_vars),
+               caption = "Patients per group, MMR panel genes (MMR-deficient cohort)"))
+}
 ```
 
 Aneuploidy score (aneu__aneuploidy_score, ASCETS arm-level burden from data/ascets/)

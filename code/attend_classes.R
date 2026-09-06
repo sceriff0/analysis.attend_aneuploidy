@@ -384,12 +384,42 @@ mutation_status_long <- function(maf, crosswalk,
       inner_join(crosswalk, by = "barcode") |>
       filter(!is.na(pid)) |>
       group_by(pid, gene) |>
-      summarise(mutated = any(mutated, na.rm = TRUE), .groups = "drop")
+      # NO na.rm. Base any() is already three-valued and that is exactly what is wanted:
+      # any(TRUE, NA) is TRUE (one positive sample makes the patient positive), but
+      # any(FALSE, NA) is NA, and any(NA, NA) is NA. With na.rm = TRUE a patient whose only
+      # status value was NA — an unannotated sample, or a gene with no status column —
+      # collapsed to FALSE and was drawn as a wild-type box. "Not called" is not "normal".
+      summarise(mutated = any(mutated), .groups = "drop")
   }
 }
 
-# One row per patient: pid, TP53_pathogenic, panel_pathogenic (logical).
-# Patients in the crosswalk but with no altered gene are FALSE (not dropped).
+#' One row per patient: pid, TP53_pathogenic, panel_pathogenic, mut_screened.
+#'
+#' ⚠️ NOT SEQUENCED IS NA, NOT FALSE — and this function used to get it wrong.
+#'
+#' It built its base set from the CROSSWALK (every patient carrying a barcode in the
+#' clinical sheet) and then `replace_na(FALSE)`. So a patient whose MAF was never delivered
+#' arrived on the master as TP53-wild-type and MMR-panel-wild-type, with a real aneuploidy
+#' value beside it, and was drawn in the wild-type box of every per-gene figure. That is a
+#' missing measurement rendered as a negative result, and at n ~ 40 a handful of them moves
+#' every frequency and every group comparison that uses these columns.
+#'
+#' Three states now, and they are distinguishable downstream:
+#'   TRUE   a pathogenic variant was found
+#'   FALSE  the patient WAS sequenced and none was found  <- a real negative
+#'   NA     the patient was not sequenced, or the gene was never statused
+#' `mut_screened` carries the sequenced/not-sequenced fact directly, so a caller can
+#' restrict a denominator without having to infer it from the NA pattern.
+#'
+#' It is NOT called `in_maf`: build_master.R already writes an `in_maf` membership column
+#' from `build_sets()`, which resolves barcodes through the RECOVERY pass (normalised keys),
+#' while this function joins on the exact barcode. The two therefore disagree for exactly
+#' the recovered ids, and a same-named column would be silently overwritten by whichever ran
+#' last. Two names, two meanings: `in_maf` = the patient appears in the MAF table,
+#' `mut_screened` = their variants actually reached this derivation.
+#'
+#' Callers must handle the NA. add_tcga_class() and add_promise_class() already do;
+#' mutation_counts() below reports the partition so the count is never implicit.
 pathogenic_by_patient <- function(maf, crosswalk,
                                   gene_panel         = attend_gene_panel,
                                   cols               = attend_cols,
@@ -398,14 +428,37 @@ pathogenic_by_patient <- function(maf, crosswalk,
                                   positive           = attend_mut_positive) {
   ml <- mutation_status_long(maf, crosswalk, cols, maf_cfg, pathogenic_classes, positive)
 
-  tp53  <- ml |> filter(gene == "TP53",       mutated) |> distinct(pid) |> mutate(TP53_pathogenic  = TRUE)
-  panel <- ml |> filter(gene %in% gene_panel, mutated) |> distinct(pid) |> mutate(panel_pathogenic = TRUE)
+  # any() again, three-valued: a patient with one panel gene mutated is panel-altered even
+  # if another panel gene is uncalled, but a patient with NO gene called is NA, not FALSE.
+  tp53  <- ml |> filter(gene == "TP53") |>
+    group_by(pid) |> summarise(TP53_pathogenic  = any(mutated), .groups = "drop")
+  panel <- ml |> filter(gene %in% gene_panel) |>
+    group_by(pid) |> summarise(panel_pathogenic = any(mutated), .groups = "drop")
 
   crosswalk |> distinct(pid) |>
+    mutate(mut_screened = pid %in% unique(ml$pid)) |>
     left_join(tp53,  by = "pid") |>
-    left_join(panel, by = "pid") |>
-    mutate(TP53_pathogenic  = replace_na(TP53_pathogenic,  FALSE),
-           panel_pathogenic = replace_na(panel_pathogenic, FALSE))
+    left_join(panel, by = "pid")
+}
+
+#' Why each patient has the mutation status it has, as a partition of the cohort.
+#'
+#' The companion to response_counts() and promise_counts(), and here for the same reason:
+#' the not-sequenced count is the cohort these columns cannot speak about, and printing it
+#' beside every per-gene figure is what stops "wild-type" quietly meaning "unmeasured".
+mutation_counts <- function(df, col = "TP53_pathogenic") {
+  v <- if (col %in% names(df)) as.logical(df[[col]]) else rep(NA, nrow(df))
+  seq_known <- if ("mut_screened" %in% names(df)) as.logical(df$mut_screened) else !is.na(v)
+  tibble::tibble(
+    status = c(paste0(col, " = TRUE (pathogenic variant found)"),
+               paste0(col, " = FALSE (sequenced, none found)"),
+               "not sequenced — no MAF for this patient",
+               "sequenced, but this gene was never statused"),
+    n = c(sum(v, na.rm = TRUE),
+          sum(!v, na.rm = TRUE),
+          sum(!seq_known, na.rm = TRUE),
+          sum(seq_known & is.na(v), na.rm = TRUE))
+  )
 }
 
 # Optional: read a REAL per-variant MAF with maftools and return it in the long
@@ -1003,11 +1056,50 @@ segment_pileup <- function(cnv_long, arms, bin = attend_cnv$pileup$bin,
 # pole_ultramutated() and reinstate the branch in add_tcga_class() to re-enable.
 # Calling is by exonuclease-domain hotspot (needs a protein-change column in the
 # MAF) OR, as a backstop, an ultra-high TMB cutoff.
+#
+# ⚠️ "SCREEN THE WHOLE EXONUCLEASE DOMAIN" IS THE WRONG TARGET, AND THAT IS THE POINT OF
+# THE THREE TIERS BELOW.
+#
+# The exonuclease domain is residues 268-471 (exons 9-14). Calling every EDM variant
+# POLEmut over-calls: most are variants of unknown significance, and Leon-Castillo et al.
+# (J Pathol 2020;250:323-335, doi 10.1002/path.5372) exists precisely because clinical
+# implementation "requires systematic evaluation of the pathogenicity of POLE mutations".
+# Their own validation showed only a subset of EDM variants carry the ultramutated
+# signature. So a domain-wide rule is not more sensitive in any useful sense — it is less
+# specific, and it would put a VUS carrier into the top tier of the ProMisE hierarchy,
+# where it outranks MMRd and p53abn and changes the patient's FIGO 2023 stage.
+#
+# The pipeline therefore makes THREE calls, not one:
+#   pathogenic  — one of the 11 established variants below           -> POLEmut
+#   EDM VUS     — a missense variant inside 268-471 that is NOT one  -> flagged, NOT called
+#   no EDM      — nothing in the domain                              -> not POLE
+# The middle tier is the one that must exist. Without it a VUS is either silently promoted
+# to POLEmut or silently indistinguishable from a clean negative, and both are wrong.
+#
+# ⚠️ `L424V` WAS IN THIS LIST AND IS NOT AN ESTABLISHED PATHOGENIC VARIANT. The published
+# residue is L424I (p.Leu424Ile). A tumour carrying the real variant was therefore missed
+# while a variant nobody reports would have been called. Four further established variants
+# were absent: M295R, P436R, M444K, D368Y.
 attend_pole <- list(
   gene        = "POLE",
-  hotspots    = c("P286R", "V411L", "S297F", "A456P", "S459F", "F367S", "L424V"),
+  # The 11 established pathogenic POLE EDM variants (Leon-Castillo et al., J Pathol 2020;
+  # the same set enumerated in the multiple-classifier paper, doi 10.1002/path.5373).
+  hotspots    = c("P286R", "V411L", "S297F", "A456P", "S459F", "F367S",
+                  "L424I", "M295R", "P436R", "M444K", "D368Y"),
+  # Exonuclease domain bounds, in residues. Used ONLY to flag non-hotspot EDM variants as
+  # VUS for review — never to call POLEmut on its own.
+  edm_start   = 268L,
+  edm_end     = 471L,
   protein_col = attend_maf$protein_col,   # one candidate list, defined in attend_maf
-  tmb_cutoff  = 100                      # mut/Mb; ultra-high backstop
+  tmb_cutoff  = 100,                     # mut/Mb; ultra-high backstop
+  # Leon-Castillo's genomic-signature criteria for a POLE-ultramutated tumour, kept here
+  # for the day someone wants to adjudicate a VUS from the data rather than the literature:
+  # C>A > 20%, T>G > 4%, C>G < 0.6%, indels < 5%, TMB > 100 mut/Mb. Every input is present
+  # in the long MAF (Reference_Allele / Tumor_Seq_Allele2 / Variant_Type) plus the master's
+  # TMB, so this is computable here; it is NOT wired in, because adjudicating a VUS is a
+  # decision a person should make explicitly.
+  signature   = list(c_to_a_min = 0.20, t_to_g_min = 0.04,
+                     c_to_g_max = 0.006, indel_max = 0.05, tmb_min = 100)
 )
 
 # --- 10. Integrated-class labels (report 08) --------------------------------
@@ -1354,29 +1446,108 @@ cnv_high_cluster <- function(assignment, aneu_tbl, aneu_col = "aneuploidy_value"
 # protein-change column is present in `maf_long`; otherwise falls back to an
 # ultra-high TMB cutoff via `tmb_tbl` (ID + TMB column). Returns pid + logical.
 # Expected to be all FALSE in ATTEND (no POLE-ultramutated cases).
+# One-to-three-letter amino-acid map, so a hotspot written `P286R` also matches an
+# annotator that emits `p.Pro286Arg`. VEP's HGVSp_Short gives the 1-letter form and
+# HGVSp the 3-letter one; which arrives depends on the annotator, and guessing wrong
+# silently finds nothing — the exact failure mode the highlight overlay had.
+.aa3 <- c(A="Ala", R="Arg", N="Asn", D="Asp", C="Cys", Q="Gln", E="Glu", G="Gly",
+          H="His", I="Ile", L="Leu", K="Lys", M="Met", F="Phe", P="Pro", S="Ser",
+          T="Thr", W="Trp", Y="Tyr", V="Val")
+
+#' Both spellings of a 1-letter protein change, e.g. "P286R" -> c("P286R", "Pro286Arg").
+.pole_variant_forms <- function(v) {
+  m <- regmatches(v, regexec("^([A-Z])([0-9]+)([A-Z])$", v))[[1]]
+  if (length(m) != 4L) return(v)
+  three <- paste0(.aa3[[m[2]]], m[3], .aa3[[m[4]]])
+  unique(c(v, three))
+}
+
+#' Codon number from a protein change, whichever spelling it arrives in. NA when absent.
+.pole_codon <- function(prot) {
+  n <- suppressWarnings(as.integer(sub("^[^0-9]*([0-9]+).*$", "\\1", prot)))
+  n[!grepl("[0-9]", prot)] <- NA_integer_
+  n
+}
+
+#' POLE status per patient, in three tiers rather than one boolean.
+#'
+#' Returns pid plus:
+#'   POLE_ultramutated  logical — TRUE only for an ESTABLISHED pathogenic EDM variant.
+#'                      NA where the patient has no MAF at all (see below).
+#'   POLE_class         "POLEmut" / "EDM VUS" / "no EDM", NA where not screened
+#'   POLE_variant       the observed POLE protein change(s), for the VUS review list
+#'
+#' ⚠️ NOT SCREENED IS NA, NOT FALSE. A patient with no MAF has not been shown to lack a
+#' POLE variant — they have not been looked at. Returning FALSE for them is what let this
+#' pipeline state "ATTEND has no POLE cases" about a cohort in which POLE was never called,
+#' and it is the same substitution of a default for a measurement that made every
+#' unsequenced patient TP53-wild-type. add_promise_class() reads the NA and reports the
+#' patient as unclassifiable; promise_counts() says why.
+#'
+#' The VUS tier is not decoration. A variant inside 268-471 that is not on the established
+#' list is genuinely uncertain, and both alternatives are wrong: promoting it to POLEmut
+#' puts it at the TOP of the ProMisE hierarchy, above MMRd and p53abn, and under FIGO 2023
+#' that changes the patient's stage; burying it makes it indistinguishable from a clean
+#' negative. So it is called neither, and listed for a person to adjudicate —
+#' attend_pole$signature carries Leon-Castillo's genomic criteria for doing that.
 pole_ultramutated <- function(maf_long = NULL, crosswalk = NULL, tmb_tbl = NULL,
                               tmb_col  = "TMB_SCORE",
                               pole_cfg = attend_pole) {
   out <- if (!is.null(crosswalk)) crosswalk |> distinct(pid) else tibble(pid = character())
-  out$POLE_ultramutated <- FALSE
-  if (nrow(out) == 0) return(out)
+  if (nrow(out) == 0) {
+    out$POLE_ultramutated <- logical(0); out$POLE_class <- character(0)
+    out$POLE_variant <- character(0); return(out)
+  }
+  out$POLE_ultramutated <- NA                 # not screened until proven otherwise
+  out$POLE_class        <- NA_character_
+  out$POLE_variant      <- NA_character_
 
   prot_col <- if (!is.null(maf_long)) intersect(pole_cfg$protein_col, names(maf_long)) else character()
-  if (length(prot_col) && !is.null(crosswalk)) {
-    pat <- paste(pole_cfg$hotspots, collapse = "|")
-    hit <- maf_long |>
+  if (length(prot_col) && !is.null(crosswalk) && nrow(maf_long) > 0) {
+    # Which patients were screened at all: present in the MAF, in ANY gene. A patient with
+    # variants but none in POLE is a real negative; a patient with no rows is not.
+    screened <- maf_long |>
+      transmute(barcode = as.character(.data[[attend_maf$sample_col]])) |>
+      inner_join(crosswalk, by = "barcode") |> distinct(pid) |> pull(pid)
+
+    pat <- paste(unlist(lapply(pole_cfg$hotspots, .pole_variant_forms)), collapse = "|")
+    pole_rows <- maf_long |>
       transmute(barcode = as.character(.data[[attend_maf$sample_col]]),
                 gene    = as.character(.data[[attend_maf$gene_col]]),
                 prot    = as.character(.data[[prot_col[1]]])) |>
-      filter(gene == pole_cfg$gene, str_detect(replace_na(prot, ""), pat)) |>
+      filter(gene == pole_cfg$gene, !is.na(prot), nzchar(prot)) |>
       inner_join(crosswalk, by = "barcode") |>
-      distinct(pid) |> mutate(.hot = TRUE)
-    out <- out |> left_join(hit, by = "pid") |>
-      mutate(POLE_ultramutated = POLE_ultramutated | replace_na(.hot, FALSE)) |>
-      select(-.hot)
+      mutate(codon      = .pole_codon(prot),
+             pathogenic = str_detect(prot, pat),
+             in_edm     = !is.na(codon) &
+                          codon >= pole_cfg$edm_start & codon <= pole_cfg$edm_end)
+
+    per_pid <- pole_rows |>
+      group_by(pid) |>
+      summarise(any_path = any(pathogenic),
+                any_vus  = any(in_edm & !pathogenic),
+                variants = paste(unique(prot[in_edm | pathogenic]), collapse = "; "),
+                .groups = "drop")
+
+    out <- out |>
+      left_join(per_pid, by = "pid") |>
+      mutate(
+        .scr = pid %in% screened,
+        POLE_ultramutated = ifelse(!.scr, NA, replace_na(any_path, FALSE)),
+        POLE_class = case_when(
+          !.scr                      ~ NA_character_,
+          replace_na(any_path, FALSE) ~ "POLEmut",
+          replace_na(any_vus,  FALSE) ~ "EDM VUS",
+          TRUE                        ~ "no EDM"),
+        POLE_variant = ifelse(!is.na(variants) & nzchar(variants), variants, NA_character_)) |>
+      select(-any_path, -any_vus, -variants, -.scr)
     return(out)
   }
 
+  # Backstop only: an ultra-high TMB is SUGGESTIVE of POLE, never diagnostic, so it can
+  # confirm nothing on its own. It is kept because a cohort with no protein-change column
+  # would otherwise have no signal at all — but the class stays NA, so a patient called
+  # here never reaches the POLEmut tier of the ProMisE hierarchy on TMB alone.
   if (!is.null(tmb_tbl) && !is.null(crosswalk) && tmb_col %in% names(tmb_tbl)) {
     hit <- tmb_tbl |>
       transmute(barcode = as.character(ID), tmb = suppressWarnings(as.numeric(.data[[tmb_col]]))) |>
@@ -1385,11 +1556,15 @@ pole_ultramutated <- function(maf_long = NULL, crosswalk = NULL, tmb_tbl = NULL,
       filter(is.finite(tmb), tmb >= pole_cfg$tmb_cutoff) |>
       distinct(pid) |> mutate(.hot = TRUE)
     out <- out |> left_join(hit, by = "pid") |>
-      mutate(POLE_ultramutated = POLE_ultramutated | replace_na(.hot, FALSE)) |>
+      mutate(POLE_class = ifelse(replace_na(.hot, FALSE),
+                                 "TMB-suggestive (not sequenced)", POLE_class)) |>
       select(-.hot)
+    message("pole_ultramutated(): no protein-change column — POLE flagged by ultra-high TMB ",
+            "only, which is suggestive and NOT diagnostic. POLE_ultramutated stays NA.")
   } else {
-    message("pole_ultramutated(): no protein-change column and no TMB table — ",
-            "POLE branch uncallable, all FALSE (expected in ATTEND).")
+    message("pole_ultramutated(): no protein-change column and no TMB table — POLE was not ",
+            "screened. Every patient is NA, NOT FALSE: an unscreened cohort is not a ",
+            "POLE-negative cohort.")
   }
   out
 }

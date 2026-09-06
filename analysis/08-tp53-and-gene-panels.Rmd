@@ -287,16 +287,30 @@ mut_by_pid <- maf_long |>
   filter(!is.na(pid)) |>
   distinct(pid, Hugo_Symbol)
 
-grp_tbl <- master_grp |>
+# ⚠️ THE DENOMINATOR IS THE SEQUENCED PATIENTS, NOT THE COHORT.
+# `mutated` below is filled from the long MAF with replace_na(FALSE), which is right for a
+# patient whose MAF simply has no row for that gene — that IS a wild-type call. It is wrong
+# for a patient with no MAF at all: they enter every gene's denominator as unmutated,
+# deflating every within-subgroup frequency and biasing the Fisher tests toward the null.
+# So the cohort is restricted to patients the MAF actually reached, and the excluded count
+# is printed rather than absorbed.
+sequenced_pids <- unique(mut_by_pid$pid)
+
+grp_tbl_all <- master_grp |>
   filter(!is.na(scna_group)) |>
   select(pid, scna_group) |>
-  mutate(scna_group = factor(scna_group, levels = attend_scna$group_levels)) |>
-  droplevels()
+  mutate(scna_group = factor(scna_group, levels = attend_scna$group_levels))
+
+grp_tbl <- grp_tbl_all |> filter(pid %in% sequenced_pids) |> droplevels()
+n_dropped <- nrow(grp_tbl_all) - nrow(grp_tbl)
 
 n_by_grp <- count(grp_tbl, scna_group, name = "n_group")
 
 if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
-  print(knitr::kable(n_by_grp, caption = "Patients per subgroup (the denominators below)"))
+  print(knitr::kable(n_by_grp,
+    caption = paste0("Patients per subgroup — the denominators below. Restricted to the ",
+                     "patients the MAF reached; ", n_dropped, " patient(s) with a subgroup ",
+                     "but no MAF are excluded rather than counted as wild-type.")))
 
   genes_keep <- mut_by_pid |>
     semi_join(grp_tbl, by = "pid") |>
