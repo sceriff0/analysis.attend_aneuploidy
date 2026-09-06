@@ -25,15 +25,25 @@ MAX_LINES <- 800L
 # one file. An exemption that is no longer needed FAILS as stale, so the list cannot quietly
 # become the new cap.
 OVER_CAP <- c(
-  "05-aneuploidy-mmrd.Rmd" =
+  "04-aneuploidy-mmrd.Rmd" =
     paste("the composition question is asked at three normalizations x two transforms, and",
           "each pair now carries a focus panel and an all-cell-types panel; plus the",
           "tumour/leukocyte content panel, the immune contrast and the MMR interaction",
           "model, which needs MMRp patients and so cannot move to a report scoped MMRd"),
-  "07-mutation-and-cna.Rmd" =
-    paste("three resolutions of one question (genes, arms, genome) plus both inference",
-          "families: the pre-specified TCGA panel and the data-driven counterpart, which",
-          "must sit beside it to be readable as its complement rather than a rival result")
+  "01-data-integration.Rmd" =
+    paste("three parts that are one question about the inputs: the join, what the join cost,",
+          "and whether the automated IHC quantification agrees with the pathologist. The",
+          "concordance part was its own report and was folded in here because validating a",
+          "measurement IS quality control; splitting it back out would restore a report",
+          "whose scope contract duplicated this one's"),
+  "07-molecular-classification.Rmd" =
+    paste("two classifications of the same patients that only mean something beside each",
+          "other: the 2013 TCGA cascade, whose CN-high group is a cluster, and ProMisE /",
+          "WHO-ESGO, whose p53abn group is a per-patient marker. Separating them would put",
+          "the concordance table in one report and both of its inputs in another")
+  # NOTE: 07-mutation-and-cna.Rmd's exemption is GONE, not moved. That report was split into
+  # 08-tp53-and-gene-panels.Rmd (353 lines) and 10-recurrent-cna.Rmd (623 lines), and both
+  # are comfortably under the cap — which is the outcome this list is supposed to produce.
 )
 
 # Chunks that exist in every report for mechanical reasons and carry no result of their

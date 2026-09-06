@@ -1463,6 +1463,120 @@ add_tcga_class <- function(df,
   df
 }
 
+# --- 12b. ProMisE / WHO-ESGO molecular classification -----------------------
+#
+# WHY THIS EXISTS BESIDE add_tcga_class(), RATHER THAN REPLACING IT.
+#
+# add_tcga_class() reproduces Kandoth et al. (Nature 2013): the copy-number-high group is
+# a CLUSTER, derived by clustering GISTIC thresholded calls at significant peaks. That is
+# faithful to the 2013 paper and it is what report 09 measures against TCGA's own data.
+#
+# It is not, however, what any current guideline asks for. Since Talhouk et al. (Br J
+# Cancer 2015; Cancer 2017) the field runs a SURROGATE algorithm — ProMisE — in which p53
+# IHC replaces the copy-number clustering and POLE exonuclease-domain sequencing replaces
+# the ultramutated cluster. That algorithm is what WHO 5th ed. (2020), ESGO/ESTRO/ESP
+# (2021, updated 2025), NCCN, and FIGO 2023 staging all specify; FIGO 2023 makes the
+# subtype a stage MODIFIER, so it is no longer merely descriptive. No guideline recognises
+# a clustering-derived call as the p53-abnormal group.
+#
+# So the pipeline computes BOTH and reports them side by side. The TCGA cascade stays as
+# the historical reproduction; ProMisE is the one a reviewer will ask for.
+#
+# THE HIERARCHY IS STRICT AND ORDER MATTERS — POLEmut > MMRd > p53abn > NSMP. A tumour
+# carrying more than one marker is assigned to the FIRST tier it matches, never to the
+# "most altered" one: Leon-Castillo et al. (J Pathol 2020) showed MMRd-p53abn tumours
+# behave like MMRd (20/23) and POLEmut-p53abn like POLEmut (12/13). Applying the tiers in
+# any other order silently reclassifies exactly the multiple-classifier cases the hierarchy
+# was written for.
+#
+# ⚠️ WHAT IS A SURROGATE HERE, AND WHAT IS NOT.
+#   MMRd    — MMR protein loss by IHC. This is the real thing, not a surrogate.
+#   POLEmut — exonuclease-domain HOTSPOT match in the long MAF, via pole_ultramutated().
+#             This is a hotspot screen, not full exon 9/13/14 sequencing: it can confirm a
+#             POLE case but cannot establish that a cohort has none.
+#   p53abn  — TP53 pathogenic variant from the MAF, NOT p53 IHC. The guideline criterion is
+#             IHC. Concordance between p53 IHC and TP53 sequencing is 90.7% overall in
+#             PORTEC-3, rising to 94.5% when applied in hierarchy order (Leon-Castillo et
+#             al., Mod Pathol 2022) — good, but it is agreement, not identity.
+# `p53_col` is configurable for exactly that reason: point it at a p53 IHC column the day
+# one exists and nothing else in the pipeline changes.
+attend_promise_levels <- c("POLEmut", "MMRd", "p53abn", "NSMP")
+
+attend_promise <- list(
+  pole_col = "POLE_ultramutated",   # from pole_ultramutated(); FALSE where not screened
+  mmr_col  = "MMR_class",           # IHC, via is_mmrd()
+  p53_col  = "TP53_pathogenic",     # REPOINT to a p53 IHC column when one exists
+  # Printed under every ProMisE figure so the surrogate is never implicit on the page.
+  p53_note = paste("p53-abnormal is called from a TP53 pathogenic variant in the MAF, not",
+                   "from p53 IHC. The guideline criterion is IHC; concordance is ~91-94%",
+                   "(Leon-Castillo et al., Mod Pathol 2022)."),
+  pole_note = paste("POLE is called by exonuclease-domain hotspot match in the long MAF.",
+                    "A hit confirms a POLEmut case; the absence of hits does NOT establish",
+                    "that the cohort has none, which needs exon 9/13/14 sequencing.")
+)
+
+#' Assign the four-group ProMisE / WHO-ESGO class, in strict hierarchy order.
+#'
+#' Unlike add_tcga_class(), an UNKNOWN input does not fall through to the next tier. A
+#' patient whose MMR IHC is missing is not "not MMRd" — they are unclassified, and coding
+#' them NSMP would quietly convert missing data into a negative finding, which is the same
+#' failure `add_response_class()` refuses for its landmark. Such patients come back NA and
+#' `promise_counts()` reports how many and why, so the denominator is never implicit.
+#'
+#' @param df patient-level frame carrying the columns named in `cfg`
+#' @param cfg attend_promise; repoint p53_col at IHC when available
+add_promise_class <- function(df, cfg = attend_promise, lev = attend_promise_levels,
+                              mmr_lev = attend_levels) {
+  n   <- nrow(df)
+  lg  <- function(col) if (col %in% names(df)) as.logical(df[[col]]) else rep(NA, n)
+
+  pole <- lg(cfg$pole_col)
+  p53  <- lg(cfg$p53_col)
+  mmr  <- if (cfg$mmr_col %in% names(df)) is_mmrd(df[[cfg$mmr_col]], mmr_lev$mmr_deficient)
+          else rep(NA, n)
+
+  cls <- rep(NA_character_, n)
+  # Assigned bottom-up so the higher tier overwrites: NSMP only where all three are a
+  # known FALSE, then p53abn, then MMRd, then POLEmut on top.
+  known_all <- !is.na(pole) & !is.na(mmr) & !is.na(p53)
+  cls[known_all & !pole & !mmr & !p53] <- lev[4]   # NSMP
+  cls[!is.na(pole) & !pole & !is.na(mmr) & !mmr & !is.na(p53) & p53] <- lev[3]   # p53abn
+  cls[!is.na(pole) & !pole & !is.na(mmr) & mmr] <- lev[2]                        # MMRd
+  cls[!is.na(pole) & pole] <- lev[1]                                             # POLEmut
+
+  df$promise_class <- factor(cls, levels = lev)
+  df
+}
+
+#' Why each patient did or did not get a ProMisE class, as a partition of the cohort.
+#'
+#' Printed beside every ProMisE figure for the same reason response_counts() is: the
+#' unclassifiable count is the cohort this algorithm cannot speak about, and it has to be
+#' visible rather than absorbed into NSMP.
+promise_counts <- function(df, cfg = attend_promise, lev = attend_promise_levels,
+                           mmr_lev = attend_levels) {
+  if (!"promise_class" %in% names(df)) df <- add_promise_class(df, cfg, lev)
+  # MMR_class is a CHARACTER column ("Deficient"/"Intact"), so as.logical() on it is NA for
+  # every patient and would report the whole cohort as missing an MMR call. It has to go
+  # through is_mmrd(), the same resolver the classifier itself uses.
+  miss <- function(col) {
+    if (!col %in% names(df)) return(rep(TRUE, nrow(df)))
+    if (identical(col, cfg$mmr_col)) is.na(is_mmrd(df[[col]], mmr_lev$mmr_deficient))
+    else is.na(as.logical(df[[col]]))
+  }
+  unclassified <- is.na(df$promise_class)
+  tibble::tibble(
+    status = c(lev,
+               "unclassifiable — no MMR IHC call",
+               "unclassifiable — no TP53 status",
+               "unclassifiable — no POLE screen"),
+    n = c(vapply(lev, function(l) sum(df$promise_class == l, na.rm = TRUE), integer(1)),
+          sum(unclassified & miss(cfg$mmr_col)),
+          sum(unclassified & miss(cfg$p53_col)),
+          sum(unclassified & miss(cfg$pole_col)))
+  )
+}
+
 # =============================================================================
 # --- 13. Ancestry-aware TMB recompute (report 01) ---------------------------
 # Tumor-only TMB is inflated by residual germline variants, and the inflation is

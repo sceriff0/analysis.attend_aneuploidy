@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 10. TCGA UCEC 2013 — Fig. 1a reproduced on TCGA's own data"
+title: "ATTEND — 09. TCGA UCEC 2013 — Fig. 1a reproduced on TCGA's own data"
 author: "sceriff0"
 date: "2026-08-17"
 output: workflowr::wflow_html
@@ -37,9 +37,9 @@ source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_
 > **Question.** Run on TCGA's own data, does this pipeline's Fig-1a reproduction recover TCGA's published copy-number partition — and where do MMR status and aneuploidy sit on that figure?
 > **Cohort.** TCGA UCEC 2013, every tumour carrying SNP6 segments.
 > **Reads.** data/tcga_2013/ (data_cna_hg19.seg, the two clinical tables, pancan_aneuploidy.tsv), data/tcga_gistic_peaks_2013.tsv, and data/arm_boundaries_hg19.tsv.
-> **Out of scope.** The ATTEND cohort and its cascade -> [09-tcga-classification](09-tcga-classification.html). Why Euclidean / Ward.D2, and why the heatmap draws a different matrix from the one it clusters -> [00-methods](00-methods.html).
+> **Out of scope.** The ATTEND cohort and its cascade -> [07-molecular-classification](07-molecular-classification.html). Why Euclidean / Ward.D2, and why the heatmap draws a different matrix from the one it clusters -> [00-methods](00-methods.html).
 
-This is [09-tcga-classification](09-tcga-classification.html)'s figure, built the same way,
+This is [07-molecular-classification](07-molecular-classification.html)'s figure, built the same way,
 on **TCGA's own tumours**. It exists because here **the right answer is published**: the 2013
 study ships its own copy-number cluster assignment (`CNA_CLUSTER_K4`), so the pipeline can be
 scored rather than merely inspected. If it cannot recover TCGA's partition on TCGA's data,

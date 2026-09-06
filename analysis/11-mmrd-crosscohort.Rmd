@@ -33,10 +33,10 @@ source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_
 > **Question.** Does aneuploidy substructure MMR-deficient tumours in metastatic disease (ATTEND) in a way that is absent from primary disease (TCGA UCEC)?
 > **Cohort.** MMR-deficient only, in both cohorts, side by side.
 > **Reads.** The master (built on demand by get_master()) for the ATTEND arm; data/tcga_2013/ plus ASCETS run on its segments for the TCGA arm.
-> **Out of scope.** The ATTEND MMRd split itself, against mutations and composition -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html). ATTEND TMB bimodality and its own TCGA replication -> [08-tmb](08-tmb.html). Every ATTEND survival model -> [04-survival](04-survival.html). Cluster-level correspondence between the two cohorts -> [10-tcga2013-fig1a](10-tcga2013-fig1a.html).
+> **Out of scope.** The ATTEND MMRd split itself, against mutations and composition -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html). ATTEND TMB bimodality and its own TCGA replication -> [06-tmb](06-tmb.html). Every ATTEND survival model -> [02-survival](02-survival.html). Cluster-level correspondence between the two cohorts -> [09-tcga2013-fig1a](09-tcga2013-fig1a.html).
 
 ATTEND is a cohort of **metastatic** endometrial tumours; TCGA UCEC is **primary**.
-[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) works inside ATTEND's MMR-deficient stratum,
+[04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) works inside ATTEND's MMR-deficient stratum,
 where aneuploidy appears to carve the group in two. This report asks whether that is specific
 to metastatic disease, on four measurements that fail in different ways, so no single one has
 to carry the answer:
@@ -322,7 +322,7 @@ if (have_tcga && "cn_cluster_k4" %in% names(tcga_mmrd) && any(!is.na(tcga_mmrd$c
 
 ## Part 4 — does TMB track aneuploidy within an MMR stratum?
 
-[08-tmb](08-tmb.html) Part 2 asks, in ATTEND: within each MMR stratum, does TMB differ
+[06-tmb](06-tmb.html) Part 2 asks, in ATTEND: within each MMR stratum, does TMB differ
 between aneuploidy-high and aneuploidy-low tumours? Splitting by MMR **first** matters
 because the two routes to a genomic extreme are distinct — MMR-deficient tumours are
 hypermutators (high TMB, often modest aneuploidy), whereas the CN-high / serous-like route

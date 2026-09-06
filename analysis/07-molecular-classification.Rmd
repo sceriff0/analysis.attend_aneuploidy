@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 09. TCGA integrated classification"
+title: "ATTEND — 07. Molecular classification: the TCGA cascade and ProMisE"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html
@@ -33,10 +33,10 @@ source(here("code", "load_wes_results.R"))   # load_cnv_data(), load_ascets_*(),
 # cnv_method, cnv_dist, k_cnv and k_sweep are configuration and live in attend_classes.R
 # with every other method parameter, so 00-methods.Rmd can name the cut it justifies.
 ```
-> **Question.** Which copy-number cluster is enriched for aneuploidy, i.e. which one is the copy-number-high / serous-like group?
-> **Cohort.** All patients with GISTIC output; the cascade itself is drawn on the full master.
-> **Reads.** GISTIC thresholded peaks in data/gistic/ (produced per runbooks/gistic.md), ASCETS scores in data/ascets/, and attend_master_joined.
-> **Out of scope.** Why Euclidean / Ward.D2, and how the serous-like call is made directional -> [00-methods](00-methods.html). Options beyond this reproduction -> runbooks/classification_options.md.
+> **Question.** Which copy-number cluster is the copy-number-high / serous-like group, and where does the 2013 TCGA cascade disagree with the ProMisE / WHO-ESGO classification the guidelines actually specify?
+> **Cohort.** All patients with GISTIC output for the clustering; both cascades are drawn on the full master.
+> **Reads.** GISTIC thresholded peaks in data/gistic/ (produced per runbooks/gistic.md), ASCETS scores in data/ascets/, the long MAF (for the POLE hotspot screen), and attend_master_joined.
+> **Out of scope.** Why Euclidean / Ward.D2, and how the serous-like call is made directional -> [00-methods](00-methods.html). *TP53* and the gene panels themselves -> [08-tp53-and-gene-panels](08-tp53-and-gene-panels.html). The same Fig-1a on TCGA's own data -> [09-tcga2013-fig1a](09-tcga2013-fig1a.html). Options beyond this reproduction -> runbooks/classification_options.md.
 
 
 Reproduces the TCGA integrated genomic classification of endometrial carcinoma (Kandoth et
@@ -46,10 +46,20 @@ serous-like** group. Turning an unlabelled cluster into a serous-like call is in
 the copy-number data and is not part of TCGA's methodology; how, and why it is directional,
 is in [00-methods](00-methods.html).
 
-## The cascade
+## Two cascades, computed and reported side by side
 
-A priority cascade (TCGA Fig. 2b). POLE is omitted — ATTEND has no POLE-ultramutated
-cases — so it starts at MMRd:
+This report runs **both** classifications on the same patients: the 2013 TCGA cascade it
+always ran, and the ProMisE / WHO-ESGO four-group algorithm the current guidelines specify.
+Neither is presented as the answer — the first is the historical reproduction that
+[09-tcga2013-fig1a](09-tcga2013-fig1a.html) validates against TCGA's own labels, the second
+is the call a reviewer will ask for. Where they disagree is tabulated below.
+
+### The 2013 TCGA cascade
+
+A priority cascade (TCGA Fig. 2b). POLE is **not a tier here** — it was removed from this
+cascade because ATTEND has no POLE-ultramutated cases — so it starts at MMRd. Note that the
+ProMisE section below now *screens* for POLE rather than assuming its absence, which is the
+difference between a tested negative and an untested one:
 
 1. **MMRd** — MMR-protein loss by **IHC** (gianlu__MMR_STATUS Deficient). This is the
    top of the cascade and overwrites the CN split. The split is **MMRd vs MMRp by IHC
@@ -79,6 +89,13 @@ wrapped so a missing input degrades to a skipped section rather than an error.
 ```{r data}
 master <- get_master() |> add_molecular_classes()
 
+# POLE, and therefore ProMisE, needs the LONG maf: pole_ultramutated() matches the
+# exonuclease-domain hotspots against a protein-change column, which the wide per-gene
+# status table does not carry. Both are wrapped — with no MAFs the POLE column stays absent,
+# add_promise_class() returns NA for everyone, and promise_counts() says why, rather than
+# every patient silently becoming NSMP.
+maf_long_cls <- tryCatch(load_maf_long(), error = function(e) NULL)
+
 # barcode -> pid crosswalk (the same derivation every other report uses)
 cw <- tryCatch(
   build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
@@ -91,6 +108,19 @@ have_cw     <- !is.null(cw)
 # TMB definitions available on the master: upstream first, then the recomputed set.
 tmb_defs <- c(upstream = attend_cols$tmb, attend_cols$tmb_set)
 if (have_master) tmb_defs <- tmb_defs_present(master)
+
+# ProMisE, on the master, before anything downstream reads it. POLE first (it is the top
+# tier, so it has to exist before the hierarchy is applied), then the four-group call.
+if (have_master && have_cw) {
+  pole_tbl <- tryCatch(
+    pole_ultramutated(maf_long = maf_long_cls, crosswalk = cw,
+                      tmb_tbl = master |> transmute(pid, TMB_SCORE = .data[[attend_cols$tmb]])),
+    error = function(e) { message("POLE call unavailable: ", conditionMessage(e)); NULL })
+  if (!is.null(pole_tbl)) master <- master |> left_join(pole_tbl, by = "pid")
+  master <- add_promise_class(master)
+}
+have_promise <- have_master && "promise_class" %in% names(master) &&
+                any(!is.na(master$promise_class))
 ```
 
 ## Copy-number ingestion — two GISTIC matrices, because the paper uses two
@@ -174,7 +204,7 @@ clustering; the pipeline previously borrowed the 1 − Pearson / Ward pair S2 na
 methylation, and [00-methods](00-methods.html) sets out the measurement that overturned that
 choice — correlation distance is undefined for a flat profile, so it silently discards the
 copy-number-quiet tumours that make up TCGA's own cluster 1.
-[10-tcga2013-fig1a](10-tcga2013-fig1a.html) re-scores both distances against TCGA's published
+[09-tcga2013-fig1a](09-tcga2013-fig1a.html) re-scores both distances against TCGA's published
 partition on every knit. Instead of committing to one cut, the chromosome heatmap below is
 annotated with the cluster assignment at **every k from 2 to 8** in a single figure.
 What this gets right vs the old arm/bin proxies (now removed):
@@ -314,6 +344,15 @@ if (!is.null(cl)) {
         levels = c("POLE (ultramutated)", attend_tcga_levels$msi,
                    attend_tcga_levels$cn_high, attend_tcga_levels$cn_low))
     }
+
+    # ProMisE bar, directly beside the TCGA one. The two answer the same question by
+    # different rules — TCGA's CN-high is a copy-number CLUSTER, ProMisE's p53abn is a per-
+    # patient marker — so drawing them adjacent makes every disagreement a visible vertical
+    # mismatch instead of a number in a table. Read off the master, which already carries
+    # promise_class from the data chunk, so this bar and the cascade below cannot diverge.
+    pr <- grab("promise_class")
+    if (!all(is.na(pr)))
+      ann$ProMisE <- factor(as.character(pr), levels = attend_promise_levels)
 
     mmrd  <- is_mmrd(grab("MMR_class"))   # MMRd = MMR IHC loss ONLY (shared is_mmrd; MSI not a criterion)
     ann$MMR <- factor(ifelse(is.na(mmrd), NA, ifelse(mmrd, "MMRd", "MMRp")), levels = c("MMRp", "MMRd"))
@@ -591,6 +630,88 @@ if (have_master && have_cw) {
   knitr::kable(tcga_summary, caption = paste0("Patients per TCGA integrated class (MMRd > serous-like > endometrioid; serous rule = '", attend_tcga_serous_rule, "')"))
 }
 ```
+
+## The ProMisE / WHO-ESGO classification, beside it
+
+The cascade above reproduces Kandoth et al. (*Nature* 2013), where the copy-number-high
+group **is a cluster**. That is faithful to the paper and it is what
+[09-tcga2013-fig1a](09-tcga2013-fig1a.html) measures against TCGA's own published labels.
+It is not what any current guideline asks for.
+
+Since Talhouk et al. (*Br J Cancer* 2015; *Cancer* 2017) the field runs a **surrogate**
+algorithm — ProMisE — in which **p53 IHC replaces the copy-number clustering** and **POLE
+exonuclease-domain sequencing** replaces the ultramutated cluster. That is the algorithm
+specified by WHO 5th ed. (2020), ESGO/ESTRO/ESP (2021, updated 2025), NCCN, and **FIGO 2023
+staging**, which makes the subtype a stage *modifier* rather than a descriptive label. No
+guideline recognises a clustering-derived call as the p53-abnormal group.
+
+So both are computed and drawn side by side, in the annotation stack above and in the
+concordance table below. Neither is presented as the answer: the TCGA cascade is the
+historical reproduction, ProMisE is the call a reviewer will ask for.
+
+**The hierarchy is strict, and the order is the point.** POLEmut > MMRd > p53abn > NSMP,
+first match wins. A tumour carrying two markers is assigned to the *earlier* tier, never to
+the more altered one — León-Castillo et al. (*J Pathol* 2020) showed MMRd–p53abn tumours
+behave like MMRd (20/23) and POLEmut–p53abn like POLEmut (12/13). `add_promise_class()`
+(attend_classes.R §12b) applies the tiers in that order and nowhere else.
+
+⚠️ **Two of the three inputs are surrogates, and the page says so rather than the caption.**
+`r attend_promise$p53_note` `r attend_promise$pole_note` MMRd is the exception — that is MMR
+protein loss by IHC, the real criterion.
+
+**Computational steps.** (1) `pole_ultramutated()` matches the seven exonuclease-domain
+hotspots against the long MAF's protein-change column (data chunk, above). (2)
+`add_promise_class()` applies the four tiers in order. (3) A patient missing any tier's
+input is returned **NA, not NSMP** — coding missing data as "no marker altered" would turn
+an unsequenced patient into a negative finding, the same failure `add_response_class()`
+refuses for its landmark. (4) `promise_counts()` prints the partition, including why each
+unclassified patient could not be called.
+
+```{r promise-counts, eval=have_master}
+if (have_promise) {
+  knitr::kable(promise_counts(master),
+               caption = "ProMisE class assignment, and the reason for every patient it cannot classify")
+} else {
+  cat("**ProMisE not built in this build.** It needs the long MAF (for the POLE hotspot",
+      "screen) and the barcode crosswalk. Absent those, every patient would be NA, which",
+      "is reported as a skip rather than drawn as an empty four-group figure.\n")
+}
+```
+
+### Where the two classifications disagree
+
+The cross-tabulation of the 2013 cascade against ProMisE on the same patients. The MMRd row
+should agree almost perfectly — both read the same MMR IHC — so it is the diagonal check
+that the two are wired to the same data. The interesting cells are off-diagonal in the
+CN-high / p53abn row: a tumour in the copy-number-high cluster with no *TP53* variant, or a
+*TP53*-mutant tumour that clustered copy-number-low. Those are the patients whose molecular
+class, and under FIGO 2023 whose **stage**, depends on which algorithm is used.
+
+```{r promise-vs-tcga, eval=have_master}
+if (have_promise && exists("classed") && "tcga_class" %in% names(classed)) {
+  cmp <- classed |>
+    dplyr::select(pid, tcga_class) |>
+    dplyr::left_join(master |> dplyr::select(pid, promise_class), by = "pid") |>
+    dplyr::filter(!is.na(tcga_class) | !is.na(promise_class))
+
+  if (nrow(cmp) > 0) {
+    # addNA on BOTH margins: a patient the 2013 cascade classified and ProMisE could not is
+    # exactly the comparison this table exists to show, and table() would drop them silently.
+    tab_pr <- table(`TCGA 2013 cascade` = addNA(cmp$tcga_class, ifany = TRUE),
+                    `ProMisE`           = addNA(cmp$promise_class, ifany = TRUE))
+    print(knitr::kable(tab_pr,
+      caption = "TCGA 2013 cascade vs ProMisE, same patients (NA = the algorithm could not classify)"))
+    agree <- sum(cmp$tcga_class == attend_tcga_levels$msi &
+                 cmp$promise_class == "MMRd", na.rm = TRUE)
+    n_mmrd_tcga <- sum(cmp$tcga_class == attend_tcga_levels$msi, na.rm = TRUE)
+    cat("\nMMRd agreement (the wiring check): ", agree, " / ", n_mmrd_tcga,
+        " patients the 2013 cascade calls MMRd are also MMRd under ProMisE.\n", sep = "")
+  }
+} else if (have_master) {
+  cat("Concordance table skipped — needs both the TCGA cascade and a ProMisE call.\n")
+}
+```
+
 
 ### TP53-enrichment QC — is the CN-high cluster really serous-like?
 

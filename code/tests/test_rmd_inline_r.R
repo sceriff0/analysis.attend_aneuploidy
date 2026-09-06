@@ -69,9 +69,17 @@ for (f in reports) {
   inl <- regmatches(txt, gregexpr("`r [^`]+`", txt))[[1]]
   for (e in inl) {
     expr <- sub("^`r ", "", sub("`$", "", e))
-    # Strip numeric literals first, scientific notation included: without this, 1e6 yields
+    # Strip numeric LITERALS first, scientific notation included: without this, 1e6 yields
     # a bogus identifier "e6".
-    bare <- gsub("[0-9]+\\.?[0-9]*([eE][+-]?[0-9]+)?", " ", expr)
+    #
+    # The lookbehind is load-bearing. Without it this also ate the digits INSIDE an
+    # identifier, so `attend_promise$p53_note` became "attend_promise$p _note" and the
+    # extractor then reported a missing symbol "_note" that was never written. Every name in
+    # this codebase carrying a digit hits it — p53_note, attend_tcga_ref_2013, fig1a_* — and
+    # the failure mode is a FALSE FAILURE on a correct report, which is loud but wrong and
+    # invites someone to "fix" the report instead of the check. A literal is a run of digits
+    # NOT preceded by an identifier character; that is the whole distinction.
+    bare <- gsub("(?<![A-Za-z0-9_.])[0-9]+\\.?[0-9]*([eE][+-]?[0-9]+)?", " ", expr, perl = TRUE)
     # Root symbols only: drop anything after $ or ( so field and argument names are ignored.
     roots <- regmatches(bare, gregexpr("[A-Za-z_.][A-Za-z0-9_.]*", bare))[[1]]
     # a name immediately preceded by $ is a field, not a binding

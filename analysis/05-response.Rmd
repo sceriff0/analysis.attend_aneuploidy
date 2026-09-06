@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 06. Treatment response and cell-type composition"
+title: "ATTEND — 05. Treatment response and cell-type composition"
 author: "sceriff0"
 date: "2026-08-13"
 output: workflowr::wflow_html
@@ -48,10 +48,10 @@ n_mmrd_cl <- sum(master$pid %in% mmrd_pids & !is.na(master$response_class))
 > **Question.** Does cell-type composition differ between responders and non-responders, and is the answer inside MMR-deficient tumours the same as across the whole cohort?
 > **Cohort.** Two, drawn side by side in every figure: all classifiable patients (n = `r n_class`) and the MMR-deficient subset of them (n = `r n_mmrd_cl`).
 > **Reads.** The master (built on demand by get_master()), the FlowPath annotation tree, and the survival endpoint the master carries.
-> **Out of scope.** Survival modelling itself -> [04-survival](04-survival.html). The same composition panels keyed on aneuploidy -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html).
+> **Out of scope.** Survival modelling itself -> [02-survival](02-survival.html). The same composition panels keyed on aneuploidy -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html).
 
 This report is the response-keyed counterpart of Part 2 of
-[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html). Every panel, normalization and test is the
+[04-aneuploidy-mmrd](04-aneuploidy-mmrd.html). Every panel, normalization and test is the
 one used there; the only thing that changes is the grouping variable on the x-axis, which
 is treatment response rather than aneuploidy class. Keeping the two reports structurally
 identical is deliberate — it is what makes the two groupings comparable rather than two
@@ -84,7 +84,7 @@ quietly dropped: `r n_lost` of `r nrow(master)` patients cannot be classified.
 An event *after* the landmark does not demote a responder. The question is what had
 happened by month `r resp_cut`, not eventual outcome, so this is a binary contrast and not
 a survival model — the survival models themselves are all in
-[04-survival](04-survival.html).
+[02-survival](02-survival.html).
 
 ### How the cohort splits
 
@@ -546,7 +546,7 @@ stratified check, and it can and does degrade to a skip when counts are missing.
 
 Naming one primary endpoint in advance is what keeps this from being a search across
 twelve panels for the smallest p-value. It mirrors the primary contrast in
-[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html), which is the same metric under the same test
+[04-aneuploidy-mmrd](04-aneuploidy-mmrd.html), which is the same metric under the same test
 against the other grouping.
 
 ```{r immune-primary-test}
@@ -687,7 +687,7 @@ for (nm in names(pt_cohorts)) {
 ### Response against aneuploidy class
 
 The direct cross-tabulation of the two groupings — the one in
-[05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) against the one used here — with a Fisher
+[04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) against the one used here — with a Fisher
 exact test on the 2×2. Everything in this report is drawn on the same cells report 05 draws,
 so if these two splits largely coincide then the two reports are describing one contrast
 under two names rather than two independent ones. The test is on patients, not images.
@@ -708,7 +708,7 @@ if (nrow(xt) > 0 && n_distinct(xt$response_class) == 2 && n_distinct(xt$aneuploi
 The pathologist's per-patient scores compared between response arms. These come from the
 imaging sheet keyed by image -> pid, averaged over a patient's images for the continuous
 measures and taking the first non-missing value for the categorical calls — the same
-summarisation [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html) applies before its aneuploidy
+summarisation [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) applies before its aneuploidy
 contrast.
 
 ```{r imaging-covars}

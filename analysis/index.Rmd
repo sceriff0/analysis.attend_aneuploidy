@@ -28,57 +28,72 @@ aneuploidy classes, what "MMR-deficient only" means, the highlight groups, and h
 master is built. Operational recipes — running GISTIC on the cluster, classification
 alternatives — live in runbooks/.
 
-### Build
+### Integration and QC
 
-- **[01 — Data integration](01-data-integration.html)** · all patients
+- **[01 — Data integration and quality control](01-data-integration.html)** · all patients
   Part 1 translates three ID spaces onto one patient key, collapses each modality to one
   row per patient, and writes the master. Part 2 audits what that cost: unmapped records,
-  coverage per dataset, the UpSet of who has which modality, and value sanity.
+  coverage per dataset, the UpSet of who has which modality, and value sanity. Part 3 asks
+  whether the automated FlowPath quantification agrees with the pathologist's eye — a
+  measurement-validation question, so it sits with the other checks on the inputs rather
+  than beside the biology it feeds.
 
-### QC and validation
+### Clinical outcome
 
-- **[02 — FlowPath vs the pathologist](02-flowpath-concordance.html)** · all imaged
-  Does the automated quantification agree with the pathologist's eye, on continuous
-  measures and categorical calls.
+- **[02 — Survival](02-survival.html)** · all patients
+  Every Kaplan–Meier and Cox model in the pipeline: treatment arm within panels defined by
+  aneuploidy × MMR, then TMB, HRD, MSI, and immune content.
 - **[03 — Covariate distributions by MMR status](03-covariates-by-mmr.html)** · all patients
   ECDF and Kolmogorov–Smirnov per continuous covariate, plus the aneuploidy score itself
   contrasted between MMR-deficient and -proficient tumours.
 
-### Findings
+### Aneuploidy and the tumour microenvironment
 
-- **[04 — Survival](04-survival.html)** · all patients
-  Every Kaplan–Meier and Cox model in the pipeline: treatment arm within panels defined by
-  aneuploidy × MMR, then TMB, HRD, MSI, and immune content.
-- **[05 — Aneuploidy in MMR-deficient tumours](05-aneuploidy-mmrd.html)** · MMRd only
+- **[04 — Aneuploidy in MMR-deficient tumours](04-aneuploidy-mmrd.html)** · MMRd only
   Part 1 takes aneuploidy against mutation status, one gene at a time. Part 2 takes it
-  against cell-type composition under three normalizations.
-- **[06 — Treatment response and cell-type composition](06-response.html)** · all patients + MMRd
-  The composition panels of report 05 Part 2, re-keyed on treatment response — a 6-month
+  against FlowPath cell-type composition under three normalizations.
+- **[05 — Treatment response and cell-type composition](05-response.html)** · all patients + MMRd
+  The composition panels of report 04 Part 2, re-keyed on treatment response — a 6-month
   landmark on the survival endpoint, with patients censored before the landmark reported as
   unclassifiable rather than counted as failures. Every figure is drawn for the whole cohort
   and for the MMR-deficient stratum, and one interaction model tests whether they differ.
-- **[07 — Mutation landscape and copy number](07-mutation-and-cna.html)** · all patients
-  Part 1 oncoplots and the TCGA Fig. 2d subgroup frequency comparison. Part 2 recurrent
-  copy number at arm and genome-wide resolution. Part 3 the aneuploidy × MMR peak contrast.
-- **[08 — Tumour mutational burden](08-tmb.html)** · all patients
+
+### Mutation burden and molecular class
+
+- **[06 — Tumour mutational burden and the ancestry correction](06-tmb.html)** · all patients
   Part 1 asks whether TMB resolves the hypermutator population as a genuine second mode.
   Part 2 draws TMB by aneuploidy once per MMR stratum. Part 3 replicates the whole battery
-  in TCGA UCEC, which is tumour-normal paired.
+  in TCGA UCEC, which is tumour-normal paired. Exactly two definitions are ever reported:
+  the upstream tumour-only score, and the same score after the Nassar ancestry recalibration.
+- **[07 — Molecular classification: the TCGA cascade and ProMisE](07-molecular-classification.html)** · all patients
+  Two classifications on the same patients, drawn side by side. The 2013 TCGA cascade
+  (Kandoth et al.) clusters GISTIC thresholded peaks with Euclidean distance and Ward.D2
+  linkage, sweeps k = 2–8 on one chromosome heatmap, and calls serous-like directionally.
+  Beside it, **ProMisE / WHO-ESGO** — POLEmut > MMRd > p53abn > NSMP, the algorithm WHO 2020,
+  ESGO/ESTRO/ESP and FIGO 2023 staging actually specify — with POLE *screened* by
+  exonuclease-domain hotspot rather than assumed absent, and every patient it cannot classify
+  reported as unclassifiable rather than defaulted into NSMP. Both calls annotate the Fig-1a
+  heatmap, so a disagreement reads as a vertical mismatch.
+- **[08 — TP53 and the gene panels](08-tp53-and-gene-panels.html)** · all patients
+  The genes report 07 uses as single binary markers, looked at properly: oncoplots, the
+  configured MMR and Wnt panels, OncodriveCLUST positional clustering, and the TCGA Fig. 2d
+  mutation-frequency comparison across the aneuploidy × MMR subgroups.
 
-### External
+### Copy number, and the external reference
 
-- **[09 — TCGA integrated classification](09-tcga-classification.html)** · all patients
-  Reproduces the TCGA endometrial cascade (Kandoth et al. 2013), clustering GISTIC
-  thresholded peaks with Euclidean distance and Ward.D2 linkage and sweeping k = 2–8 on
-  one chromosome heatmap. The serous-like call is directional; the undirected call is
-  printed alongside and [DISAGREE] flagged when they differ.
-- **[10 — TCGA UCEC 2013, Fig. 1a on TCGA's own data](10-tcga2013-fig1a.html)** · TCGA UCEC 2013
-  Report 09's figure, built the same way, on the cohort where **the right answer is
+- **[09 — TCGA UCEC 2013, Fig. 1a on TCGA's own data](09-tcga2013-fig1a.html)** · TCGA UCEC 2013
+  Report 07's figure, built the same way, on the cohort where **the right answer is
   published**. Clusters TCGA's own published GISTIC peaks — no parameter guess, no GISTIC run,
   no liftover — and scores the recomputed partition against `CNA_CLUSTER_K4` with an adjusted
   Rand index. Also draws what the 2013 paper could not: aneuploidy against its four SCNA
   clusters, since that score is retrofitted from PanCancer-Atlas.
-
+- **[10 — Recurrent copy number in aneuploidy-high tumours](10-recurrent-cna.html)** · all patients, then MMRd-high vs MMRp-high
+  Two questions, in order. **Are there recurrent CNAs in MMRd aneuploidy-high tumours?** —
+  per-peak recurrence inside that stratum alone, with Wilson intervals, against a cohort-wide
+  baseline. **If so, are they the same ones that recur in MMRp aneuploidy-high tumours?** —
+  the mirror plot, the pre-specified TCGA locus panel (confirmatory, Holm), the data-driven
+  panel whose selection is nested inside the permutation (exploratory, and permanently so),
+  peak-set overlap across the five GISTIC runs, and leave-one-out stability.
 - **[11 — MMRd aneuploidy: metastatic vs primary](11-mmrd-crosscohort.html)** · MMRd only, both cohorts
   Does aneuploidy substructure MMR-deficient tumours in **metastatic** disease (ATTEND) in a
   way that is absent from **primary** disease (TCGA UCEC)? Five parts: whether the split is

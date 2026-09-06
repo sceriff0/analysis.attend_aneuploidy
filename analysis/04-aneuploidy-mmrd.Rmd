@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 05. Aneuploidy in MMR-deficient tumours"
+title: "ATTEND — 04. Aneuploidy in MMR-deficient tumours"
 author: "sceriff0"
 date: "2026-08-13"
 output: workflowr::wflow_html
@@ -41,7 +41,7 @@ n_mmrd <- length(mmrd_pids)
 > **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
 > **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
 > **Reads.** The master (built on demand by get_master()), the long MAF, and the FlowPath annotation tree.
-> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [08-tmb](08-tmb.html). The same composition panels keyed on treatment response -> [06-response](06-response.html).
+> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [06-tmb](06-tmb.html). The same composition panels keyed on treatment response -> [05-response](05-response.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
 in the whole cohort any variable that tracks MMR status will also appear to track

@@ -642,6 +642,30 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
     if (.fig1a_na_label %in% lv) cc[[.fig1a_na_label]] <- .fig1a_na_col
     cols$TCGA_class <- cc
   }
+  # ProMisE / WHO-ESGO four-group class, drawn as a SECOND class bar beside the TCGA one so
+  # a reader can see where the guideline call and the 2013 reproduction disagree.
+  #
+  # Each class takes the hue of the bar it is DERIVED FROM, one or two rows further down:
+  # MMRd gets the MMR bar's orange, p53abn gets the TP53 bar's magenta. That makes the stack
+  # self-explanatory — an orange cell in the ProMisE row sits above an orange cell in the MMR
+  # row, and the reader reads the derivation off the figure instead of the caption. NSMP is
+  # "no marker altered", which is exactly rule [A]'s reference state, so it takes the
+  # reference grey. POLEmut takes the highlight blue under the same documented exemption as
+  # TCGA_class's POLE level: an annotation bar carries no per-patient highlight points, so
+  # rule [C] has nothing to protect here.
+  if ("ProMisE" %in% names(a) && is.factor(a$ProMisE)) {
+    lv   <- levels(a$ProMisE)
+    real <- setdiff(lv, .fig1a_na_label)
+    cc   <- stats::setNames(attend_pal(max(length(real), 1L)), real)   # positional fallback
+    known <- c(POLEmut = unname(ATTEND_PALETTE["blue"]),
+               MMRd    = unname(attend_mmr_cols[["MMRd"]]),
+               p53abn  = unname(attend_tp53_cols[["TP53-abnormal"]]),
+               NSMP    = unname(ATTEND_PALETTE["grey"]))
+    hit <- intersect(names(known), real)
+    if (length(hit)) cc[hit] <- known[hit]
+    if (.fig1a_na_label %in% lv) cc[[.fig1a_na_label]] <- .fig1a_na_col
+    cols$ProMisE <- cc
+  }
   # MMR IHC and TP53 — read from the semantic palettes rather than re-spelled here, for the
   # same reason the aneuploidy bars below do: a hex written twice is a hex that drifts. Both
   # take the palette's reference grey (rule [A]), NOT a pale tint — these are
@@ -711,13 +735,19 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
   # alike. In TCGA 2013, 131 of 363 heatmap columns (36%) have no integrated subtype,
   # because it was only assigned to the 232-sample core set, so this is the single biggest
   # block of colour in the annotation and must be self-explanatory.
-  if ("TCGA_class" %in% names(a) && any(is.na(a$TCGA_class))) {
-    a$TCGA_class <- factor(ifelse(is.na(a$TCGA_class), .fig1a_na_label,
-                                  as.character(a$TCGA_class)),
-                           levels = c(levels(a$TCGA_class), .fig1a_na_label))
+  # ProMisE gets the same treatment for the same reason, and needs it MORE: its unclassified
+  # cases are patients missing an MMR, TP53 or POLE input, and add_promise_class() returns
+  # those as NA on purpose rather than defaulting them into NSMP. Painting that NA in
+  # ComplexHeatmap's default grey would put it beside NSMP's reference grey one row down and
+  # undo exactly the distinction the classifier refuses to blur.
+  for (.cls in intersect(c("TCGA_class", "ProMisE"), names(a))) {
+    if (any(is.na(a[[.cls]])))
+      a[[.cls]] <- factor(ifelse(is.na(a[[.cls]]), .fig1a_na_label, as.character(a[[.cls]])),
+                          levels = c(levels(a[[.cls]]), .fig1a_na_label))
   }
-  # bar order: integrated class, MMR, TP53, then binary + continuous aneuploidy last
-  ord <- c("TCGA_class", "MMR", "TP53", "Aneuploidy_hl", "Aneuploidy")
+  # bar order: the two class calls adjacent (so disagreement reads as a vertical mismatch),
+  # then the markers they are built from, then binary + continuous aneuploidy last
+  ord <- c("TCGA_class", "ProMisE", "MMR", "TP53", "Aneuploidy_hl", "Aneuploidy")
   a   <- a[, c(intersect(ord, names(a)), setdiff(names(a), ord)), drop = FALSE]
   a   <- a[, vapply(a, function(x) !all(is.na(x)), logical(1)), drop = FALSE]  # drop all-NA
   if (!ncol(a)) return(NULL)

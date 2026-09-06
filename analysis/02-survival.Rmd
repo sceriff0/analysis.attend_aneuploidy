@@ -1,5 +1,5 @@
 ---
-title: "ATTEND — 04. Survival"
+title: "ATTEND — 02. Survival"
 author: "sceriff0"
 date: "2026-08-11"
 output: workflowr::wflow_html
@@ -38,7 +38,7 @@ master <- get_master() |> add_molecular_classes()
 > **Question.** Does the treatment comparison behave differently in different molecular subgroups?
 > **Cohort.** All `r nrow(master)` patients on the master; the immune-content panels are restricted to the imaged subset.
 > **Reads.** attend_master_joined, plus the FlowPath/imaging join for immune_class.
-> **Out of scope.** Everything that is not a survival model. Composition itself -> [05-aneuploidy-mmrd](05-aneuploidy-mmrd.html); the 6-month landmark split of this endpoint -> [06-response](06-response.html); concordance -> [02-flowpath-concordance](02-flowpath-concordance.html).
+> **Out of scope.** Everything that is not a survival model. Composition itself -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html); the 6-month landmark split of this endpoint -> [05-response](05-response.html); concordance -> [01-data-integration](01-data-integration.html#flowpath-concordance).
 
 Every figure below has the same structure. The two coloured curves are always the same
 comparison, attend_cols$km_group (the treatment arm); what changes between figures is how
@@ -251,7 +251,7 @@ Survival by immune content on the imaged cohort, which is why this section carri
 different denominator from every other section above. Immune content is the CD45+ fraction
 inside the annotated region, read per patient from the FlowPath tree by
 ihc_patient_metrics() (the same helper
-[02-flowpath-concordance](02-flowpath-concordance.html) validates) and binarised at its
+[01-data-integration](01-data-integration.html#flowpath-concordance) validates) and binarised at its
 **median** — a data-driven split, not a pre-registered threshold, so it is descriptive.
 Panels are MMR status; curves are immune-high vs immune-low.
 

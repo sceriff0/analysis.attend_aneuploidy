@@ -72,7 +72,26 @@ load_tmb_scores <- function() {
 # To change the definition (these are SOMATIC MAFs, so ClinVar alone can under-call
 # novel truncating variants): add "am_class" (AlphaMissense) to MAF_SIG_COLS, or
 # switch to Variant_Classification-based calling against attend_pathogenic_classes.
-genes          <- c("TP53")
+# Which genes get a `<GENE>_status` column in the wide per-sample table.
+#
+# A FUNCTION, not a constant, for the same reason as maf_standard_cols() below:
+# build_master.R sources this file BEFORE attend_classes.R, so a top-level
+# `c("TP53", attend_gene_panel)` dies at source time with "object not found".
+#
+# It was `c("TP53")` alone, which was a silent correctness bug rather than a
+# limitation: mutation_status_long() only emits genes that HAVE a status column, so
+# every gene in attend_gene_panel came back NA -> replace_na(FALSE) -> "<GENE>-wt"
+# for every patient. `panel_pathogenic` on the master was therefore constant FALSE —
+# the column CLAUDE.md describes as defining every "panel-altered" comparison — and
+# the per-gene panels drew one box captioned "no mutation is associated with
+# aneuploidy" when the genes had simply never been called. Report 10 loads the LONG
+# maf and keeps every symbol, so the two reports contradicted each other on the same
+# patients. The panel membership is configured in ONE place (attend_classes.R); this
+# reads it rather than restating it, so the two cannot drift again.
+status_genes <- function() {
+  if (!exists("attend_gene_panel")) return("TP53")   # bootstrap env, no config yet
+  unique(c("TP53", attend_gene_panel, attend_gene_panel_wnt))
+}
 MAF_SIG_COLS   <- c("ClinVar_VCF_CLNSIG")
 MAF_PATHOGENIC <- regex("(likely_)?pathogenic(?![a-z])", ignore_case = TRUE)
 
@@ -91,7 +110,8 @@ process_maf <- function(maf_path) {
                quote = "", fill = Inf, na.strings = c(".", "", "NA")) |>
     as_tibble()
 
-  status <- set_names(map_chr(genes, ~ gene_status(maf, .x)), paste0(genes, "_status"))
+  g      <- status_genes()
+  status <- set_names(map_chr(g, ~ gene_status(maf, .x)), paste0(g, "_status"))
   tibble(ID = str_remove(id, "-1TAD104"), !!!status)
 }
 
