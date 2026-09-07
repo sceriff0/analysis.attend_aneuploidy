@@ -17,6 +17,92 @@ suppressPackageStartupMessages({
 # Cluster location of the per-patient FlowPath CSVs (override to run elsewhere).
 FLOWPATH_DIR <- "/hpcnfs/techunits/imaging/work/ATTEND/FlowPath_csv/pheno_micro"
 
+# =============================================================================
+# CACHING — why these loaders were slow, and what is done about it
+#
+# Both loaders walk the ENTIRE FlowPath tree and fread() one CSV per patient. Before this,
+# a full site build did that five times over:
+#   build_master()             load_ihc_data()       (result cached as the ihc_data intermediate)
+#   report 02                  load_ihc_data()       (uncached)
+#   report 04 x2               load_ihc_celltypes()  (uncached — once for ct_all, once for imm_all)
+#   report 05 x2               load_ihc_celltypes()  (uncached — same again)
+# Reports 04 and 05 each walked the tree TWICE inside a single knit, because ct_all and
+# imm_all are separate calls in separate chunks.
+#
+# Three layers, cheapest first. None changes a call site: the signatures are unchanged and
+# every caller keeps working untouched.
+#
+#   1. SESSION MEMO. A second call in the same R session returns the first call's value.
+#      This alone removes the within-report duplication.
+#   2. DISK CACHE, staleness-checked. The parsed table is written to output/clean_data/ and
+#      re-read on later knits. It is keyed on a STAMP of the source tree — file count, newest
+#      mtime, total size — so new or re-exported CSVs invalidate it automatically. A cache
+#      that cannot go stale is the failure attend_io.R already has (a fresh .parquet skipped
+#      for a months-old .csv), and it is not worth repeating for a slow read.
+#   3. COLUMN SELECTION. fread() read every column of a per-cell table; only the handful in
+#      FLOWPATH_COLS are ever touched. The header is read first (nrows = 0, effectively free)
+#      so only columns that actually exist are requested — the guards downstream still see a
+#      genuinely absent marker column as absent.
+#
+# Escape hatch: pass refresh = TRUE to either loader to force a re-read and rewrite.
+# =============================================================================
+
+# Every column either loader touches. phenotype_clean is DERIVED, not read.
+FLOWPATH_COLS <- c("phenotype", "Out_of_annotation", "cell_type",
+                   "CD45_sign", "CD3_sign", "PD1_sign", "PDL1_sign", "ARID1A_sign")
+
+# Read one FlowPath CSV, requesting only the columns that exist in it. The header probe is
+# one line of I/O; the saving is every unused per-cell column across every file.
+read_flowpath_csv <- function(csv_path, cols = FLOWPATH_COLS) {
+  have <- tryCatch(names(fread(csv_path, nrows = 0L)), error = function(e) NULL)
+  keep <- if (is.null(have)) NULL else intersect(cols, have)
+  if (length(keep)) fread(csv_path, select = keep) else fread(csv_path)
+}
+
+# Cheap fingerprint of the source tree: count, newest mtime, total bytes. Stat calls only —
+# no file is opened. NA when the tree is missing, which disables caching rather than
+# pretending an empty tree matches.
+.flowpath_stamp <- function(dir = FLOWPATH_DIR) {
+  if (!dir_exists(dir)) return(NA_character_)
+  f <- tryCatch(dir_ls(dir, recurse = TRUE, type = "file", glob = "*.csv"),
+                error = function(e) character())
+  if (!length(f)) return(NA_character_)
+  info <- file.info(f)
+  paste0(length(f), "|", as.numeric(max(info$mtime, na.rm = TRUE)), "|",
+         sum(info$size, na.rm = TRUE))
+}
+
+.ihc_memo <- new.env(parent = emptyenv())
+
+# Session memo -> disk cache -> build. Falls straight through to `builder` when attend_io.R
+# has not been sourced (exists() at CALL time, the same rule as maf_standard_cols) or when
+# the tree is unreadable, so a bootstrap environment still works.
+.flowpath_cached <- function(name, builder, dir = FLOWPATH_DIR, refresh = FALSE) {
+  stamp <- .flowpath_stamp(dir)
+  memo  <- .ihc_memo[[name]]
+  if (!refresh && !is.null(memo) && identical(memo$stamp, stamp)) return(memo$data)
+
+  io_ok <- exists("load_checkpoint", mode = "function") &&
+           exists("save_checkpoint", mode = "function")
+  if (!refresh && io_ok && !is.na(stamp)) {
+    hit <- tryCatch(load_checkpoint(name), error = function(e) NULL)
+    if (!is.null(hit) && identical(hit$stamp, stamp) && !is.null(hit$data)) {
+      message("load_phenotypes: reusing cached ", name, " (source tree unchanged)")
+      .ihc_memo[[name]] <- hit
+      return(hit$data)
+    }
+    if (!is.null(hit)) message("load_phenotypes: ", name, " cache is stale — re-reading.")
+  }
+
+  out <- builder()
+  obj <- list(stamp = stamp, data = out)
+  .ihc_memo[[name]] <- obj
+  if (io_ok && !is.na(stamp))
+    tryCatch(save_checkpoint(obj, name), error = function(e)
+      message("load_phenotypes: could not write ", name, " cache: ", conditionMessage(e)))
+  out
+}
+
 process_patient <- function(dir) {
   csv_path <- dir_ls(dir, glob = "*.csv")
   if (length(csv_path) != 1)
@@ -25,7 +111,7 @@ process_patient <- function(dir) {
   patient_id <- path_file(path_dir(csv_path))
   message(sprintf("LOADING PATIENT: %s", patient_id))
 
-  ihc <- fread(csv_path) |>
+  ihc <- read_flowpath_csv(csv_path) |>
     as_tibble() |>
     mutate(phenotype_clean = str_extract(phenotype, "(?<=\\().*?(?=\\))"))
 
@@ -79,11 +165,13 @@ process_patient <- function(dir) {
   )
 }
 
-load_ihc_data <- function(flowpath_dir = FLOWPATH_DIR) {
-  safe_process <- possibly(process_patient, otherwise = NULL, quiet = FALSE)
-  dir_ls(flowpath_dir) |>
-    map(safe_process) |>
-    list_rbind()
+load_ihc_data <- function(flowpath_dir = FLOWPATH_DIR, refresh = FALSE) {
+  .flowpath_cached("ihc_data_raw", dir = flowpath_dir, refresh = refresh, builder = function() {
+    safe_process <- possibly(process_patient, otherwise = NULL, quiet = FALSE)
+    dir_ls(flowpath_dir) |>
+      map(safe_process) |>
+      list_rbind()
+  })
 }
 
 # --- Per-cell-type composition (inside the annotation) ----------------------
@@ -98,7 +186,7 @@ process_patient_celltypes <- function(dir) {
     stop(sprintf("found %d csv files (expected 1)", length(csv_path)))
   image_id <- path_file(path_dir(csv_path))
 
-  inside <- fread(csv_path) |>
+  inside <- read_flowpath_csv(csv_path) |>
     as_tibble() |>
     mutate(phenotype_clean = str_extract(phenotype, "(?<=\\().*?(?=\\))")) |>
     filter(Out_of_annotation == FALSE)
@@ -126,9 +214,11 @@ process_patient_celltypes <- function(dir) {
                                                na.rm = TRUE) else NA)
 }
 
-load_ihc_celltypes <- function(flowpath_dir = FLOWPATH_DIR) {
-  safe_ct <- possibly(process_patient_celltypes, otherwise = NULL, quiet = FALSE)
-  dir_ls(flowpath_dir) |>
-    map(safe_ct) |>
-    list_rbind()
+load_ihc_celltypes <- function(flowpath_dir = FLOWPATH_DIR, refresh = FALSE) {
+  .flowpath_cached("ihc_celltypes", dir = flowpath_dir, refresh = refresh, builder = function() {
+    safe_ct <- possibly(process_patient_celltypes, otherwise = NULL, quiet = FALSE)
+    dir_ls(flowpath_dir) |>
+      map(safe_ct) |>
+      list_rbind()
+  })
 }
