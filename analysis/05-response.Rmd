@@ -380,14 +380,26 @@ The arcsine/t-test companion of the panels above.
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
-### Tissue content: tumour and leukocyte, on one axis
+### Tissue content: tumour, leukocyte and PD-L1+, on one axis
 
-The same content panel as report 05, keyed on response instead of aneuploidy: how much of
-the annotation is tumour and how much is leukocyte, as fractions of the same denominator.
-`Tumor` is a cell-type row and CD45+ is a denominator constant, so `ihc_content_metrics()`
-unions the two tables; `all cells inside` is the only denominator on which both are
-non-trivial, so this is drawn once rather than once per normalization. Both cohorts, raw
-fractions with a Wilcoxon then the arcsine/t-test companion.
+How much of the annotation is tumour, how much is leukocyte, and how much is PD-L1-positive,
+as fractions of **the same denominator** so the three are directly comparable. All three are
+per-image constants pooled per patient by `ihc_celltype_metrics()` — `n_tumor_inside`,
+`n_cd45_inside` and `n_pdl1_inside`, each a count of cells inside the annotation in the raw
+FlowPath per-cell export, over `n_inside`. They are read as constants rather than as
+cell-type rows because the export splits tumour across several phenotypes (`PanCK+ Tumor`,
+`VIM+ Tumor`, ...) and carries no `PD-L1` phenotype at all, so there is no single row to
+select. **`all cells inside` is the only denominator on which all three are meaningful** —
+`Tumor` over tumour cells and CD45+ over CD45+ cells are both identically 1 — so this panel
+is drawn once, not once per normalization. Raw fractions with a Wilcoxon, then the
+arcsine/t-test companion.
+
+⚠️ **The PD-L1 column has a smaller cohort than the other two.** PD-L1 was stained in only
+some batches, so a patient from an unstained batch is NA for PD-L1 and present in tumour and
+CD45+. Those patients drop out of the third box only, which means the three boxes on this one
+axis are not all drawn from the same patients. **Read the n printed under each box before
+comparing their heights.** PD-L1+ per unit of tumour, the other denominator, is in the
+immune-content section below.
 
 ```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
 content_all <- ihc_series_metrics(ct_all, imm_all, attend_ihc_content) |>

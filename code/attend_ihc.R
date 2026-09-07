@@ -55,10 +55,15 @@ ihc_celltype_metrics <- function(ihc_celltypes, imaging_data) {
   cells <- ct |>
     dplyr::group_by(pid, cell_type) |>
     dplyr::summarise(n_cell = sum(n_cell), .groups = "drop")
+  # n_pdl1_inside rides along as a per-image constant so the tissue-content panel can read
+  # it as a "constant" series. na.rm = FALSE, as in ihc_immune_metrics(): an NA here is a
+  # whole unstained image, and summing past it would give a numerator built from the stained
+  # images over a denominator counting all of them.
   denom <- ct |>
-    dplyr::distinct(pid, image_id, n_inside, n_tumor_inside, n_cd45_inside) |>
+    dplyr::distinct(pid, image_id, n_inside, n_tumor_inside, n_cd45_inside, n_pdl1_inside) |>
     dplyr::group_by(pid) |>
-    dplyr::summarise(dplyr::across(c(n_inside, n_tumor_inside, n_cd45_inside), sum),
+    dplyr::summarise(dplyr::across(c(n_inside, n_tumor_inside, n_cd45_inside, n_pdl1_inside),
+                                   ~ sum(.x, na.rm = FALSE)),
                      .groups = "drop")
 
   cells |>
@@ -168,20 +173,33 @@ ihc_immune_metrics <- function(ihc_celltypes, imaging_data) {
     dplyr::filter(!is.na(pid))
 
   # per-image constants, then pooled per patient
+  # na.rm = FALSE is deliberate and is the OPPOSITE of the choice inside the loader. There,
+  # an NA is one unscored cell and dropping it is right. Here an NA is a whole IMAGE whose
+  # batch never stained that marker, and summing a patient's images with na.rm = TRUE would
+  # silently give them a total built from only the stained ones — a smaller numerator over
+  # the full denominator. A patient with any unstained image is NA for that marker, and
+  # ihc_series_metrics() drops them with a count rather than under-reporting them.
   per_pt <- ihc_celltypes |>
     dplyr::inner_join(img, by = "image_id") |>
     dplyr::distinct(pid, image_id, n_inside, n_tumor_inside, n_cd45_inside,
-                    n_cd3cd45_inside) |>
+                    n_cd3cd45_inside, n_pdl1_inside) |>
     dplyr::group_by(pid) |>
     dplyr::summarise(dplyr::across(c(n_inside, n_tumor_inside, n_cd45_inside,
-                                     n_cd3cd45_inside), ~ sum(.x, na.rm = FALSE)),
+                                     n_cd3cd45_inside, n_pdl1_inside),
+                                   ~ sum(.x, na.rm = FALSE)),
                      .groups = "drop")
 
-  # (metric, count, denom column, denom label) — CD45+/CD45+ intentionally omitted
+  # (metric, count, denom column, denom label) — CD45+/CD45+ intentionally omitted.
+  # PD-L1+ carries the SAME two denominators as CD45+ because it is the same kind of
+  # quantity: a count of marker-positive cells, meaningful both as a share of the tissue
+  # and per unit of tumour. PD-L1+/CD45+ is omitted for the same reason CD45+/CD45+ is —
+  # the numerator is not a subset of that denominator, so the ratio has no reading.
   specs <- tibble::tribble(
     ~metric,       ~num,               ~den,             ~denom_label,
     "CD45+",       "n_cd45_inside",    "n_inside",       "all cells inside",
     "CD45+",       "n_cd45_inside",    "n_tumor_inside", "tumour cells inside",
+    "PD-L1+",      "n_pdl1_inside",    "n_inside",       "all cells inside",
+    "PD-L1+",      "n_pdl1_inside",    "n_tumor_inside", "tumour cells inside",
     "CD3+CD45+",   "n_cd3cd45_inside", "n_inside",       "all cells inside",
     "CD3+CD45+",   "n_cd3cd45_inside", "n_tumor_inside", "tumour cells inside",
     "CD3+CD45+",   "n_cd3cd45_inside", "n_cd45_inside",  "CD45+ cells inside"

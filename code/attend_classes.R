@@ -117,11 +117,26 @@ attend_ihc_all_free_y <- TRUE
 # y-axis title switched off -- with no axis label the strip is the only place the reader can
 # learn what each fraction is divided by, and in the mixed panel the two are divided by
 # different things.
+#
+# THREE columns, not two, and all three share ONE denominator so they can share one axis.
+# PD-L1+ is read from n_pdl1_inside — ALL PD-L1-positive cells, whatever their phenotype —
+# which is the counterpart of n_cd45_inside, not either of the tumour/leukocyte SUBSETS the
+# loader also builds. Using a subset here would draw the tumour column twice at two
+# thresholds and the panel would not read as three populations of one tissue.
+#
+# ⚠️ THE THIRD COLUMN HAS A SMALLER DENOMINATOR THAN THE OTHER TWO. PD-L1 is stained in
+# only some batches, so a patient from an unstained batch is NA for this column and present
+# in the other two. ihc_series_metrics() drops non-finite rows, so those patients silently
+# leave the PD-L1 box while remaining in its neighbours — three boxes on one axis, drawn
+# from different cohorts. The call sites print the per-column n for exactly this reason;
+# read them before comparing box heights across the three.
 attend_ihc_content <- list(
   list(label = "Tumor cells\n/ all cells inside", source = "constant",
        num = "n_tumor_inside", den = "n_inside"),
   list(label = "CD45+ cells\n/ all cells inside", source = "constant",
-       num = "n_cd45_inside",  den = "n_inside"))
+       num = "n_cd45_inside",  den = "n_inside"),
+  list(label = "PD-L1+ cells\n/ all cells inside", source = "constant",
+       num = "n_pdl1_inside",  den = "n_inside"))
 
 # Tumour burden beside immune infiltration per unit of tumour.
 #
