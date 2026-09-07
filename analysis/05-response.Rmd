@@ -419,11 +419,16 @@ for (nm in names(content_cohorts))
 
 ### Tumour burden beside immune infiltration per unit of tumour
 
-The report-05 mixed-denominator panel, keyed on response: `Tumor` over all cells inside
-beside CD45+ over tumour cells inside. Each panel strip names its own denominator, since the
-y axis carries one unit. Raw fractions and the arcsine/t-test companion, per cohort —
-CD45+ / tumour cells is a ratio that exceeds 1 where leukocytes outnumber tumour cells and
-`arcsin_sqrt()` clamps to [0, 1], so the count of clamped values is printed above the
+The mixed-denominator panel, keyed on response: `Tumor` over all cells inside beside CD45+
+and PD-L1+ over tumour cells inside. Each panel strip names its own denominator, since the y
+axis carries one unit. The two right-hand columns share a denominator and so are comparable
+to each other; neither is comparable to the tumour-content column on the left. Counts are
+per-image constants from the raw FlowPath export, pooled per patient; PD-L1 was stained in
+only some batches, so its column is drawn from fewer patients — read the n under each box.
+
+Raw fractions and the arcsine/t-test companion, per cohort — CD45+ / tumour cells and
+PD-L1+ / tumour cells are both ratios that exceed 1 where those cells outnumber tumour cells
+and `arcsin_sqrt()` clamps to [0, 1], so the count of clamped values is printed above the
 figures and in each transformed figure's subtitle. Read the raw panel whenever it is
 non-zero.
 

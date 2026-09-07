@@ -140,15 +140,33 @@ attend_ihc_content <- list(
 
 # Tumour burden beside immune infiltration per unit of tumour.
 #
-# CD45+/tumour is a RATIO, not a proportion: it exceeds 1 whenever leukocytes outnumber
-# tumour cells. arcsin_sqrt() clamps to [0, 1], so every such patient would collapse to
-# pi/2 and the arcsine/t-test companion would compare a wall of identical values. This
-# panel is therefore drawn RAW ONLY, with the >1 count printed on the figure.
+# BOTH TRANSFORMS ARE DRAWN — raw/Wilcoxon and arcsine/t-test — exactly as for every other
+# composition panel. (This comment used to say "drawn RAW ONLY", which the chunks it
+# describes have never done: they loop `for (asin in c(FALSE, TRUE))`. Corrected rather than
+# acted on; the code was right.)
+#
+# The caveat the old comment was reaching for is real, and it is handled by REPORTING rather
+# than by withholding the figure. CD45+/tumour and PD-L1+/tumour are RATIOS, not proportions:
+# each exceeds 1 whenever those cells outnumber tumour cells, and arcsin_sqrt() clamps its
+# input to [0, 1], so every such patient lands on pi/2 and a clamped group becomes a wall of
+# identical values whose t-test means nothing. So the chunk counts the values above 1, prints
+# that count above the figures AND in the transformed figure's own subtitle, and says to read
+# the raw panel whenever it is non-zero. When the count is zero the transform is exact and the
+# two panels are the usual pair — which is the case the figure is drawn for, and the reason
+# suppressing it by default would have been the wrong call.
 attend_ihc_content_mixed <- list(
-  list(label = "Tumor cells\n/ all cells inside",    source = "constant",
+  list(label = "Tumor cells\n/ all cells inside",     source = "constant",
        num = "n_tumor_inside", den = "n_inside"),
-  list(label = "CD45+ cells\n/ tumour cells inside", source = "constant",
-       num = "n_cd45_inside",  den = "n_tumor_inside"))
+  list(label = "CD45+ cells\n/ tumour cells inside",  source = "constant",
+       num = "n_cd45_inside",  den = "n_tumor_inside"),
+  # PD-L1+ per unit of tumour, beside CD45+ per unit of tumour. Same denominator as the
+  # column before it, so the two immune columns ARE directly comparable to each other even
+  # though neither is comparable to the tumour-content column on its left — which is the
+  # whole point of a mixed panel, and why each strip carries its own denominator.
+  # This is a RATIO like CD45+/tumour, not a proportion: it exceeds 1 wherever PD-L1+ cells
+  # outnumber tumour cells, so it inherits the clamp warning the chunk already prints.
+  list(label = "PD-L1+ cells\n/ tumour cells inside", source = "constant",
+       num = "n_pdl1_inside",  den = "n_tumor_inside"))
 
 
 attend_levels <- list(

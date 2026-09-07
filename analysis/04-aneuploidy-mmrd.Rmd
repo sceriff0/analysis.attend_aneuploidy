@@ -615,13 +615,21 @@ for (asin in c(FALSE, TRUE)) {
 
 #### Tumour burden beside immune infiltration per unit of tumour
 
-The same two populations against **different** denominators: `Tumor` over all cells inside
-(how much of the tissue is tumour) beside CD45+ over tumour cells inside (how many
-leukocytes per tumour cell). Each panel strip names its own denominator, because the y axis
-carries one unit and cannot.
+Three populations against **different** denominators: `Tumor` over all cells inside (how
+much of the tissue is tumour) beside CD45+ and PD-L1+ over tumour cells inside (how many
+leukocytes, and how many PD-L1-positive cells, per tumour cell). Each panel strip names its
+own denominator, because the y axis carries one unit and cannot. The two right-hand columns
+share a denominator, so they **are** directly comparable to each other; neither is
+comparable to the tumour-content column on the left.
 
-CD45+ / tumour cells is a **ratio, not a proportion** — it exceeds 1 wherever leukocytes
-outnumber tumour cells — and `arcsin_sqrt()` clamps its input to [0, 1]. Both versions are
+Counts come from the raw FlowPath per-cell export as per-image constants pooled per patient
+(`n_tumor_inside`, `n_cd45_inside`, `n_pdl1_inside` over `n_inside` / `n_tumor_inside`).
+As in the panel above, PD-L1 was stained in only some batches, so the PD-L1 column is drawn
+from fewer patients than the other two — read the n under each box.
+
+CD45+ / tumour cells and PD-L1+ / tumour cells are **ratios, not proportions** — they exceed
+1 wherever those cells outnumber tumour cells — and `arcsin_sqrt()` clamps its input to
+[0, 1]. Both versions are
 drawn, and the count of values above 1 is printed above the figures **and** in the
 transformed figure's own subtitle: those patients all land on the same value there, so a
 clamped group is a wall of identical numbers and its t-test is not interpretable. Read the
@@ -641,7 +649,7 @@ cat("patients:", n_distinct(mix$pid), "| series:",
     if (n_over > 0) " <- clamped by arcsin_sqrt() in the transformed figure below" else "", "\n")
 
 # Raw, then the arcsine/t-test companion. The companion carries a CLAMP COUNT because
-# arcsin_sqrt() bounds its input to [0, 1] and CD45+/tumour is a ratio that can exceed it:
+# arcsin_sqrt() bounds its input to [0, 1] and BOTH per-tumour columns are ratios that can exceed it:
 # every value above 1 lands on pi/2, so a clamped group is a wall of identical numbers and
 # its t-test is not interpretable. When the count is 0 the transform is exact and the note
 # does not appear, which is the case this figure is drawn for.
