@@ -874,11 +874,29 @@ load_gistic_thresholded_at <- function(folder, cnv = attend_cnv) {
   peak_genes <- union(amp, del)
   genes_all  <- as.character(thr[[gene_col]])
   keep <- if (length(peak_genes) > 0) genes_all %in% peak_genes else rep(TRUE, length(genes_all))
-  if (length(peak_genes) == 0)
-    message("load_gistic_thresholded(): no peak-gene lists — clustering ALL thresholded genes (still thresholded, not peak-restricted).")
-  else
-    message("load_gistic_thresholded(): ", sum(keep), " of ", length(genes_all),
-            " genes fall in the ", length(peak_genes), " GISTIC significant-peak genes.")
+
+  # ⚠️ THE FALLBACK HAS TO BE AUDIBLE. When amp_genes/del_genes cannot be parsed this keeps
+  # every gene, and the clustering silently stops being TCGA's method — Suppl. Methods S2 is
+  # "thresholded relative copy number IN significantly reoccurring amplification or deletion
+  # regions", and unrestricted genome-wide thresholded calls are a different feature space
+  # answering a different question. It announced that with message() only, which the reports
+  # discard (opts_chunk message = FALSE), so the degradation was invisible on the page while
+  # the report's own preconditions block went on printing the words "peak genes" beside a
+  # gene count that contradicted them. The status now rides on the returned object so the
+  # REPORT can print it, and it names the files it could not read rather than the fact that
+  # it failed.
+  gx <- find_gistic_files(cnv)
+  restriction <- if (length(peak_genes) > 0) {
+    list(applied = TRUE, n_kept = sum(keep), n_total = length(genes_all),
+         n_peak_genes = length(peak_genes), missing = character(0))
+  } else {
+    miss <- c(if (is.null(gx$amp_genes)) paste0(cnv$gistic$amp_genes_glob, " (not found)")
+              else paste0(basename(gx$amp_genes), " (found, 0 gene symbols parsed)"),
+              if (is.null(gx$del_genes)) paste0(cnv$gistic$del_genes_glob, " (not found)")
+              else paste0(basename(gx$del_genes), " (found, 0 gene symbols parsed)"))
+    list(applied = FALSE, n_kept = length(genes_all), n_total = length(genes_all),
+         n_peak_genes = 0L, missing = miss)
+  }
 
   sub <- thr[keep, , drop = FALSE]
   m <- t(as.matrix(sapply(sub[samp_cols], function(x) suppressWarnings(as.integer(x)))))  # samples x genes
@@ -890,7 +908,9 @@ load_gistic_thresholded_at <- function(folder, cnv = attend_cnv) {
                       stringsAsFactors = FALSE)
   out <- tibble::as_tibble(m, rownames = "ID") |>
     mutate(ID = str_remove(ID, cnv$seg$id_strip))
-  attr(out, "feature_pos") <- fpos
+  attr(out, "feature_pos")  <- fpos
+  attr(out, "restriction")  <- restriction
+  attr(out, "gistic_folder") <- folder
   out
 }
 

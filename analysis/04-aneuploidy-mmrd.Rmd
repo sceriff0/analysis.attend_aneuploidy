@@ -175,28 +175,21 @@ aneu_box <- function(d, vars, title, subtitle = NULL, ncol = 3) {
     filter(!is.na(aneuploidy_value), !is.na(group)) |>
     mutate(comparison = factor(comparison, levels = vars))
   if (nrow(long) == 0) return(NULL)
-  # The aneuploidy score is a FRACTION of evaluable arms, so it gets the same treatment every
-  # other proportion in this pipeline gets: arcsine-square-root, then a parametric t-test.
-  # as_proportion() refuses the transform if the values are not in [0, 1] — arcsin_sqrt()
-  # clamps silently, and a clamped group is a wall of identical numbers, not a comparison.
-  asin_ok <- as_proportion(long$aneuploidy_value)
-  long$.v <- if (asin_ok) arcsin_sqrt(long$aneuploidy_value) else long$aneuploidy_value
 
   ggplot(long, aes(group, aneuploidy_value)) +
     # Was fill = #A6CEE3, which attend_plots.R defines as "aneuploidy-low" — so every box in
     # a figure ABOUT aneuploidy was tinted with one of its two class colours. Neutral now, and
     # the class colour survives where it belongs: on the points, via base_colour below.
-    attend_box(long, x = "group", y = ".v", by = "comparison", points = FALSE) +
-    highlight_points(long, "group", ".v", base_colour = "aneuploidy_class",
+    attend_box(long, x = "group", y = "aneuploidy_value", by = "comparison", points = FALSE) +
+    highlight_points(long, "group", "aneuploidy_value", base_colour = "aneuploidy_class",
                      base_palette = attend_aneu_cols, base_name = "aneuploidy",
-                     base_size = 0.7, base_alpha = 0.6) +
+                     base_size = 0.9, base_alpha = 0.65) +
     facet_wrap(~ comparison, scales = "free_x", ncol = ncol) +
-    stat_compare_means(method = if (asin_ok) "t.test" else "wilcox.test",
-                       label = "p.format", size = 3) +
-    labs(title = title,
-         subtitle = paste0(subtitle, if (asin_ok) " | arcsin(sqrt) + t-test"
-                                     else " | raw scale + Wilcoxon (values outside [0,1])"),
-         x = NULL, y = if (asin_ok) "arcsin(sqrt(AS))" else "aneuploidy score") +
+    # Raw 0-1 scale, Wilcoxon. The arcsine transform stays in the COMPOSITION panels of Part 2,
+    # where the fractions span orders of magnitude; the aneuploidy score is the outcome here
+    # and is read directly as a fraction of altered arms.
+    stat_compare_means(label = "p.format", size = 3) +
+    labs(title = title, subtitle = subtitle, x = NULL, y = "aneuploidy score") +
     attend_theme() +
     theme(axis.text.x = element_text(angle = 20, hjust = 1))
 }
@@ -916,17 +909,14 @@ suspect before any of the immune results are interpreted.
 tp <- pt |> filter(!is.na(TP53), !is.na(aneuploidy_score))
 
 if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
-  tp_ok  <- as_proportion(tp$aneuploidy_score)
-  tp$.v  <- if (tp_ok) arcsin_sqrt(tp$aneuploidy_score) else tp$aneuploidy_score
-  ggplot(tp, aes(TP53, .v, fill = TP53)) +
-    attend_box(tp, x = "TP53", y = ".v", fill = NULL, points = FALSE) +
-    highlight_points(tp, "TP53", ".v", base_size = 1.5, base_alpha = 0.5,
+  ggplot(tp, aes(TP53, aneuploidy_score, fill = TP53)) +
+    attend_box(tp, x = "TP53", y = "aneuploidy_score", fill = NULL, points = FALSE) +
+    highlight_points(tp, "TP53", "aneuploidy_score", base_size = 1.5, base_alpha = 0.5,
                      base_const = "black") +
-    stat_compare_means(method = if (tp_ok) "t.test" else "wilcox.test", label = "p.format") +
+    stat_compare_means(method = "wilcox.test", label = "p.format") +
     scale_fill_manual(values = attend_tp53_cols) +
     labs(title = "Aneuploidy by TP53 status (MMR-deficient only)",
-         subtitle = if (tp_ok) "arcsin(sqrt) + t-test" else "raw scale + Wilcoxon",
-         x = NULL, y = if (tp_ok) "arcsin(sqrt(AS))" else "aneuploidy score") +
+         x = NULL, y = "aneuploidy score") +
     attend_theme() + theme(legend.position = "none")
 } else {
   message("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",
