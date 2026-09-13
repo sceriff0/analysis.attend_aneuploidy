@@ -104,6 +104,74 @@ differ.** If they agree on ATTEND, the directional correction changed nothing he
 the result is a confirmation. Read that flag before drawing any conclusion from the
 cluster labels.
 
+## Recurrent copy number — the G-score plot, and why question 2 is a concordance question {#recurrent-copy-number}
+
+[10-recurrent-cna](10-recurrent-cna.html) answers two questions the clinical collaborators
+asked in order, and they are **different kinds of question**. Answering both with the same
+instrument is what the report used to do, and it is why its answer to the second one could
+not be read.
+
+### Question 1 has a canonical instrument, and we were not drawing it
+
+"Are there recurrent CNAs in MMRd aneuploidy-high?" is the question **GISTIC 2.0** was
+written for: it scores each locus by frequency × amplitude into a G-score, compares it to a
+permuted background, and returns q-values per peak (Mermel et al., *Genome Biol* 2011).
+Its output figure — the G-score along the linearised genome, amplifications one way,
+deletions the other, with a significance line — is the convention every reader of this
+literature has seen since Beroukhim et al. (*Nature* 2010), and it is Fig. 1 of TCGA UCEC
+2013, the paper this pipeline already reproduces elsewhere.
+
+The pipeline ran **five** GISTIC runs and drew **none** of that. It showed ASCETS arm-level
+frequencies, a ClassifyCNV segment pileup, and a peak-call frequency mirror — all correct,
+none of them the figure the question is asked in. The G-score panels are now drawn from the
+stratum's own run via `find_gistic_files(dir = ...)`, with the cutoff configured once as
+`attend_cnv$gistic$fdr_cutoff` so the chromosome plot, the bubble plot and the co-plot
+cannot disagree on the same page about which peaks are significant.
+
+⚠️ **Which run's files a report reads is now named, not sorted.** `find_gistic_files()`
+used to glob `data/gistic/` recursively and take the first match, so the pooled run was
+selected only because `all` sorts before `mmr*`. A run folder named earlier would have
+repointed report 07's clustering and report 08's focal overlay at a nine-patient stratum
+with nothing failing. `attend_cnv$gistic$pooled_dir` names it; `test_find_gistic_run.R`
+pins it, with an adversarial folder that sorts first.
+
+### Question 2 is about sameness, and a difference test cannot answer it
+
+"Are they the same ones that recur in MMRp aneuploidy-high?" asks for **agreement**. The
+permutation tests in Part 3 are difference tests: they can reject sameness, never support
+it. A null there means *we could not show they differ*, and at n = 9 that null is close to
+guaranteed whatever the truth is — so reporting it as the answer to question 2 would let
+low power read as a positive finding, the exact inversion the report's own asymmetry rule
+(presence is informative, absence is not) exists to prevent.
+
+Three agreement instruments are therefore reported **before** the tests, scaling from
+coarse to fine:
+
+| Instrument | Unit | What agreement looks like |
+|---|---|---|
+| Jaccard of the five runs' peak sets | membership | a stratum shares peaks with the pooled run |
+| `coGisticChromPlot()`, the two runs back to back | G-score amplitude by position | peaks at the same loci, similar height |
+| `scna_concordance_plot()` — per-peak frequency, one group against the other | per-peak frequency | points on the diagonal; Spearman's rho near 1 |
+
+The scatter is the one that answers the question as asked: one point per pooled-run peak,
+its frequency in MMRd-high against MMRp-high, with the diagonal drawn. Both frequencies
+come from the **pooled** run's per-sample calls, so the two axes share one background model
+— the peak-discovery-vs-per-sample-call separation Part 3 already rests on. The difference
+tests keep their place afterwards as the formal endpoint, under the two inference families.
+
+### What the aneuploidy result is measured against
+
+The finding these reports serve — high aneuploidy, reduced immune infiltrate, less benefit
+from checkpoint blockade — is the endometrial-specific, trial-based instance of Davoli et
+al. (*Science* 2017), who showed across 12 tumour types that aneuploidy correlates with
+reduced cytotoxic-immune markers and with worse survival on checkpoint blockade, and that
+SCNA level predicted immune infiltration better than mutational load. Two details of theirs
+bear directly on how this pipeline is built: the **immune** signature was predicted mainly
+by **arm- and chromosome-level** SCNAs while **focal** SCNAs predicted proliferation — so
+the two resolutions in report 10's Part 1 answer different questions and are both kept —
+and their aneuploidy score is arm-level, the same family as the ASCETS score used here and
+as Taylor et al. (*Cancer Cell* 2018).
+
 ## Where this reproduction follows TCGA, and where it departs
 
 Each subsection names one step of [07-molecular-classification](07-molecular-classification.html)

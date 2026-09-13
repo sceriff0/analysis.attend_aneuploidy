@@ -8,7 +8,10 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-# renv: tidyverse, here, fs, data.table. No maftools — this report is copy number only.
+# renv: tidyverse, here, fs, data.table. Optional and guarded: bioc::maftools, for the
+# GISTIC G-score figures only (gisticChromPlot / gisticBubblePlot / coGisticChromPlot) —
+# this report reads no MAF. Without it every peak table, the concordance scatter and all
+# three difference tests still run; only the three G-score panels are skipped.
 library(tidyverse)
 library(here)
 library(fs)
@@ -326,6 +329,59 @@ if (exists("pooled") && !is.null(pooled)) {
 }
 ```
 
+### The same answer in the form the field reads it
+
+The table above is the answer; this is that answer drawn in the form the field reads it —
+why that form is the canonical one is in [00-methods](00-methods.html#recurrent-copy-number).
+`maftools::readGistic()` reads the **MMRd-high run's own** four GISTIC 2.0 output files
+(`find_gistic_files(dir = ...)`, so the pooled run's files cannot be picked up instead) and
+`gisticChromPlot()` draws the G-score along the linearised genome, amplifications right,
+deletions left, with the significance line at `r attend_cnv$gistic$fdr_cutoff`. This is a
+**stratum-specific run at n = `r n_mmrd_high`**: peak *discovery* at that n is what the
+union-of-five design in Part 3 qualifies, and every per-sample call quoted anywhere in this
+report still comes from the pooled run.
+
+```{r q1-gistic-chrom, eval=have_master && have_gistic, fig.width=8, fig.height=8}
+gx_mmrd   <- find_gistic_files(dir = run_dirs[["mmrd_high"]])
+have_maft <- requireNamespace("maftools", quietly = TRUE)
+fdr_g     <- attend_cnv$gistic$fdr_cutoff
+
+# cat(), not message(): opts_chunk sets message = FALSE, so a skipped figure would leave
+# the page looking as though nothing was attempted.
+if (!have_maft) {
+  cat("`maftools` is not installed — `renv::install(\"bioc::maftools\")`, then",
+      "`renv::snapshot()`. The peak table above stands on its own.\n")
+} else if (is.null(gx_mmrd) || any(vapply(gx_mmrd, is.null, logical(1)))) {
+  cat("The MMRd-high GISTIC run is missing at least one of the four files readGistic()",
+      "requires (all_lesions / amp_genes / del_genes / scores.gistic) under `",
+      run_dirs[["mmrd_high"]], "`. Run `MODE=groups sbatch code/run_gistic.sh`.\n", sep = "")
+} else {
+  g_mmrd <- tryCatch(
+    maftools::readGistic(gisticAllLesionsFile = gx_mmrd$all_lesions,
+                         gisticAmpGenesFile   = gx_mmrd$amp_genes,
+                         gisticDelGenesFile   = gx_mmrd$del_genes,
+                         gisticScoresFile     = gx_mmrd$scores, isTCGA = FALSE),
+    error = function(e) { cat("readGistic(): ", conditionMessage(e), "\n"); NULL })
+  if (!is.null(g_mmrd)) {
+    maftools::gisticChromPlot(gistic = g_mmrd, fdrCutOff = fdr_g, markBands = "all")
+  }
+}
+```
+
+The same peaks as a bubble plot: q-value against the number of genes the wide peak spans,
+so a peak carrying the signal on a handful of genes separates visually from a broad one
+that does not localise. Read it as the companion to the chromosome plot above — same
+peaks, same `r attend_cnv$gistic$fdr_cutoff` cutoff, arranged by focality rather than by
+position.
+
+```{r q1-gistic-bubble, eval=have_master && have_gistic, fig.width=8, fig.height=5}
+if (exists("g_mmrd") && !is.null(g_mmrd)) {
+  maftools::gisticBubblePlot(gistic = g_mmrd, fdrCutOff = fdr_g)
+} else {
+  cat("No MMRd-high GISTIC object — see the message above.\n")
+}
+```
+
 ### Where those calls sit on the genome
 Peak-call frequency from the pooled run, amplifications above the axis and deletions
 below, split by subgroup and chromosome. The visual counterpart to the composite score:
@@ -342,16 +398,117 @@ if (exists("pooled") && !is.null(pooled)) {
 }
 ```
 
-How much the five runs' significant-peak sets overlap, as pairwise Jaccard. Low overlap
-between a stratum and the pooled run means that stratum has genuinely private peaks —
-which is the case the union-of-five design exists to catch. Peaks private to a single run
-are listed separately.
-
 ## Part 3 — Question 2: are they the same peaks that recur in MMRp aneuploidy-high?
 
-The mirror plot above already puts the two strata side by side; this part tests the
-comparison rather than eyeballing it. Three routes, deliberately different in what they can
-conclude, and all three are reported whatever they say.
+The mirror plot above already puts the two strata side by side; this part measures the
+comparison rather than eyeballing it. **The question asked is a concordance question — are
+they the *same* peaks — and the three tests at the end of this part are difference tests,
+which cannot answer it**; why, and why agreement is reported first, is in
+[00-methods](00-methods.html#recurrent-copy-number). Agreement is measured by three
+instruments that scale from coarse to fine — the **peak sets** (Jaccard), the **G-score
+profiles** (the two runs back to back), and the **per-peak frequencies** (a scatter against
+the diagonal, with Spearman's rho). The difference tests follow, and are reported whatever
+they say.
+
+### Do the two strata even have the same peaks available to them?
+
+The prior structural question, before any call is compared: how much do the five GISTIC
+runs' significant-peak sets overlap at all, as pairwise Jaccard. It matters for question 2
+in a specific way — if the MMRd-high run carries peaks no other run finds, then "the same
+peaks recur in both groups" is not even the right shape of answer for those loci, because
+the pooled run's genome-wide threshold buried them. Peaks private to a single run are
+listed separately, and they are the ones to read first.
+
+```{r scna-peakset, eval=have_master && have_gistic}
+union_peaks <- gistic_peak_union(run_dirs)
+if (is.null(union_peaks)) {
+  cat("No GISTIC lesions parsed from any of the five run folders — skipped.\n")
+} else {
+  pss <- peak_set_structure(union_peaks)
+  print(knitr::kable(round(pss$jaccard, 2),
+                     caption = "Jaccard overlap of significant-peak sets between the five GISTIC runs"))
+  if (nrow(pss$private))
+    print(knitr::kable(pss$private,
+                       caption = "Peaks private to a single run (no overlapping peak in any other)"))
+}
+```
+
+### The two G-score profiles, back to back
+
+The Jaccard above is set membership; this is amplitude. `coGisticChromPlot()` draws the
+MMRd-high and MMRp-high runs' G-scores on one linearised genome, vertically opposed, so a
+peak present in both at similar height reads as a shared event and a peak on one side only
+reads as private. Amplifications and deletions are separate figures because they are
+separate GISTIC statistics, not two halves of one axis. Each run is its own GISTIC run, so
+its background model is its own — which is exactly why this figure is read for *where* the
+peaks are and never for whether one group's G-score is numerically larger.
+
+```{r q2-cogistic, eval=have_master && have_gistic, fig.width=8, fig.height=8}
+read_run <- function(nm) {
+  gx <- find_gistic_files(dir = run_dirs[[nm]])
+  if (is.null(gx) || any(vapply(gx, is.null, logical(1)))) return(NULL)
+  tryCatch(maftools::readGistic(gisticAllLesionsFile = gx$all_lesions,
+                                gisticAmpGenesFile   = gx$amp_genes,
+                                gisticDelGenesFile   = gx$del_genes,
+                                gisticScoresFile     = gx$scores, isTCGA = FALSE),
+           error = function(e) NULL)
+}
+g_d <- if (have_maft) read_run("mmrd_high") else NULL
+g_p <- if (have_maft) read_run("mmrp_high") else NULL
+
+if (!have_maft) {
+  cat("`maftools` is not installed — the concordance scatter below needs none of it",
+      "and still runs.\n")
+} else if (is.null(g_d) || is.null(g_p)) {
+  cat("Need a complete four-file GISTIC run for BOTH strata (`", run_dirs[["mmrd_high"]],
+      "` and `", run_dirs[["mmrp_high"]], "`). Run `MODE=groups sbatch code/run_gistic.sh`.\n",
+      sep = "")
+} else {
+  for (ty in c("Amp", "Del"))
+    maftools::coGisticChromPlot(gistic1 = g_d, gistic2 = g_p,
+                                g1Name = "MMRd-high", g2Name = "MMRp-high",
+                                type = ty, fdrCutOff = fdr_g)
+}
+```
+
+### Peak by peak, one group against the other
+
+The figure the question is literally asking for. Every pooled-run peak is one point: its
+alteration frequency in MMRd-high on the x axis against MMRp-high on the y. **A point on
+the dashed diagonal is a peak recurring at the same rate in both groups** — the shape of
+"yes, the same ones" — and distance off the diagonal is how much a peak is specific to one
+stratum. Spearman's rho over all peaks is the scalar summary, and the 12 pre-specified
+TCGA UCEC serous loci are labelled because they are the peaks the question is about.
+
+Both frequencies come from the **pooled run's** per-sample calls, so the two axes are
+scored against one background model; the axis labels carry each stratum's n, which is what
+sets how coarse the frequencies can be — at n = `r n_mmrd_high` an MMRd-high frequency can
+only take ten values, so points sit on horizontal bands by construction.
+
+```{r q2-concordance, eval=have_master && have_gistic, fig.width=7, fig.height=6.5}
+if (exists("pooled") && !is.null(pooled)) {
+  grp_c  <- group_of_barcode(rownames(pooled$mat))
+  freq_c <- scna_freq_table(pooled$mat, grp_c)
+  # Panel loci resolved to pooled-run peak ids by the SAME matcher the Family A score uses,
+  # so a locus labelled here and a locus scored there are the same peak.
+  mp_c   <- match_panel_peaks(pooled$peaks, attend_scna$panel)
+  mp_c   <- mp_c[!is.na(mp_c$peak_id), , drop = FALSE]
+  labs_c <- stats::setNames(mp_c$locus, mp_c$peak_id)
+
+  p_conc <- scna_concordance_plot(freq_c, pooled$peaks, "MMRd-high", "MMRp-high",
+                                  label_peaks = labs_c,
+                                  title = "Per-peak alteration frequency: MMRd-high vs MMRp-high")
+  if (!is.null(p_conc)) {
+    print(p_conc)
+    cat("\nSpearman rho over the shared pooled-run peaks:",
+        round(attr(p_conc, "rho"), 3),
+        "\nPre-specified panel loci resolved and labelled:", nrow(mp_c), "of 12\n")
+  } else {
+    cat("Concordance scatter skipped — one of the two strata has no pooled-run calls.\n")
+  }
+}
+```
+
 ### The primary endpoint — a pre-specified serous-like panel score
 
 **Why a composite score rather than testing peaks one at a time.** At n ≈ 9 no individual
@@ -545,30 +702,6 @@ if (exists("pooled") && !is.null(pooled)) {
   locus_tbl$p_holm <- family_adjust(locus_tbl$p, "A", n = nrow(locus_tbl))
   knitr::kable(locus_tbl, digits = 3,
                caption = "The 12 pre-specified TCGA UCEC loci, Holm-adjusted within family (secondary to the composite score)")
-}
-```
-
-### Do the two strata even have the same peaks available to them?
-
-The three tests above compare *calls* at a shared set of peaks. This asks the prior
-structural question: how much do the five GISTIC runs' significant-peak sets overlap at all,
-as pairwise Jaccard. It matters for question 2 in a specific way — if the MMRd-high run
-carries peaks no other run finds, then "the same peaks recur in both groups" is not even the
-right shape of answer for those loci, because the pooled run's genome-wide threshold buried
-them. Peaks private to a single run are listed separately, and they are the ones to read
-first.
-
-```{r scna-peakset, eval=have_master && have_gistic}
-union_peaks <- gistic_peak_union(run_dirs)
-if (is.null(union_peaks)) {
-  cat("No GISTIC lesions parsed from any of the five run folders — skipped.\n")
-} else {
-  pss <- peak_set_structure(union_peaks)
-  print(knitr::kable(round(pss$jaccard, 2),
-                     caption = "Jaccard overlap of significant-peak sets between the five GISTIC runs"))
-  if (nrow(pss$private))
-    print(knitr::kable(pss$private,
-                       caption = "Peaks private to a single run (no overlapping peak in any other)"))
 }
 ```
 

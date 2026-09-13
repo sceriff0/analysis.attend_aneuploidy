@@ -1333,6 +1333,77 @@ scna_mirror_plot <- function(freq_tbl, peaks, title = NULL) {
                    panel.spacing.x = ggplot2::unit(0.05, "lines"))
 }
 
+#' Per-peak frequency in one group against another — the "are they the SAME peaks" figure.
+#'
+#' ⚠️ THIS ANSWERS A DIFFERENT QUESTION FROM THE PERMUTATION TEST, and that is the point.
+#' Report 10's question 2 — "sono le stesse che ricorrono in MMRp-AS-high?" — is a
+#' CONCORDANCE question. A two-group difference test cannot answer it: a null permutation p
+#' means "we could not show they differ", which is not evidence that they are the same, and
+#' at n ~ 9 that null is nearly guaranteed whatever the truth is. Agreement instruments are
+#' the right shape, and this is the readable one — a peak ON the diagonal recurs at the same
+#' rate in both groups, a peak off it does not. Spearman's rho over the peaks is the scalar
+#' version of the same claim, and peak_set_structure()'s Jaccard is the set-level version.
+#'
+#' `label_peaks` is a named character vector (peak_id -> label) rather than a panel table,
+#' because match_panel_peaks() lives in attend_scna.R and this file is sourced in a bootstrap
+#' env that has neither it nor attend_scna. Same rule as attend_ihc_text_scale: visibility
+#' follows the source() graph, so the caller resolves the labels and passes them in.
+scna_concordance_plot <- function(freq_tbl, peaks, g1, g2,
+                                  label_peaks = NULL, title = NULL) {
+  if (is.null(freq_tbl) || !nrow(freq_tbl)) {
+    message("scna_concordance_plot(): no data — skipping."); return(NULL)
+  }
+  grab <- function(g) {
+    d <- freq_tbl[as.character(freq_tbl$scna_group) == g,
+                  c("peak_id", "freq", "n"), drop = FALSE]
+    if (!nrow(d)) NULL else d
+  }
+  a <- grab(g1); b <- grab(g2)
+  if (is.null(a) || is.null(b)) {
+    message("scna_concordance_plot(): need both ", g1, " and ", g2, " — skipping.")
+    return(NULL)
+  }
+  names(a) <- c("peak_id", "f1", "n1"); names(b) <- c("peak_id", "f2", "n2")
+  d <- merge(a, b, by = "peak_id")
+  d <- merge(d, peaks[, c("peak_id", "descriptor", "direction")], by = "peak_id")
+  d <- d[is.finite(d$f1) & is.finite(d$f2), , drop = FALSE]
+  if (!nrow(d)) { message("scna_concordance_plot(): no shared peaks."); return(NULL) }
+
+  rho <- suppressWarnings(stats::cor(d$f1, d$f2, method = "spearman"))
+  d$.lab <- if (is.null(label_peaks)) NA_character_ else unname(label_peaks[d$peak_id])
+  lab <- d[!is.na(d$.lab), , drop = FALSE]
+
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = f1, y = f2)) +
+    # The diagonal IS the null hypothesis of this figure, so it is drawn first and the
+    # points sit on top of it.
+    ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey45") +
+    ggplot2::geom_point(ggplot2::aes(colour = direction), size = 1.8, alpha = 0.75) +
+    # Same documented exemption as scna_mirror_plot(): amp/del is a DIVERGING direction
+    # pair, not a semantic categorical scale, so it may use the highlight-reserved blue —
+    # a frequency scatter carries no per-patient highlight point to hide.
+    ggplot2::scale_colour_manual(values = c(amp = unname(ATTEND_PALETTE["red"]),
+                                            del = unname(ATTEND_PALETTE["blue"]))) +
+    # limits = c(0, 1) is the DOMAIN of a proportion, not a zoom, so nothing can be dropped
+    # by it; the extra top expansion is headroom for a locus label on a peak at 100%, which
+    # would otherwise be clipped at the panel edge without warning.
+    ggplot2::scale_x_continuous(limits = c(0, 1), labels = function(x) paste0(x * 100, "%"),
+                                expand = ggplot2::expansion(mult = 0.04)) +
+    ggplot2::scale_y_continuous(limits = c(0, 1), labels = function(x) paste0(x * 100, "%"),
+                                expand = ggplot2::expansion(mult = c(0.04, 0.10))) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(
+      x = paste0(g1, " (n = ", a$n[1], ")"), y = paste0(g2, " (n = ", b$n[1], ")"),
+      colour = NULL, title = title,
+      subtitle = paste0("each point is one pooled-run peak; dashed = equal frequency; ",
+                        "Spearman rho = ", round(rho, 2), " over ", nrow(d), " peaks")) +
+    attend_theme()
+  if (nrow(lab))
+    p <- p + ggplot2::geom_text(data = lab, ggplot2::aes(label = .lab),
+                                size = 2.8, vjust = -0.8, colour = "grey25")
+  attr(p, "rho") <- rho
+  p
+}
+
 #' Frequency difference (aneuploidy-high minus -low) along the genome, per MMR stratum.
 scna_delta_plot <- function(freq_tbl, peaks, title = NULL) {
   if (is.null(freq_tbl) || !nrow(freq_tbl)) {
