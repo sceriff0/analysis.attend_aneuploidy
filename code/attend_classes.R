@@ -795,6 +795,17 @@ attend_cnv <- list(
   # it to read.maf automatically. Absent -> the oncoplot is mutation+arm only (knit-safe).
   gistic = list(
     dir               = "gistic",                # data/gistic/
+    # data/gistic/ holds ONE SUBFOLDER PER RUN (all, mmrp_high, mmrp_low, mmrd_low,
+    # mmrd_high, loo/). `pooled_dir` names the run that means "the whole cohort", which is
+    # the one report 07's clustering and report 08's focal overlay want; find_gistic_files()
+    # resolves to it by name instead of taking whichever folder a recursive glob happened to
+    # sort first. Report 10 passes a stratum's own folder explicitly.
+    pooled_dir        = "all",
+    # GISTIC's conventional significance line — the green threshold drawn across every
+    # published G-score plot since Beroukhim et al. (Nature 2010). Set here, not at a plot
+    # call site, so the chromosome plot, the bubble plot and the co-plot cannot disagree
+    # about what "significant peak" means on the same figure page.
+    fdr_cutoff        = 0.25,
     all_lesions_glob  = "*all_lesions*.txt",     # all_lesions.conf_XX.txt
     amp_genes_glob    = "*amp_genes*.txt",       # amp_genes.conf_XX.txt
     del_genes_glob    = "*del_genes*.txt",       # del_genes.conf_XX.txt

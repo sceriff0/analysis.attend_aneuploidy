@@ -972,13 +972,31 @@ load_gistic_continuous <- function(cnv = attend_cnv) {
 # scores.gistic file is REQUIRED by maftools::readGistic (read.maf forwards the lesion/gene
 # files to it and hard-stops without scores), so report 06 only takes the GISTIC overlay
 # branch when all four are present. Knit-safe.
-find_gistic_files <- function(cnv = attend_cnv) {
+#
+# ⚠️ WHICH RUN'S FILES. data/gistic/ holds one subfolder PER GISTIC RUN — the pooled cohort
+# and the four scna_group strata — and this used to glob the whole tree with recurse = TRUE
+# and take f[[1]]. That made a filesystem sort order decide which cohort's peaks report 07
+# clustered and report 08 overlaid: it resolved to `all/` only because "all" sorts first, and
+# adding a run folder named earlier would have silently repointed both reports at a 9-patient
+# stratum with nothing failing. The pooled run is now named (attend_cnv$gistic$pooled_dir),
+# and `dir` takes an explicit run folder for a single stratum's own peaks — which is what
+# report 10 needs to draw the MMRd-high G-score plot. The recursive scan survives only as the
+# fallback for a flat data/gistic/ with no per-run subfolders.
+find_gistic_files <- function(cnv = attend_cnv, dir = NULL) {
   g      <- cnv$gistic
-  folder <- here("data", g$dir)
+  folder <- if (is.null(dir)) here("data", g$dir) else dir
   if (!dir_exists(folder)) return(NULL)
+  # Not `%||%`: base R gained it in 4.4.0 and this project pins 4.3.2 (CLAUDE.md), so it
+  # would resolve only when an attached package happens to export it.
+  pooled  <- file.path(folder, if (is.null(g$pooled_dir)) "all" else g$pooled_dir)
+  recurse <- TRUE
+  if (is.null(dir) && dir_exists(pooled)) { folder <- pooled; recurse <- FALSE }
+  if (!is.null(dir)) recurse <- FALSE
   pick <- function(glb) {
-    f <- dir_ls(folder, recurse = TRUE, type = "file", glob = glb)
-    if (length(f) == 0) NULL else as.character(f[[1]])
+    f <- dir_ls(folder, recurse = recurse, type = "file", glob = glb)
+    # sort(): dir_ls() order is filesystem-dependent, and the fallback branch still has to
+    # pick one file deterministically rather than differently on two machines.
+    if (length(f) == 0) NULL else as.character(sort(f)[[1]])
   }
   list(all_lesions = pick(g$all_lesions_glob),
        amp_genes   = pick(g$amp_genes_glob),
