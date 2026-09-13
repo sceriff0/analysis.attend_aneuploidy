@@ -387,7 +387,7 @@ aneuploidy-high cell is small and quartiles drawn from a handful of values would
 artefact of which two landed in the middle. The y-axis is free: MMRd TMB sits an order of
 magnitude above MMRp, so a shared axis would flatten the MMRp panel.
 
-```{r tcga-tmb-box, fig.height=4.5}
+```{r tcga-tmb-box, fig.width=9, fig.height=7}
 if (nrow(tcga_tmb) > 0) {
   # fill rides the TOP-LEVEL aes and attend_box(fill = NULL) inherits it — the idiom every
   # other semantic-fill box in the pipeline uses. attend_box() applies outlier.shape = NA
@@ -399,7 +399,7 @@ if (nrow(tcga_tmb) > 0) {
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = attend_aneu_high, linewidth = 0.4) +
     scale_fill_manual(values = attend_aneu_cols, name = "aneuploidy status") +
-    scale_x_discrete(labels = c("aneuploidy-low" = "low", "aneuploidy-high" = "high")) +
+    scale_x_discrete(labels = as_label) +
     facet_wrap(~ mmr_group, scales = "free_y") +
     labs(title = "TCGA UCEC — TMB by aneuploidy status, within MMR strata",
          subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb, " mut/Mb); ",

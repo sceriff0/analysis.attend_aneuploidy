@@ -380,7 +380,11 @@ if (have_master && length(tmb_recomp) >= 2) {
       # definition is measured on the whole cohort, so the box is supported at any n.
       geom_boxplot(outlier.shape = NA, fill = attend_neutral, width = 0.6) +
       geom_line(aes(group = pid), alpha = 0.15) +
-      geom_point(size = 0.7, alpha = 0.4) +
+      # jitter_width = 0: a paired design, so each point must stay at its patient's x or it
+      # detaches from its own connecting line. highlight_points() replaces the bare
+      # geom_point() so the polipo overlay appears here too.
+      highlight_points(long, "def", "tmb", jitter_width = 0, base_size = 0.7,
+                       base_alpha = 0.4, base_const = "black") +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey40") +
       labs(title = "Per-patient TMB: baseline (TMB_SCORE) vs ancestry-aware definitions",
            subtitle = paste0("lines connect the same patient; dashed = TMB-high cutoff; n = ",
@@ -430,7 +434,9 @@ if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master
     ggplot(g, aes(subpop, removed)) +
       # Sub-populations are the smallest groups in the pipeline — the note above says group
       # sizes here "can be much smaller than the cohort" — so the mark is chosen per group.
-      attend_box(g, x = "subpop", y = "removed") +
+      attend_box(g, x = "subpop", y = "removed", points = FALSE) +
+      highlight_points(g, "subpop", "removed", base_size = 1.1, base_alpha = 0.55,
+                       base_const = "black") +
       geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
       labs(title = "TMB removed by the ancestry correction, by ancestry",
            subtitle = "TMB (normal) - TMB (ancestry corrected); larger = more germline contamination removed",
@@ -538,7 +544,10 @@ if (have_master && all(need %in% names(master)) && !is.null(anc)) {
     print(
       ggplot(eff, aes(normal, corrected, colour = group)) +
         geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey50") +
-        geom_point(alpha = 0.6) +
+        # jitter_width = 0: both axes are measured values, so any jitter would move a patient
+        # off its own coordinates. Coloured by ancestry group, with polipo drawn over it.
+        highlight_points(eff, "normal", "corrected", base_colour = "group",
+                         jitter_width = 0, base_size = 1.6, base_alpha = 0.6) +
         geom_hline(yintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
         geom_vline(xintercept = attend_thresholds$tmb, linetype = 3, colour = "grey40") +
         labs(title = "Effect of the ancestry correction, by ancestry group",

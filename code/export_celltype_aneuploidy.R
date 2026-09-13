@@ -38,7 +38,8 @@ suppressPackageStartupMessages({
 })
 
 source(here("code", "build_master.R"))     # get_master(), add_molecular_classes(), add_scna_group()
-source(here("code", "attend_ihc.R"))       # ihc_celltype_metrics(), arcsin_sqrt()
+source(here("code", "attend_plots.R"))     # arcsin_sqrt(), as_proportion()
+source(here("code", "attend_ihc.R"))       # ihc_celltype_metrics()
 source(here("code", "load_phenotypes.R"))  # load_ihc_celltypes()
 # load_imaging_data() arrives via build_master.R -> load_clinical.R
 

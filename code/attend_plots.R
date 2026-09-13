@@ -178,6 +178,29 @@ attend_mmr_cols <- c(MMRp = unname(ATTEND_PALETTE["grey"]),
 # of the pale box rather than into it.
 attend_aneu_low  <- unname(ATTEND_PALETTE["pale_blue"])
 attend_aneu_high <- unname(ATTEND_PALETTE["salmon"])
+# --- CURVE-ONLY palettes, and why they may hold the reserved blue ------------------------
+# Rule [C] keeps #0077BB unclaimed because highlight points are drawn ON TOP of boxes filled
+# with the semantic palettes, so a highlight sharing a hex vanishes on exactly the box it
+# marks. That reasoning is about FILLS UNDER POINTS. A Kaplan-Meier curve and an ECDF carry
+# no per-patient points at all — there is nothing for the overlay to disappear into — so the
+# two palettes below may use it, and test_figure_system.R states the exemption rather than
+# letting it pass by simply not being in the guarded list.
+#
+# attend_arm_cols: the TREATMENT ARMS (atezolizumab vs placebo) in every KM. Red + light
+# blue, restored at the collaborators' request; it was attend_pal(2), which is blue + cyan,
+# i.e. two blues that are hard to tell apart on a thin survival curve.
+# ⚠️ POSITIONAL, like every other km_facet() palette: ggsurvplot assigns colours in FACTOR
+# LEVEL order, not by name, so which arm is red depends on the level order of
+# attend_cols$km_group. Reverse this vector to swap them.
+attend_arm_cols  <- unname(c(ATTEND_PALETTE["red"], ATTEND_PALETTE["cyan"]))
+
+# attend_ecdf_cols: the MMR split on report 03's ECDF panel ONLY. Deliberately NOT
+# attend_mmr_cols (grey/orange, rule [A]) — on overlaid cumulative curves the reference grey
+# reads as a gridline rather than as a series, which is the one place rule [A] costs more
+# than it buys. Named, because an ECDF maps colour by group name, not by position.
+attend_ecdf_cols <- c(`MMR deficient`  = unname(ATTEND_PALETTE["red"]),
+                      `MMR proficient` = unname(ATTEND_PALETTE["blue"]))
+
 attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
                       `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,
                       `MMRd aneuploidy-low` = attend_aneu_low,
@@ -273,7 +296,13 @@ attend_min_box_n <- 5L
 # their site defaults. The composition figures pass ihc_fig_style()'s values.
 attend_box <- function(data, x, y, by = NULL, min_n = attend_min_box_n,
                        jitter_width = 0.18, point_size = 0.8, point_alpha = 0.55,
-                       box_width = 0.6, label_n = TRUE, point_colour = "black",
+                       # label_n = FALSE: the per-group "n=" labels are off by request.
+                       # The n-AWARE MARK stays — a group under attend_min_box_n still draws a
+                       # median crossbar instead of a box — so the figure still refuses to
+                       # render quartiles from four patients; it just no longer prints the
+                       # count beside them. Pass label_n = TRUE at a call site that wants it
+                       # back (expand_y follows it, so the bottom gutter appears with it).
+                       box_width = 0.6, label_n = FALSE, point_colour = "black",
                        fill = attend_neutral, points = TRUE, expand_y = label_n,
                        linewidth = 0.5, label_size = 2.4) {
   keys <- c(x, by)
@@ -480,8 +509,62 @@ wrap_fig_text <- function(txt, width_in, size_pt, gutter = 0) {
 # separator onto two lines and drawn horizontal, so it occupies its own tick's width and
 # cannot overhang the device at either end. "aneuploidy-high" reads as "aneuploidy-" over
 # "high"; a label with no separator is left alone.
-wrap_class_labels <- function(x) {
+# Arcsine-square-root transform for a proportion in [0, 1] — the classic variance-stabiliser
+# for fraction data, and what makes a parametric t-test defensible on a composition fraction
+# or on the ASCETS aneuploidy score. Clamps out-of-range inputs, which is why as_proportion()
+# below exists: a clamp is silent, and a clamped group is a wall of identical values.
+# Lives HERE rather than in attend_ihc.R because reports 03/07 use it and do not source that
+# file — visibility follows the source() graph, not the directory listing.
+arcsin_sqrt <- function(p) asin(sqrt(pmin(pmax(p, 0), 1)))
+
+#' Is this vector a PROPORTION, so arcsin(sqrt()) is exact rather than a clamp?
+#'
+#' ⚠️ arcsin_sqrt() bounds its input to [0, 1]. The ATTEND aneuploidy score is an ASCETS
+#' FRACTION of evaluable arms, so the transform is exact on it. TCGA's fallback aneuploidy
+#' value is the PanCancer-Atlas arm COUNT (0-39, Taylor 2018), and transforming that would
+#' send every tumour above one arm to pi/2 — a wall of identical numbers whose t-test means
+#' nothing, drawn as though it were a result. Same trap report 04 already documents for the
+#' per-tumour-cell ratios. Callers transform only when this returns TRUE and say which scale
+#' they are on otherwise.
+as_proportion <- function(v) {
+  v <- suppressWarnings(as.numeric(v)); v <- v[is.finite(v)]
+  length(v) > 0 && min(v) >= 0 && max(v) <= 1
+}
+
+#' Display label for an aneuploidy class: "AS High" / "AS Low".
+#'
+#' DISPLAY ONLY — the DATA values stay "aneuploidy-high"/"aneuploidy-low". That separation is
+#' deliberate and not cosmetic timidity: add_scna_group() derives MMRd-high / MMRp-high with
+#' grepl("high", ..., fixed = TRUE), scna_group_token() turns those levels into the GISTIC run
+#' FOLDER NAMES on disk (data/gistic/mmrd_high/), and a dozen sites compare the strings
+#' directly. Renaming the factor levels to "AS High" would break the grepl on the capital H,
+#' silently reclassify every patient to NA, and orphan five GISTIC runs — with every report
+#' still knitting. So the rename happens at the axis, the legend and the strip, where it was
+#' asked for, and nowhere that a comparison can see it.
+#'
+#' Handles every spelling the pipeline carries: "aneuploidy-high", the compact "aneu-high"
+#' used by the Fig-1a annotation bar and aneu_point_layers(), and the "MMRd aneuploidy-high"
+#' of mmrd_aneuploidy_split(). Anything else passes through untouched, so it is safe as a
+#' blanket scale labeller on an axis that mixes classes.
+as_label <- function(x) {
   v <- as.character(x)
+  out <- sub("(^|\\b)(aneuploidy|aneu)-high$", "AS High", v)
+  out <- sub("(^|\\b)(aneuploidy|aneu)-low$",  "AS Low",  out)
+  # "MMRd aneuploidy-high" -> "MMRd AS High": keep the stratum prefix, relabel the class.
+  out <- sub("^(.*) (aneuploidy|aneu)-high$", "\\1 AS High", out)
+  out <- sub("^(.*) (aneuploidy|aneu)-low$",  "\\1 AS Low",  out)
+  out[is.na(v)] <- NA_character_
+  out
+}
+
+#' ggplot2 labeller for facets keyed on an aneuploidy class, so strips read AS High / AS Low
+#' like every axis and legend does. Used wherever aneuploidy_class / aneu_class is a facet.
+as_labeller <- function(labels) lapply(labels, as_label)
+
+wrap_class_labels <- function(x) {
+  # Relabel BEFORE wrapping: "AS High" is 7 characters, under the 8-character threshold
+  # below, so the two-line wrap that "aneuploidy-high" needed is simply not triggered.
+  v <- as_label(x)
   # Break at the LAST separator, so the two lines come out as even as the label allows.
   vapply(v, function(s) {
     if (is.na(s) || nchar(s) <= 8L) return(s)

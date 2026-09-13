@@ -377,12 +377,16 @@ dashed red line is the TMB-high cut
 (attend_thresholds$tmb = `r attend_thresholds$tmb` mut/Mb). Points are individual
 patients (jittered), not group means.
 
-```{r aneu-tmb-box, fig.height=2.5 * n_aneu_defs + 1.5}
+```{r aneu-tmb-box, fig.width=9, fig.height=4.2 * n_aneu_defs + 1.8}
 if (nrow(ta) > 0) {
   aneu_pal <- attend_aneu_cols
   ggplot(ta, aes(aneu_class, tmb)) +
+    # points = FALSE: highlight_points() supplies the point layer, partitioned so no patient
+    # is drawn twice, and carries the polipo overlay this figure used to be missing.
     attend_box(ta, x = "aneu_class", y = "tmb", by = c("definition", "mmr_group"),
-               fill = NULL, point_size = 1, point_alpha = 0.4) +
+               fill = NULL, points = FALSE) +
+    highlight_points(ta, "aneu_class", "tmb", base_size = 0.9, base_alpha = 0.5,
+                     base_const = "black") +
     # "firebrick" is a base R colour name from no palette, and every other cutoff line in
     # the pipeline is a neutral dashed grey. A threshold is a reference, not a result.
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
@@ -390,9 +394,8 @@ if (nrow(ta) > 0) {
     scale_fill_manual(values = aneu_pal, name = "aneuploidy status") +
     # Short horizontal tick labels — the fill legend already spells out the full
     # aneuploidy status, so the x-axis needn't repeat it (frees per-panel width).
-    scale_x_discrete(labels = c("aneuploidy-low" = "low",
-                                "aneuploidy-high" = "high")) +
-    facet_grid(definition ~ mmr_group, scales = "free_y") +
+    scale_x_discrete(labels = as_label) +
+    facet_grid(definition ~ mmr_group, scales = "free_y", labeller = as_labeller) +
     labs(title = "TMB by aneuploidy status, split by MMR group",
          subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb,
                            " mut/Mb); aneuploidy-high = score ≥ ", aneu_cut),

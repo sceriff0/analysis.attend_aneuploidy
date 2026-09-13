@@ -73,6 +73,27 @@ stopifnot(identical(unname(ATTEND_PALETTE[["blue"]]), HIGHLIGHT_BLUE),
           !HIGHLIGHT_BLUE %in% c(attend_mmr_cols, attend_aneu_cols,
                                  attend_tp53_cols, attend_resp_cols))
 
+## [C-exempt] The CURVE palettes may hold the reserved blue, and the exemption is stated here
+## rather than left to pass by simply not appearing in the list above. Rule [C] protects
+## FILLS DRAWN UNDER POINTS; a Kaplan-Meier curve and an ECDF have no per-patient points, so
+## there is nothing for the highlight to vanish into. What must stay true is that these two
+## are curve-only and never become a box fill — if one is ever passed to scale_fill_*, it
+## rejoins the guarded set above and this exemption has to go.
+stopifnot(exists("attend_arm_cols"), exists("attend_ecdf_cols"),
+          length(attend_arm_cols) == 2L, attend_arm_cols[1] != attend_arm_cols[2],
+          all(attend_arm_cols %in% ATTEND_PALETTE),
+          all(attend_ecdf_cols %in% ATTEND_PALETTE),
+          attend_ecdf_cols[["MMR deficient"]] != attend_ecdf_cols[["MMR proficient"]])
+## No report may use a curve palette as a fill — the check that keeps the exemption honest.
+for (.f in list.files(file.path("analysis"), pattern = "\\.Rmd$", full.names = TRUE)) {
+  .l <- readLines(.f, warn = FALSE)
+  .bad <- grep("scale_fill_[a-z]+\\([^)]*attend_(arm|ecdf)_cols", .l)
+  if (length(.bad))
+    stop(basename(.f), ":", paste(.bad, collapse = ", "),
+         ": a curve-only palette is being used as a FILL. attend_arm_cols / attend_ecdf_cols ",
+         "may hold the highlight blue only because nothing is drawn on top of them.")
+}
+
 ## Response must not reuse EITHER aneuploidy pole: reports 05 and 06 draw the same
 ## cell-type panels keyed on different variables, so a shared colour would make two
 ## different groupings look like one.
@@ -185,8 +206,15 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   cls <- vapply(attend_box(d, x = "g", y = "v"), function(l) class(l$geom)[1], character(1))
   stopifnot("GeomBoxplot" %in% cls,    # the n = 20 group keeps its quartiles
             "GeomCrossbar" %in% cls,   # the n = 4 group gets a median bar instead
-            "GeomPoint" %in% cls,      # points are ALWAYS drawn
-            "GeomText" %in% cls)       # and n is always stated
+            "GeomPoint" %in% cls)      # points are ALWAYS drawn
+  ## The "n=" LABEL is now off by default (requested), but the n-AWARE MARK above is not —
+  ## that is the part that keeps a four-patient group from being drawn as quartiles, and it
+  ## is what this block exists to pin. The label stays available per call site, so assert
+  ## BOTH directions: absent by default, present when asked for. Without the second half a
+  ## later edit could delete the labelling path entirely and nothing would notice.
+  stopifnot(!"GeomText" %in% cls,
+            "GeomText" %in% vapply(attend_box(d, x = "g", y = "v", label_n = TRUE),
+                                   function(l) class(l$geom)[1], character(1)))
 
   # points = FALSE for the call sites that supply highlight_points() themselves.
   cls2 <- vapply(attend_box(d, x = "g", y = "v", points = FALSE),

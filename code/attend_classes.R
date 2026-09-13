@@ -519,7 +519,7 @@ read_maf_maftools <- function(maf_path, maf_cfg = attend_maf, ...) {
 km_plot <- function(df, group,
                     time    = attend_cols$surv_time,
                     event   = attend_cols$surv_event,
-                    palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
+                    palette = if (exists("attend_arm_cols")) attend_arm_cols else c("#CC3311", "#33BBEE"),
                     title   = NULL) {
   d <- df |> mutate(across(all_of(event), recode_event)) |>
     filter(if_all(all_of(c(time, event, group)), ~ !is.na(.)))
@@ -546,7 +546,7 @@ km_plot <- function(df, group,
 km_facet <- function(df, group, facets,
                      time    = attend_cols$surv_time,
                      event   = attend_cols$surv_event,
-                     palette = if (exists("attend_pal")) attend_pal(2) else c("#0077BB", "#CC3311"),
+                     palette = if (exists("attend_arm_cols")) attend_arm_cols else c("#CC3311", "#33BBEE"),
                      title   = NULL) {
   keep_cols <- c(time, event, group, facets)
   d <- df |> mutate(across(all_of(event), recode_event)) |>

@@ -154,10 +154,11 @@ ihc_content_metrics <- function(celltype_metrics, immune_metrics,
          key = immune_metric,   denom_label = denom_label)))
 }
 
-# Arcsine-square-root transform for a proportion in [0, 1] — the classic
-# variance-stabiliser for fraction data, which is what makes a parametric t-test
-# defensible on these composition fractions. Clamps out-of-range inputs.
-arcsin_sqrt <- function(p) asin(sqrt(pmin(pmax(p, 0), 1)))
+# arcsin_sqrt() MOVED to code/attend_plots.R. It stopped being an IHC-only helper the
+# moment report 03 used it on the aneuploidy score, and report 03 does not source this
+# file — so leaving it here meant "object 'arcsin_sqrt' not found" on a clean cluster knit,
+# the same visibility-follows-the-source()-graph trap as k_cnv and maf_standard_cols. Every
+# file that sources attend_ihc.R also sources attend_plots.R, so nothing here loses it.
 
 # Per-patient IMMUNE content inside the annotation, for report 05: the two
 # leukocyte metrics (CD45+ total and CD3+CD45+ double-positive T cells) under each

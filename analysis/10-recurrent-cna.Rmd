@@ -213,8 +213,9 @@ if (is.null(pile)) {
 
 Part 1 pooled every patient. This part asks the same recurrence question inside the
 MMRd-high stratum alone, which is the group the study is about, and which Part 1's pooled
-frequencies can hide entirely: nine tumours out of forty move a cohort-wide frequency by at
-most a few percent, so a peak recurrent in all nine is invisible in Part 1.
+frequencies can hide entirely: `r n_mmrd_high` tumours out of `r nrow(master)` move a
+cohort-wide frequency by at most a few percent, so a peak recurrent in all `r n_mmrd_high`
+is invisible in Part 1.
 
 ### Setup and the two ID spaces
 GISTIC and .seg sample ids are sequencing **barcodes**; the master is keyed on **pid**.
@@ -296,11 +297,13 @@ if (all(c("mmr_group", "aneuploidy_class") %in% names(master))) {
 
 Every peak from the pooled GISTIC run, scored **only** in the MMRd-high tumours: how many
 of them carry a call at that peak, as a fraction, with a Wilson 95% interval. Wilson rather
-than a normal approximation because at n = 9 the normal interval runs outside [0, 1] and is
+than a normal approximation because at n = `r n_mmrd_high` the normal interval runs outside
+[0, 1] and is
 badly calibrated near 0 and 1. Sorted by frequency, so the top of the table *is* the answer
 to question 1 — the peaks that recur in this group, and how strongly.
 
-A peak at 9/9 with an interval of roughly 70–100% is a genuinely recurrent event in this
+A peak at `r n_mmrd_high`/`r n_mmrd_high` with an interval of roughly 70–100% is a genuinely
+recurrent event in this
 stratum. A peak at 2/9 is two patients, and its interval says so.
 
 ```{r q1-mmrd-high-recurrence, eval=have_master && have_gistic}
@@ -511,7 +514,7 @@ if (exists("pooled") && !is.null(pooled)) {
 
 ### The primary endpoint — a pre-specified serous-like panel score
 
-**Why a composite score rather than testing peaks one at a time.** At n ≈ 9 no individual
+**Why a composite score rather than testing peaks one at a time.** At n ≈ `r n_mmrd_high` no individual
 peak has the power to show a difference, and testing hundreds of peaks in a group that
 small produces false positives, not findings. A single composite score over a *fixed,
 externally-specified* set of loci concentrates the evidence into one test.
@@ -529,7 +532,7 @@ labels, so the resulting score is no longer independent of those labels under th
 permuting the labels afterwards does not undo the selection, because the selection was made
 on the unpermuted labels. The permutation null then understates the variability actually
 present and the nominal p is not the type-I error rate (Kriegeskorte et al., *Nat Neurosci*
-2009, on circular analysis; the general problem is post-selection inference). At n ≈ 9
+2009, on circular analysis; the general problem is post-selection inference). At n ≈ `r n_mmrd_high`
 against a few hundred candidate peaks, selection alone can manufacture near-complete
 separation from noise, so this is not a small correction.
 
@@ -547,7 +550,7 @@ nominal p that can be read at face value. It costs power against any difference 
 is not aimed at — if these tumours reach aneuploidy by a route TCGA's serous tumours do not
 use, a fixed serous panel is pointed the wrong way and returns a null result that means
 "not serous-like", never "not different". Choosing the fixed panel here is choosing to
-spend the little power n ≈ 9 affords on the one hypothesis that has external support,
+spend the little power n ≈ `r n_mmrd_high` affords on the one hypothesis that has external support,
 rather than to spread it across every peak or to buy apparent significance with selection.
 A data-driven panel found in these data would be reported as **hypothesis-generating**,
 alongside this test rather than in place of it.
@@ -592,7 +595,7 @@ if (is.null(pooled)) {
         ")**: observed difference in mean panel score =", signif(pt$stat, 3),
         "; label-permutation ", p_txt, ".",
         if (!is.null(wt)) paste0(" Wilcoxon p = ", signif(wt$p.value, 3), ".") else "",
-        "\n\nIf the 9 reach aneuploidy by a different route, the score separates from ",
+        "\n\nIf the ", sum(g2 == "MMRd-high"), " reach aneuploidy by a different route, the score separates from ",
         "MMRp-high; if they phenocopy copy-number-high tumours, it does not.\n\n")
   } else {
     cat("Fewer than 3 samples resolved to both MMRd-high and MMRp-high — permutation test skipped.\n\n")
@@ -618,7 +621,8 @@ p on 100% of datasets while the nested version is uniform —
 `code/tests/test_nested_selection_permutation.R` pins that calibration.
 
 Three numbers make this readable, and all three are printed: the nested p, the selected
-loci, and each locus's **leave-one-out selection frequency**. At n ≈ 9 per group a panel
+loci, and each locus's **leave-one-out selection frequency**. At n ≈ `r n_mmrd_high` and
+`r n_mmrp_high` per group a panel
 whose membership turns over when one patient is dropped is not a finding, and a low LOO
 fraction says so directly. The global burden test below it selects nothing at all, so it
 stays interpretable when both panels come back null.
@@ -708,18 +712,20 @@ if (exists("pooled") && !is.null(pooled)) {
 ### Leave-one-out stability of the MMRd-high peaks
 
 **The asymmetric rule this rests on.** A peak *present* in the MMRd-high list, supported by
-several of the 9 tumours and stable to leave-one-out, is **informative**. A peak *absent*
-from that list is **uninformative** — at n = 9 absence is indistinguishable from low power.
+several of the `r n_mmrd_high` tumours and stable to leave-one-out, is **informative**. A peak
+*absent* from that list is **uninformative** — at n = `r n_mmrd_high` absence is
+indistinguishable from low power.
 Presence carries evidence; absence does not. That is why the table reports support counts
 and retention fractions for MMRd-high peaks rather than a between-group presence/absence
 verdict.
 
-The retention fraction is the proportion of the 9 leave-one-out GISTIC re-runs in which a
-peak survives. A peak retained in 9/9 does not depend on any single tumour; a peak
+The retention fraction is the proportion of the `r n_mmrd_high` leave-one-out GISTIC re-runs
+in which a peak survives. A peak retained in `r n_mmrd_high`/`r n_mmrd_high` does not depend
+on any single tumour; a peak
 retained in 3/9 is one or two tumours' worth of signal.
 
 **This is a descriptive robustness diagnostic, not a calibrated error bound** — informal
-stability selection (Meinshausen & Bühlmann 2010) adapted to n = 9. Canonical stability
+stability selection (Meinshausen & Bühlmann 2010) adapted to n = `r n_mmrd_high`. Canonical stability
 selection uses ⌊n/2⌋ subsamples and an exchangeability assumption that leave-one-out at
 this n only approximates. It is not an FDR statement.
 

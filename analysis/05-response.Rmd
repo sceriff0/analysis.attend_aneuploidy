@@ -239,7 +239,7 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
     attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
                points = FALSE, expand_y = FALSE,
                linewidth = sty$linewidth, label_size = sty$label_size) +
-    highlight_points(d, "response_class", ".v", base_size = 0.5, base_alpha = 0.35,
+    highlight_points(d, "response_class", ".v", base_size = 1.0, base_alpha = 0.6,
                      base_const = "black") +
     facet_wrap(~ cell_type, ncol = ncol, scales = if (free_y) "free_y" else "fixed") +
     scale_x_discrete(labels = wrap_class_labels) +
@@ -337,14 +337,14 @@ Each cell type as a fraction of every cell in the annotation, so a panel reads "
 the tissue is this". Raw fractions with a Wilcoxon, drawn for all patients and then for the
 MMR-deficient subset.
 
-```{r box-inside, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-inside, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-inside-arcsin, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
@@ -354,13 +354,13 @@ Each cell type per unit of tumour: the denominator is tumour cells only, so a sh
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-tumor, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-tumor, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-tumor-arcsin, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
@@ -370,13 +370,13 @@ Composition *of the immune compartment*: the denominator is leukocytes, so diffe
 tumour content between patients cannot drive the contrast. Raw fractions, Wilcoxon, both
 cohorts.
 
-```{r box-cd45, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-cd45, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=13, fig.height=13, out.width="100%"}
+```{r box-cd45-arcsin, fig.width=14, fig.height=17, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
@@ -505,7 +505,7 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     attend_box(d, x = "response_class", y = "frac", by = "metric", fill = NULL,
                points = FALSE, expand_y = FALSE,
                linewidth = sty$linewidth, label_size = sty$label_size) +
-    highlight_points(d, "response_class", "frac", base_size = 0.6, base_alpha = 0.4,
+    highlight_points(d, "response_class", "frac", base_size = 1.0, base_alpha = 0.6,
                      base_const = "black") +
     facet_wrap(~ metric) +
     scale_x_discrete(labels = wrap_class_labels) +

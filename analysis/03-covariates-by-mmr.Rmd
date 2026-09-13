@@ -95,8 +95,10 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
   ggplot(long, aes(value, colour = MMR)) +
     stat_ecdf(linewidth = 0.9) +
     facet_wrap(~ covariate, scales = "free_x") +
-    # colours are the shared attend_mmr_cols (proficient grey / deficient orange)
-    scale_colour_manual(values = attend_mmr_cols) +
+    # attend_ecdf_cols, NOT attend_mmr_cols: on overlaid cumulative curves rule [A]'s
+    # reference grey reads as a gridline rather than as a series. Red = deficient,
+    # blue = proficient. Curve-only, so it may hold the highlight blue (no points here).
+    scale_colour_manual(values = attend_ecdf_cols) +
     labs(title = "ECDF of molecular covariates by MMR status",
          x = "value", y = "F(x) — cumulative fraction of patients", colour = NULL) +
     attend_theme() +
@@ -154,7 +156,11 @@ the ECDF alone gives no effect size or p-value. Aneuploidy score is
 aneu__aneuploidy_score (ASCETS arm-level SCNA burden from data/ascets/, LOWCOV arms
 excluded from each sample's denominator); the dashed line is the
 `r attend_thresholds$aneuploidy` class cutoff, drawn so the boxes can be read against the
-split the later reports use. Wilcoxon rank-sum on the two groups, uncorrected.
+split the later reports use. The score is a FRACTION of evaluable arms, so it is
+arcsine-square-root transformed and compared with a two-sample **t-test** — the
+variance-stabilising pair every proportion in this pipeline uses. `as_proportion()` checks
+the values really are in [0, 1] before transforming; if they are not, the panel stays on the
+raw scale with a Wilcoxon and says so. Uncorrected.
 
 ```{r aneu-by-mmr, fig.width=6, fig.height=5}
 aneu_col <- attend_cols$aneuploidy
@@ -169,21 +175,33 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
       aneuploidy = suppressWarnings(as.numeric(.data[[aneu_col]]))) |>
     filter(!is.na(MMR), !is.na(aneuploidy))
 
+  # Transform only if the values really are proportions — see as_proportion().
+  asin_ok <- as_proportion(am$aneuploidy)
+  if (asin_ok) am$.v <- arcsin_sqrt(am$aneuploidy) else am$.v <- am$aneuploidy
+
   p_lab <- tryCatch({
-    grp <- split(am$aneuploidy, am$MMR)
-    if (length(grp) == 2)
-      sprintf("Wilcoxon p = %s | n = %d deficient, %d proficient",
-              format.pval(wilcox.test(grp[[1]], grp[[2]])$p.value, digits = 2, eps = 1e-4),
+    grp <- split(am$.v, am$MMR)
+    if (length(grp) == 2) {
+      pv <- if (asin_ok) t.test(grp[[1]], grp[[2]])$p.value
+            else         wilcox.test(grp[[1]], grp[[2]])$p.value
+      sprintf("%s p = %s | n = %d deficient, %d proficient",
+              if (asin_ok) "arcsin(sqrt) t-test" else "Wilcoxon (raw scale)",
+              format.pval(pv, digits = 2, eps = 1e-4),
               length(grp[["MMR deficient"]]), length(grp[["MMR proficient"]]))
-    else NULL
+    } else NULL
   }, error = function(e) NULL)
 
-  ggplot(am, aes(MMR, aneuploidy, fill = MMR)) +
-    attend_box(am, x = "MMR", y = "aneuploidy", fill = NULL) +
-    geom_hline(yintercept = attend_thresholds$aneuploidy, linetype = 2, colour = "grey40") +
+  ggplot(am, aes(MMR, .v, fill = MMR)) +
+    attend_box(am, x = "MMR", y = ".v", fill = NULL, points = FALSE) +
+    highlight_points(am, "MMR", ".v", base_size = 1.2, base_alpha = 0.55, base_const = "black") +
+    # The class cutoff has to be transformed with the data or it lands at the wrong height.
+    geom_hline(yintercept = if (asin_ok) arcsin_sqrt(attend_thresholds$aneuploidy)
+                            else attend_thresholds$aneuploidy,
+               linetype = 2, colour = "grey40") +
     scale_fill_manual(values = attend_mmr_cols) +
     labs(title = "Aneuploidy score by MMR status",
-         subtitle = p_lab, x = NULL, y = "Aneuploidy score (0-1)") +
+         subtitle = p_lab, x = NULL,
+         y = if (asin_ok) "arcsin(sqrt(AS))" else "Aneuploidy score (0-1)") +
     attend_theme() + theme(legend.position = "none")
 } else {
   message("Need ", aneu_col, " and ", mmr_col, " on the master for the aneuploidy contrast.")
