@@ -480,7 +480,19 @@ if (!is.null(clust_mat) && nrow(clust_mat) >= k_cnv &&
     lab <- relabel_clusters_by_burden(cc$cluster, dmm)$cluster
     jj  <- tibble(ID = names(lab), new = as.character(lab)) |> inner_join(pub_all, by = "ID")
     if (!nrow(jj)) return(NULL)
-    ser <- tcga_clin_all$ID[grepl("Serous", as.character(tcga_clin_all$subtype_short))]
+    # ⚠️ NOT grepl("Serous", subtype_short). `subtype_short` holds the SHORT labels —
+    # POLE / MSI / CN-low / CN-high (attend_tcga_ref_2013$subtype_short) — so the word
+    # "Serous" appears in the LONG level name and never in this column. That match returned
+    # character(0) on every row, which made serous_in_top structurally 0 in all four cells
+    # of the table below whatever the data said: a column that cannot vary, sitting beside
+    # ARI and diagonal_pct as though it were evidence. Keyed off the config now, so a label
+    # edit moves both at once instead of silently emptying this one.
+    ser_lab <- unname(attend_tcga_ref_2013$subtype_short[["Copy-number high (Serous-like)"]])
+    # which(): 141 of 373 tumours have no subtype, so the bare comparison is a logical with
+    # NAs, and x[<logical with NA>] returns an NA element per NA rather than dropping it —
+    # 60 real ids padded to 201. %in% ignores NA so the count still came out right, which is
+    # exactly why it would have survived unnoticed.
+    ser <- tcga_clin_all$ID[which(as.character(tcga_clin_all$subtype_short) == ser_lab)]
     tibble(distance = dm,
            cohort = if (co) "core only" else "all with CN",
            clustered = nrow(cc$matrix),
