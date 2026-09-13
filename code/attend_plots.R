@@ -178,6 +178,18 @@ attend_mmr_cols <- c(MMRp = unname(ATTEND_PALETTE["grey"]),
 # of the pale box rather than into it.
 attend_aneu_low  <- unname(ATTEND_PALETTE["pale_blue"])
 attend_aneu_high <- unname(ATTEND_PALETTE["salmon"])
+# --- One spelling per concept, for every axis and legend across the site ------------------
+# The same quantity was being labelled three ways ("aneuploidy", "aneuploidy score",
+# "Aneuploidy score (0-1)") across reports 03/04/07/09, and the MMR groups two ways
+# ("MMRd"/"MMRp" in nine reports, "MMR deficient"/"MMR proficient" in one). A reader moving
+# between pages then has to decide whether two differently-labelled axes are the same
+# measurement. They are constants here for the same reason the palette is: one edit moves
+# every figure, and a report cannot invent a fourth spelling without it being visible in a
+# diff of THIS file.
+attend_as_axis   <- "Aneuploidy score (AS, 0-1)"  # every axis showing the continuous score
+attend_as_legend <- "AS class"                    # every legend keyed on AS High / AS Low
+attend_mmr_lab   <- c(deficient = "MMRd", proficient = "MMRp")  # the group names, everywhere
+
 # --- CURVE-ONLY palettes, and why they may hold the reserved blue ------------------------
 # Rule [C] keeps #0077BB unclaimed because highlight points are drawn ON TOP of boxes filled
 # with the semantic palettes, so a highlight sharing a hex vanishes on exactly the box it
@@ -198,8 +210,9 @@ attend_arm_cols  <- unname(c(ATTEND_PALETTE["red"], ATTEND_PALETTE["cyan"]))
 # attend_mmr_cols (grey/orange, rule [A]) — on overlaid cumulative curves the reference grey
 # reads as a gridline rather than as a series, which is the one place rule [A] costs more
 # than it buys. Named, because an ECDF maps colour by group name, not by position.
-attend_ecdf_cols <- c(`MMR deficient`  = unname(ATTEND_PALETTE["red"]),
-                      `MMR proficient` = unname(ATTEND_PALETTE["blue"]))
+attend_ecdf_cols <- stats::setNames(
+  c(unname(ATTEND_PALETTE["red"]), unname(ATTEND_PALETTE["blue"])),
+  c(attend_mmr_lab[["deficient"]], attend_mmr_lab[["proficient"]]))
 
 attend_aneu_cols <- c(`aneuploidy-low` = attend_aneu_low, `aneuploidy-high` = attend_aneu_high,
                       `aneu-low` = attend_aneu_low, `aneu-high` = attend_aneu_high,

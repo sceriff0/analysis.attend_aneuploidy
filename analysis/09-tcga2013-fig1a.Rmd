@@ -541,7 +541,7 @@ if (!is.null(aneu_cl) && nrow(aneu_cl) > 0 && dplyr::n_distinct(aneu_cl$cluster)
     labs(title = "TCGA UCEC 2013 — aneuploidy by recomputed copy-number cluster",
          subtitle = paste0(aneu_label, "; Kruskal-Wallis p = ", signif(kw$p.value, 3),
                            "; cluster ", high_cluster, " = highest intrinsic SCNA burden"),
-         x = "copy-number cluster", y = "aneuploidy") +
+         x = "copy-number cluster", y = attend_as_axis) +
     attend_theme()
 } else cat("Aneuploidy-by-cluster skipped — needs clusters and aneuploidy values.\n")
 ```

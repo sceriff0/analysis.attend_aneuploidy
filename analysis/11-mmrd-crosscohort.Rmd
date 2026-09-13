@@ -398,7 +398,7 @@ if (nrow(tcga_tmb) > 0) {
                fill = NULL) +
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = attend_aneu_high, linewidth = 0.4) +
-    scale_fill_manual(values = attend_aneu_cols, name = "aneuploidy status") +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label, name = attend_as_legend) +
     scale_x_discrete(labels = as_label) +
     facet_wrap(~ mmr_group, scales = "free_y") +
     labs(title = "TCGA UCEC — TMB by aneuploidy status, within MMR strata",

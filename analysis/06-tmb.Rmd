@@ -379,7 +379,6 @@ patients (jittered), not group means.
 
 ```{r aneu-tmb-box, fig.width=9, fig.height=4.2 * n_aneu_defs + 1.8}
 if (nrow(ta) > 0) {
-  aneu_pal <- attend_aneu_cols
   ggplot(ta, aes(aneu_class, tmb)) +
     # points = FALSE: highlight_points() supplies the point layer, partitioned so no patient
     # is drawn twice, and carries the polipo overlay this figure used to be missing.
@@ -391,7 +390,8 @@ if (nrow(ta) > 0) {
     # the pipeline is a neutral dashed grey. A threshold is a reference, not a result.
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = "grey40") +
-    scale_fill_manual(values = aneu_pal, name = "aneuploidy status") +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     # Short horizontal tick labels — the fill legend already spells out the full
     # aneuploidy status, so the x-axis needn't repeat it (frees per-panel width).
     scale_x_discrete(labels = as_label) +
@@ -650,12 +650,12 @@ if (have_tcga) {
              tmb    = suppressWarnings(as.numeric(tmb)),
              mmrd   = is_mmrd(.data[[mmr_col_l]])) |>
       filter(is.finite(tmb), !is.na(mmrd)) |>
-      select(cohort, tmb, mmrd)
+      select(pid, cohort, tmb, mmrd)     # pid kept so the polipo overlay can resolve
   } else tibble()
 
   both <- bind_rows(att,
     tcga |> filter(!is.na(mmrd)) |>
-      transmute(cohort = "TCGA UCEC (paired)", tmb, mmrd))
+      transmute(pid = NA_character_, cohort = "TCGA UCEC (paired)", tmb, mmrd))
 
   if (nrow(both) > 0) {
     both <- both |> mutate(MMR = if_else(mmrd, "MMRd", "MMRp"))
@@ -675,8 +675,13 @@ if (have_tcga) {
     ggplot(both, aes(MMR, tmb, fill = MMR)) +
       # expand_y = FALSE: this panel sets its own scale_y_log10() below, which would replace
       # attend_box()'s expansion scale and emit a "Scale for y is already present" message.
+      # points = FALSE + highlight_points(): the ATTEND facets carry the polipo overlay like
+      # every other per-patient figure. `both` has no pid column (it is cohort/tmb/mmrd), so
+      # the id is carried through explicitly — see the cohort build above.
       attend_box(both, x = "MMR", y = "tmb", by = "cohort", fill = NULL,
-                 point_size = 0.5, point_alpha = 0.35, expand_y = FALSE) +
+                 points = FALSE, expand_y = FALSE) +
+      highlight_points(both, "MMR", "tmb", base_size = 0.7, base_alpha = 0.45,
+                       base_const = "black") +
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
       scale_y_log10() +
       facet_wrap(~ cohort, nrow = 1) +

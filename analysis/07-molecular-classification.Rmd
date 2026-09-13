@@ -631,7 +631,7 @@ if (!is.null(cl) && exists("aneu_id") && !is.null(aneu_id)) {
       labs(title = "Aneuploidy score by CNV cluster (independent check)",
            subtitle = paste0("source: ", cnv_source, "; cluster ", high_cluster,
                              " = copy-number high (labelled by SCNA burden, not this score)"),
-           x = "CNV cluster", y = "aneuploidy score") +
+           x = "CNV cluster", y = attend_as_axis) +
       attend_theme()
   }
 }
@@ -898,7 +898,7 @@ if (exists("classed")) {
                points = FALSE) +
     aneu_point_layers(filter(pd, !is.na(aneuploidy_value)), value_col = "aneuploidy_value") +
     stat_compare_means(label = "p.format", size = 3) +
-    labs(title = "Aneuploidy by integrated class", x = NULL, y = "Aneuploidy score (0-1)") +
+    labs(title = "Aneuploidy by integrated class", x = NULL, y = attend_as_axis) +
     attend_theme() + theme(axis.text.x = element_text(angle = 20, hjust = 1))
 }
 ```

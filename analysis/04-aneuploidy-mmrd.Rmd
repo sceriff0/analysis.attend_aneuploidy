@@ -182,14 +182,14 @@ aneu_box <- function(d, vars, title, subtitle = NULL, ncol = 3) {
     # the class colour survives where it belongs: on the points, via base_colour below.
     attend_box(long, x = "group", y = "aneuploidy_value", by = "comparison", points = FALSE) +
     highlight_points(long, "group", "aneuploidy_value", base_colour = "aneuploidy_class",
-                     base_palette = attend_aneu_cols, base_name = "aneuploidy",
+                     base_palette = attend_aneu_cols, base_name = attend_as_legend,
                      base_size = 0.9, base_alpha = 0.65) +
     facet_wrap(~ comparison, scales = "free_x", ncol = ncol) +
     # Raw 0-1 scale, Wilcoxon. The arcsine transform stays in the COMPOSITION panels of Part 2,
     # where the fractions span orders of magnitude; the aneuploidy score is the outcome here
     # and is read directly as a fraction of altered arms.
     stat_compare_means(label = "p.format", size = 3) +
-    labs(title = title, subtitle = subtitle, x = NULL, y = "aneuploidy score") +
+    labs(title = title, subtitle = subtitle, x = NULL, y = attend_as_axis) +
     attend_theme() +
     theme(axis.text.x = element_text(angle = 20, hjust = 1))
 }
@@ -861,7 +861,7 @@ if (nrow(scat) > 2) {
   ggplot(scat, aes(aneuploidy_score, value, colour = aneuploidy_class)) +
     highlight_points(scat, "aneuploidy_score", "value", base_colour = "aneuploidy_class",
                      base_palette = attend_aneu_cols,
-                     base_name = "aneuploidy", jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+                     base_name = attend_as_legend, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
     geom_smooth(method = "lm", se = FALSE, colour = "grey40", linewidth = 0.6) +
     geom_text(data = rho, aes(x = Inf, y = Inf, label = label),
               inherit.aes = FALSE, hjust = 1.05, vjust = 1.5, size = 3) +
@@ -916,7 +916,7 @@ if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
     stat_compare_means(method = "wilcox.test", label = "p.format") +
     scale_fill_manual(values = attend_tp53_cols) +
     labs(title = "Aneuploidy by TP53 status (MMR-deficient only)",
-         x = NULL, y = "aneuploidy score") +
+         x = NULL, y = attend_as_axis) +
     attend_theme() + theme(legend.position = "none")
 } else {
   message("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",

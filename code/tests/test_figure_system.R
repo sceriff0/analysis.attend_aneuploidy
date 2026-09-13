@@ -83,7 +83,14 @@ stopifnot(exists("attend_arm_cols"), exists("attend_ecdf_cols"),
           length(attend_arm_cols) == 2L, attend_arm_cols[1] != attend_arm_cols[2],
           all(attend_arm_cols %in% ATTEND_PALETTE),
           all(attend_ecdf_cols %in% ATTEND_PALETTE),
-          attend_ecdf_cols[["MMR deficient"]] != attend_ecdf_cols[["MMR proficient"]])
+          attend_ecdf_cols[[attend_mmr_lab[["deficient"]]]] !=
+            attend_ecdf_cols[[attend_mmr_lab[["proficient"]]]])
+## One spelling per concept. These constants exist because the same axis was labelled three
+## ways and the MMR groups two ways; assert they are still single-valued and non-empty, so a
+## report cannot quietly reintroduce a second spelling by blanking one.
+stopifnot(nzchar(attend_as_axis), nzchar(attend_as_legend),
+          length(attend_mmr_lab) == 2L, all(nzchar(attend_mmr_lab)),
+          attend_mmr_lab[["deficient"]] != attend_mmr_lab[["proficient"]])
 ## No report may use a curve palette as a fill — the check that keeps the exemption honest.
 for (.f in list.files(file.path("analysis"), pattern = "\\.Rmd$", full.names = TRUE)) {
   .l <- readLines(.f, warn = FALSE)

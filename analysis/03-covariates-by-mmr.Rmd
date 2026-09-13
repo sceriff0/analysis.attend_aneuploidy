@@ -83,8 +83,8 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
   long <- master |>
     transmute(
       MMR = case_when(
-        .data[[mmr_col]] == attend_levels$mmr_deficient ~ "MMR deficient",
-        !is.na(.data[[mmr_col]])                         ~ "MMR proficient",
+        .data[[mmr_col]] == attend_levels$mmr_deficient ~ attend_mmr_lab[["deficient"]],
+        !is.na(.data[[mmr_col]])                         ~ attend_mmr_lab[["proficient"]],
         TRUE                                            ~ NA_character_),
       across(all_of(unname(covar_map)), ~ suppressWarnings(as.numeric(.x)))
     ) |>
@@ -169,8 +169,8 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
   am <- master |>
     transmute(
       MMR = case_when(
-        .data[[mmr_col]] == attend_levels$mmr_deficient ~ "MMR deficient",
-        !is.na(.data[[mmr_col]])                        ~ "MMR proficient",
+        .data[[mmr_col]] == attend_levels$mmr_deficient ~ attend_mmr_lab[["deficient"]],
+        !is.na(.data[[mmr_col]])                        ~ attend_mmr_lab[["proficient"]],
         TRUE                                            ~ NA_character_),
       aneuploidy = suppressWarnings(as.numeric(.data[[aneu_col]]))) |>
     filter(!is.na(MMR), !is.na(aneuploidy))
@@ -180,7 +180,7 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
     if (length(grp) == 2)
       sprintf("Wilcoxon p = %s | n = %d deficient, %d proficient",
               format.pval(wilcox.test(grp[[1]], grp[[2]])$p.value, digits = 2, eps = 1e-4),
-              length(grp[["MMR deficient"]]), length(grp[["MMR proficient"]]))
+              length(grp[[attend_mmr_lab[["deficient"]]]]), length(grp[[attend_mmr_lab[["proficient"]]]]))
     else NULL
   }, error = function(e) NULL)
 
@@ -191,7 +191,7 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
     geom_hline(yintercept = attend_thresholds$aneuploidy, linetype = 2, colour = "grey40") +
     scale_fill_manual(values = attend_mmr_cols) +
     labs(title = "Aneuploidy score by MMR status",
-         subtitle = p_lab, x = NULL, y = "Aneuploidy score (0-1)") +
+         subtitle = p_lab, x = NULL, y = attend_as_axis) +
     attend_theme() + theme(legend.position = "none")
 } else {
   message("Need ", aneu_col, " and ", mmr_col, " on the master for the aneuploidy contrast.")
