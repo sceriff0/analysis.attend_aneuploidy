@@ -26,43 +26,56 @@ chk <- function(ok, what) {
   if (!isTRUE(ok)) fails <<- fails + 1L
 }
 
-## --- direction is respected, not just magnitude -----------------------------
-## Two peaks. Peak 1: group A amplified (+2), group B flat. Peak 2: group A deleted
-## (-2), group B flat. A magnitude-only rule would score both the same; a directional
-## rule must call peak 1 "amp" and peak 2 "del".
-m <- rbind(matrix(c( 2, -2), nrow = 4, ncol = 2, byrow = TRUE),
-           matrix(c( 0,  0), nrow = 4, ncol = 2, byrow = TRUE))
-colnames(m) <- c("p_amp", "p_del"); rownames(m) <- paste0("s", 1:8)
-g <- factor(rep(c("A", "B"), each = 4), levels = c("A", "B"))
+## --- REGRESSION: the real matrix is UNSIGNED --------------------------------
+## all_lesions.conf_*.txt stores a deletion call as +1/+2 (test_load_gistic_lesions.R).
+## The old selection took "direction" from the sign of the group difference and tested
+## `sign * call >= 1`, so a locus enriched in group B was never altered for anyone and
+## the panel could only find group-A loci. Both deletion peaks below are unsigned: one
+## enriched in A, one in B. Both must be selected AND both must move the score.
+m <- rbind(matrix(c(1, 0), nrow = 4, ncol = 2, byrow = TRUE),
+           matrix(c(0, 2), nrow = 4, ncol = 2, byrow = TRUE))
+colnames(m) <- c("p_delA", "p_delB"); rownames(m) <- paste0("s", 1:8)
+g  <- factor(rep(c("A", "B"), each = 4), levels = c("A", "B"))
+pd <- c("del", "del")
 
-sel <- select_panel_loci(m, g, n_select = 2)
-chk(identical(sort(colnames(m)[sel$idx]), c("p_amp", "p_del")), "both peaks selected")
-chk(identical(unname(sel$dir[order(colnames(m)[sel$idx])]), c(1, -1)),
-    "direction taken from the sign: p_amp -> amp, p_del -> del")
+sel <- select_panel_loci(m, g, n_select = 2, peak_dir = pd)
+chk(identical(sort(colnames(m)[sel$idx]), c("p_delA", "p_delB")), "both peaks selected")
+chk(identical(unname(sel$enrich[order(colnames(m)[sel$idx])]), c(1, -1)),
+    "enrichment recorded per locus: p_delA -> A, p_delB -> B")
+s <- .selected_panel_score(.peak_altered(m, pd), sel)
+chk(all(s[1:4] == 1) && all(s[5:8] == 0),
+    "a locus enriched in B contributes: A scores 1, B scores 0 (the old code gave A 0.5)")
+res0 <- perm_test_selected_panel(m, g, n_select = 2, B = 200L, seed = 1, peak_dir = pd)
+chk(abs(res0$stat - 1) < 1e-12, "statistic = mean |frequency difference| over selected loci")
+chk(identical(sort(res0$enriched_in), c("A", "B")) && all(res0$peak_dir == "del"),
+    "the output separates peak direction (del) from enrichment group (A / B)")
 
-## the -2 call counts as altered at the del-direction locus, and a +2 there would not
-alt <- .directional_altered(m, sel$idx, sel$dir)
-chk(all(alt[1:4, ]), "group A altered at both loci in their own directions")
-chk(!any(alt[5:8, ]), "flat group A altered at neither")
-flipped <- m; flipped[1:4, "p_del"] <- 2      # wrong-direction event
-chk(!any(.directional_altered(flipped, sel$idx, sel$dir)[1:4, 2]),
-    "a +2 at a del-direction locus does NOT count (concordant events only)")
+## --- a SIGNED matrix with peak directions: concordant events only ------------
+sg <- rbind(matrix(c(2, -2), nrow = 4, ncol = 2, byrow = TRUE),
+            matrix(c(0,  0), nrow = 4, ncol = 2, byrow = TRUE))
+colnames(sg) <- c("p_amp", "p_del")
+chk(all(.peak_altered(sg, c("amp", "del"), signed = TRUE)[1:4, ]), "signed: -2 at a del peak counts")
+## No negative value left anywhere: signedness must come from the argument, not the data.
+wrong <- sg; wrong[1:4, "p_del"] <- 2
+chk(!any(.peak_altered(wrong, c("amp", "del"), signed = TRUE)[1:4, 2]),
+    "signed: +2 at a del peak does NOT count (concordant events only)")
+chk(all(.peak_altered(wrong, c("amp", "del"))[1:4, 2]),
+    "unsigned default: +2 at a del peak IS a deletion call, as in all_lesions")
 
 ## --- a zero-difference peak is not selectable -------------------------------
-## sign(0) == 0 would make .directional_altered() test `0 >= 1` for every sample and
-## contribute a constant column, silently shrinking the score's range.
-flat <- cbind(m, p_flat = 0)
+flat <- cbind(m, p_flat = 1)
 sel3 <- select_panel_loci(flat, g, n_select = 3)
 chk(!("p_flat" %in% colnames(flat)[sel3$idx]), "a constant peak is excluded from selection")
-chk(all(sel3$dir != 0), "no selected locus carries direction 0")
+chk(all(sel3$enrich != 0), "no selected locus carries enrichment 0")
 
 ## --- THE CALIBRATION CHECK: p must be uniform under the null ----------------
 ## Pure noise, random labels, nothing to find. 120 datasets, 40 samples, 60 peaks.
 ## The nested test must spread p over [0, 1]; the hoisted version must not.
 naive_p <- function(mat, grp, n_select, B, seed) {
   # THE BUG, on purpose: selection ONCE, on the real labels, then permute the scores.
-  sel <- select_panel_loci(mat, grp, n_select)
-  s   <- rowMeans(.directional_altered(mat, sel$idx, sel$dir), na.rm = TRUE)
+  A   <- .peak_altered(mat)
+  sel <- .select_on_altered(A, grp, n_select)
+  s   <- .selected_panel_score(A, sel)
   lv  <- levels(grp)
   obs <- mean(s[grp == lv[1]]) - mean(s[grp == lv[2]])
   set.seed(seed)
@@ -109,7 +122,7 @@ cat(sprintf("  planted 10-peak block: p = %.4f, %d/%d planted peaks recovered\n"
             res$p, sum(res$loci %in% paste0("pk", 1:10)), 10L))
 chk(res$p < 0.05, sprintf("nested test detects a real block (p = %.4f)", res$p))
 chk(sum(res$loci %in% paste0("pk", 1:10)) >= 8, "selection recovers the planted peaks")
-chk(all(res$dir[res$loci %in% paste0("pk", 1:10)] == "amp"), "planted block called amp")
+chk(all(res$enriched_in[res$loci %in% paste0("pk", 1:10)] == "A"), "planted block enriched in A")
 chk(length(res$loo_frac) == length(res$loci) && all(res$loo_frac >= 0 & res$loo_frac <= 1),
     "leave-one-out selection stability reported, one fraction per selected locus")
 chk(mean(res$loo_frac) > 0.8, sprintf("a real block is LOO-stable (mean %.2f)", mean(res$loo_frac)))

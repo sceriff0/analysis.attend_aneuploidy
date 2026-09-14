@@ -213,9 +213,10 @@ scna_freq_table <- function(mat, group) {
 
 #' Two-group label-permutation test on a continuous score.
 #'
-#' Permuting the label preserves the observed burden distribution exactly, which
-#' matters here: aneuploidy-high tumours carry more SCNAs by construction, so any
-#' test that does not hold the burden fixed is confounded by design.
+#' ⚠️ This does NOT control for SCNA burden. Permuting labels keeps the pooled score
+#' distribution but not a burden difference BETWEEN the groups: if MMRp-high is simply
+#' more aneuploid than MMRd-high (both sit above one cut), any fixed panel scores
+#' higher there for that reason alone. panel_specificity_test() is the burden control.
 #'
 #' The (1 + k) / (B + 1) correction keeps p strictly positive — an uncorrected 0/B
 #' would print as p = 0, a claim n = 9 cannot support.
@@ -290,16 +291,23 @@ gistic_run_inventory <- function(run_dirs, cnv = attend_cnv) {
   }))
 }
 
+#' Jaccard is confounded by run size: GISTIC's power grows with n, so a nine-patient
+#' run finds few peaks and its Jaccard against a large run is low BY CONSTRUCTION even
+#' when every peak it finds is shared. The overlap coefficient |A n B| / min(|A|, |B|)
+#' is 1 when the smaller set is a subset of the larger, so it is returned beside Jaccard
+#' with each run's peak count, and is the one to read for "does the small run find
+#' anything the large one does not".
 peak_set_structure <- function(union_tbl) {
   srcs <- unique(union_tbl$source)
   sets <- lapply(srcs, function(s) unique(union_tbl$union_id[union_tbl$source == s]))
   names(sets) <- srcs
 
-  jac <- matrix(NA_real_, length(srcs), length(srcs), dimnames = list(srcs, srcs))
+  jac <- ovl <- matrix(NA_real_, length(srcs), length(srcs), dimnames = list(srcs, srcs))
   for (i in seq_along(srcs)) for (j in seq_along(srcs)) {
     a <- sets[[i]]; b <- sets[[j]]
-    un <- length(union(a, b))
+    un <- length(union(a, b)); mn <- min(length(a), length(b))
     jac[i, j] <- if (un == 0) NA_real_ else length(intersect(a, b)) / un
+    ovl[i, j] <- if (mn == 0) NA_real_ else length(intersect(a, b)) / mn
   }
 
   tally   <- table(unique(union_tbl[, c("source", "union_id")])$union_id)
@@ -307,7 +315,8 @@ peak_set_structure <- function(union_tbl) {
                               c("source", "union_id"), drop = FALSE])
   rownames(private) <- NULL
 
-  list(sets = sets, jaccard = jac, private = private)
+  list(sets = sets, jaccard = jac, overlap = ovl,
+       n_peaks = vapply(sets, length, integer(1)), private = private)
 }
 
 #' Which reference group does each target sample's CN profile resemble?
@@ -375,112 +384,305 @@ loo_stability <- function(full_peaks, loo_folders, cnv = attend_cnv,
 # --- data-driven panel: selection NESTED inside the permutation --------------
 # The Family B counterpart to panel_score(). panel_score() asks "are these tumours
 # serous-like in the TCGA sense?" from a panel fixed before the data were seen. This
-# asks "is there ANY directional peak set that separates the two groups?" — a
-# strictly larger question, answered from the data, and therefore Family B forever.
+# asks "is there ANY peak set that separates the two groups?" — a strictly larger
+# question, answered from the data, and therefore Family B forever.
 #
 # Correlated with nothing in Family A, and never pooled with it: family_adjust()
 # keeps the two families apart precisely so a discovery result cannot spend the
 # confirmatory panel's power.
 
-#' Altered-in-the-given-direction, as a logical matrix.
+#' Per-sample "altered at this peak", as a logical matrix.
 #'
-#' `dir` is +1 (amplification) or -1 (deletion) per column. Multiplying by dir
-#' flips a deletion's sign, so one `>= 1` test serves both directions: a -2 call at
-#' a del-direction locus becomes +2 and counts, while a +2 call there becomes -2 and
-#' does not. Same "concordant events only" rule match_panel_peaks() applies to the
-#' pre-specified panel — an undirected rule answers "most altered", not "most like
-#' the target phenotype".
-.directional_altered <- function(mat, idx, dir) {
-  sub <- mat[, idx, drop = FALSE]
-  sweep(sub, 2, dir, `*`) >= 1
+#' ⚠️ all_lesions.conf_*.txt is UNSIGNED: a deletion peak's thresholded call is 1 or 2,
+#' not -1 or -2 — the peak's direction lives in its Unique Name, i.e. peaks$direction,
+#' never in the call's sign. An earlier version took direction from the sign of a
+#' group-mean difference and tested `sign * call >= 1`, which on this matrix is never
+#' true for a negative sign: every locus MORE frequent in the second group scored FALSE
+#' for everyone, so the data-driven panel could only ever find loci enriched in the
+#' first group, and its "amp"/"del" column was a group label under the wrong name. The
+#' synthetic test matrices were signed, so nothing failed.
+#'
+#' `signed` is DECLARED, never inferred from the values: a signed matrix in which no
+#' sample happens to carry a negative call is indistinguishable from an unsigned one.
+#' Unsigned (the default, all_lesions): altered is call >= 1, whatever the direction.
+#' Signed with `peak_dir`: only concordant calls count (+ at amp, - at del).
+.peak_altered <- function(mat, peak_dir = NULL, signed = FALSE) {
+  if (!signed || is.null(peak_dir)) return(abs(mat) >= 1)
+  sweep(mat, 2, ifelse(peak_dir == "del", -1, 1), `*`) >= 1
 }
 
-#' Choose the n_select most group-discriminating peaks, with their directions.
+#' Choose the n_select most group-discriminating peaks from an ALTERED matrix.
 #'
-#' DELIBERATELY label-dependent — that is the whole point, and the reason the result
-#' can never be treated as pre-specified. Criterion is the signed difference in mean
-#' thresholded call between the two groups: magnitude ranks the peaks, sign fixes
-#' each one's direction. One criterion doing both jobs, so there is no second
-#' selection step to account for.
-select_panel_loci <- function(mat, grp, n_select = attend_scna$select_n) {
+#' DELIBERATELY label-dependent — the reason the result can never be treated as
+#' pre-specified. Criterion is the difference in alteration FREQUENCY between the two
+#' groups: magnitude ranks the peaks, sign records which group each one is enriched in
+#' (`enrich` +1 = first level, -1 = second). A peak's amp/del direction is a property of
+#' the peak, not of this selection.
+.select_on_altered <- function(A, grp, n_select) {
   lv <- levels(droplevels(factor(grp)))
   if (length(lv) != 2L) stop("select_panel_loci(): need exactly 2 groups, got ", length(lv))
-  d  <- colMeans(mat[grp == lv[1], , drop = FALSE], na.rm = TRUE) -
-        colMeans(mat[grp == lv[2], , drop = FALSE], na.rm = TRUE)
+  d <- colMeans(A[grp == lv[1], , drop = FALSE], na.rm = TRUE) -
+       colMeans(A[grp == lv[2], , drop = FALSE], na.rm = TRUE)
   d[!is.finite(d)] <- 0
-  # A peak with a zero difference carries no direction, so it is not selectable:
-  # sign(0) == 0 would make .directional_altered() test `0 >= 1` for every sample
-  # and contribute a constant, silently shrinking the score's range.
+  # A zero-difference peak is enriched in neither group, so it is not selectable.
   cand <- which(d != 0)
-  if (!length(cand)) return(list(idx = integer(0), dir = numeric(0)))
+  if (!length(cand)) return(list(idx = integer(0), enrich = numeric(0)))
   idx <- cand[order(abs(d[cand]), decreasing = TRUE)][seq_len(min(n_select, length(cand)))]
-  list(idx = idx, dir = sign(d[idx]))
+  list(idx = idx, enrich = sign(d[idx]))
+}
+
+select_panel_loci <- function(mat, grp, n_select = attend_scna$select_n, peak_dir = NULL) {
+  .select_on_altered(.peak_altered(mat, peak_dir), grp, n_select)
+}
+
+#' Per-sample data-driven panel score: the fraction of selected loci at which the
+#' sample looks like the FIRST group — altered where that group is enriched, unaltered
+#' where the second group is. Both kinds of locus contribute, so the group-mean
+#' difference equals the mean |frequency difference| over the selected loci.
+.selected_panel_score <- function(A, sel) {
+  if (!length(sel$idx)) return(rep(NA_real_, nrow(A)))
+  sub <- A[, sel$idx, drop = FALSE]
+  rowMeans(sweep(sub, 2, sel$enrich > 0, `==`), na.rm = TRUE)
 }
 
 #' Group-mean difference in data-driven panel score, for one labelling.
-.selected_panel_stat <- function(mat, grp, n_select) {
+.selected_panel_stat <- function(A, grp, n_select) {
   lv  <- levels(droplevels(factor(grp)))
-  sel <- select_panel_loci(mat, grp, n_select)
+  sel <- .select_on_altered(A, grp, n_select)
   if (!length(sel$idx)) return(0)
-  s   <- rowMeans(.directional_altered(mat, sel$idx, sel$dir), na.rm = TRUE)
+  s   <- .selected_panel_score(A, sel)
   mean(s[grp == lv[1]], na.rm = TRUE) - mean(s[grp == lv[2]], na.rm = TRUE)
 }
 
 #' Permutation test for a data-driven panel, with the selection re-run inside every
 #' replicate.
 #'
-#' ⚠️ THE VALIDITY IS ENTIRELY IN WHERE THE SELECTION HAPPENS. select_panel_loci()
-#' is called INSIDE the replicate, on the PERMUTED labels. Hoisting it out — select
-#' once, then permute the scores — is the invalid "double dipping" version
-#' (Kriegeskorte et al., Nat Neurosci 2009): the panel would be chosen with the real
-#' labels, so the permuted scores could never reproduce the optimism the selection
-#' introduced, the null would be far too narrow, and p would be near zero on pure
-#' noise. That hoist looks like an obvious speed-up and is invisible in a diff.
-#' test_nested_selection_permutation.R pins the CALIBRATION (uniform p under the
-#' null), which is what actually catches it.
+#' ⚠️ THE VALIDITY IS ENTIRELY IN WHERE THE SELECTION HAPPENS. The selection is called
+#' INSIDE the replicate, on the PERMUTED labels. Hoisting it out — select once, then
+#' permute the scores — is the invalid "double dipping" version (Kriegeskorte et al.,
+#' Nat Neurosci 2009): the panel would be chosen with the real labels, so the permuted
+#' scores could never reproduce the optimism the selection introduced, the null would be
+#' far too narrow, and p would be near zero on pure noise. That hoist looks like an
+#' obvious speed-up and is invisible in a diff. test_nested_selection_permutation.R pins
+#' the CALIBRATION (uniform p under the null), which is what actually catches it.
 #'
-#' ONE-SIDED by construction, not by choice: select_panel_loci() takes each locus's
-#' direction from the sign of the group difference, so the selected panel always
-#' favours the first group and the statistic cannot be negative. Comparing |null| to
-#' |obs|, as perm_test_two_group() does for a fixed panel, would be testing a
-#' two-sided hypothesis the statistic cannot express.
+#' The altered matrix is computed ONCE, outside the replicates: it uses no labels.
+#'
+#' ONE-SIDED by construction: the statistic is a mean |frequency difference| and
+#' cannot be negative, so comparing |null| to |obs| would test a hypothesis it cannot
+#' express.
 perm_test_selected_panel <- function(mat, grp,
                                      n_select = attend_scna$select_n,
                                      B        = attend_scna$select_perm_B,
-                                     seed     = 1) {
+                                     seed     = 1,
+                                     peak_dir = NULL) {
   keep <- !is.na(grp)
-  mat  <- mat[keep, , drop = FALSE]
+  A    <- .peak_altered(mat, peak_dir)[keep, , drop = FALSE]
   grp  <- droplevels(factor(grp[keep]))
   if (nlevels(grp) != 2L)
     stop("perm_test_selected_panel(): need exactly 2 groups, got ", nlevels(grp))
 
-  obs <- .selected_panel_stat(mat, grp, n_select)
+  obs <- .selected_panel_stat(A, grp, n_select)
   set.seed(seed)
-  null <- replicate(B, .selected_panel_stat(mat, sample(grp), n_select))
+  null <- replicate(B, .selected_panel_stat(A, sample(grp), n_select))
 
-  sel <- select_panel_loci(mat, grp, n_select)
+  sel <- .select_on_altered(A, grp, n_select)
   # Leave-one-out selection stability. A panel whose membership turns over when one
   # patient is dropped is not a finding, and at n ~ 9 per group that is the likely
   # outcome — so it is reported beside p rather than left for a reader to wonder about.
-  loo <- table(unlist(lapply(seq_len(nrow(mat)), function(i)
-    colnames(mat)[select_panel_loci(mat[-i, , drop = FALSE], grp[-i], n_select)$idx])))
+  loo <- table(unlist(lapply(seq_len(nrow(A)), function(i)
+    colnames(A)[.select_on_altered(A[-i, , drop = FALSE], grp[-i], n_select)$idx])))
 
-  list(stat = obs,
-       p    = (1 + sum(null >= obs)) / (B + 1),
-       B    = B,
-       loci = colnames(mat)[sel$idx],
-       dir  = ifelse(sel$dir > 0, "amp", "del"),
-       loo_frac = as.numeric(loo[colnames(mat)[sel$idx]]) / nrow(mat))
+  loci <- colnames(A)[sel$idx]
+  list(stat        = obs,
+       p           = (1 + sum(null >= obs)) / (B + 1),
+       B           = B,
+       loci        = loci,
+       peak_dir    = if (is.null(peak_dir)) rep(NA_character_, length(loci))
+                     else unname(peak_dir[sel$idx]),
+       enriched_in = levels(grp)[ifelse(sel$enrich > 0, 1L, 2L)],
+       score       = stats::setNames(.selected_panel_score(A, sel), rownames(A)),
+       loo_frac    = as.numeric(loo[loci]) / nrow(A))
 }
 
 #' Global two-group test over the WHOLE peak set, selecting nothing.
 #'
-#' The complement to both panels: total directional burden per sample (any call of
-#' |value| >= 1 at any union peak), through the existing fixed-panel permutation. No
-#' selection, so no selection to correct for, and it stays answerable when both panel
-#' routes come back null — it asks "is the profile different at all?", which neither
-#' a serous-aimed panel nor a discriminating-peak panel can answer.
+#' The complement to both panels: total burden per sample (any call of |value| >= 1 at
+#' any peak), through the fixed-panel permutation. No selection, so no selection to
+#' correct for, and it stays answerable when both panel routes come back null — it asks
+#' "is the profile different at all?", which neither a serous-aimed panel nor a
+#' discriminating-peak panel can answer.
 perm_test_global_burden <- function(mat, grp, B = attend_scna$perm_B, seed = 1) {
   burden <- rowMeans(abs(mat) >= 1, na.rm = TRUE)
   perm_test_two_group(burden, grp, B = B, seed = seed)
+}
+
+#' Burden control for the pre-specified panel: is the group difference at the 12
+#' serous loci larger than at RANDOM loci of the same make-up?
+#'
+#' perm_test_two_group() cannot separate "serous-like" from "more aneuploid". Here the
+#' observed MMRp-high minus MMRd-high difference in panel score is set against the same
+#' difference over B random panels drawn from the pooled run's peaks with the SAME
+#' number of amplification and deletion loci the panel resolved. A burden difference
+#' moves every random panel too, so it moves the null, not the contrast.
+#'
+#' The resampling unit is the LOCUS, not the patient, so p here says "specific to these
+#' loci", not "a patient-level effect" — it is the sensitivity analysis beside the
+#' primary endpoint, never a replacement for it.
+panel_specificity_test <- function(mat, peaks, grp, panel = attend_scna$panel,
+                                   B = attend_scna$perm_B, seed = 1) {
+  mp <- match_panel_peaks(peaks, panel)
+  mp <- mp[!is.na(mp$peak_id) & mp$peak_id %in% colnames(mat), , drop = FALSE]
+  keep <- !is.na(grp)
+  g <- droplevels(factor(grp[keep]))
+  if (!nrow(mp) || nlevels(g) != 2L) return(NULL)
+
+  pdir <- peaks$direction[match(colnames(mat), peaks$peak_id)]
+  A    <- .peak_altered(mat, pdir)[keep, , drop = FALSE]
+  lv   <- levels(g)
+  diff_of <- function(ids) {
+    s <- rowMeans(A[, ids, drop = FALSE], na.rm = TRUE)
+    mean(s[g == lv[1]]) - mean(s[g == lv[2]])
+  }
+  n_amp <- sum(mp$direction == "amp"); n_del <- sum(mp$direction == "del")
+  pool_amp <- colnames(A)[pdir %in% "amp"]; pool_del <- colnames(A)[pdir %in% "del"]
+  if (length(pool_amp) < n_amp || length(pool_del) < n_del) return(NULL)
+
+  obs <- diff_of(mp$peak_id)
+  set.seed(seed)
+  null <- replicate(B, diff_of(c(sample(pool_amp, n_amp), sample(pool_del, n_del))))
+  ctr  <- mean(null)
+  list(stat = obs, null_mean = ctr,
+       null_lo = unname(stats::quantile(null, 0.025)),
+       null_hi = unname(stats::quantile(null, 0.975)),
+       p = (1 + sum(abs(null - ctr) >= abs(obs - ctr))) / (B + 1),
+       B = B, n_amp = n_amp, n_del = n_del)
+}
+
+# --- the two questions, as tables ----------------------------------------------
+
+#' Question 1 — which loci recur in one stratum, and how firmly.
+#'
+#' Candidate loci are the UNION of the pooled run's peaks and the stratum run's own
+#' peaks, matched by wide-limit overlap on chromosome and direction. The pooled run
+#' alone would bury a peak private to a nine-patient stratum under its genome-wide
+#' threshold, which is the reason the stratum run exists.
+#'
+#' "Recurrent" is GISTIC's own call on the STRATUM run: q <= fdr there. A frequency
+#' cut ("altered in half the tumours") is not recurrence — aneuploidy-high tumours carry
+#' so many arm-level events that a high frequency at a pooled peak is what burden alone
+#' predicts. Frequency, its Wilson CI and leave-one-out retention are reported beside
+#' the call, as its support, never in place of it.
+#'
+#' Per-sample calls come from the POOLED run whenever the locus has a pooled peak
+#' (one background model for every comparison that follows). Only a locus with no
+#' pooled peak falls back to the stratum run's own calls, and `calls_from` says so —
+#' those rows are within-stratum only and cannot enter a between-group comparison.
+q1_recurrence_table <- function(pooled, stratum, grp, target = "MMRd-high",
+                                fdr = 0.25, loo = NULL, overlap = peaks_overlap) {
+  if (is.null(pooled) || is.null(stratum)) return(NULL)
+  pk <- pooled$peaks; sk <- stratum$peaks
+
+  # Stratum peak -> the most significant overlapping pooled peak, if any.
+  map <- vapply(seq_len(nrow(sk)), function(i) {
+    ok <- vapply(seq_len(nrow(pk)), function(j) isTRUE(overlap(sk[i, ], pk[j, ])), logical(1))
+    if (!any(ok)) NA_character_ else pk$peak_id[ok][which.min(pk$q_value[ok])]
+  }, character(1))
+
+  ft  <- scna_freq_table(pooled$mat, grp)
+  ft  <- ft[as.character(ft$scna_group) == target, , drop = FALSE]
+  fs  <- scna_freq_table(stratum$mat, factor(rep(target, nrow(stratum$mat))))
+  row_for <- function(tbl, id) tbl[match(id, tbl$peak_id), c("n", "n_altered", "freq", "ci_lo", "ci_hi")]
+
+  from_stratum <- data.frame(
+    locus = sk$descriptor, direction = sk$direction,
+    found_in = ifelse(is.na(map), paste(target, "run only"), "both runs"),
+    q_stratum = sk$q_value, recurrent = !is.na(sk$q_value) & sk$q_value <= fdr,
+    stratum_peak_id = sk$peak_id, pooled_peak_id = map, stringsAsFactors = FALSE)
+  from_stratum <- cbind(from_stratum,
+                        ifelse_rows(is.na(map), row_for(fs, sk$peak_id), row_for(ft, map)))
+  from_stratum$calls_from <- ifelse(is.na(map), paste(target, "run"), "pooled run")
+
+  rest <- pk[!pk$peak_id %in% map, , drop = FALSE]
+  from_pooled <- data.frame(
+    locus = rest$descriptor, direction = rest$direction, found_in = "pooled run only",
+    q_stratum = NA_real_, recurrent = FALSE, stratum_peak_id = NA_character_,
+    pooled_peak_id = rest$peak_id, stringsAsFactors = FALSE)
+  from_pooled <- cbind(from_pooled, row_for(ft, rest$peak_id))
+  from_pooled$calls_from <- if (nrow(rest)) "pooled run" else character(0)
+
+  out <- rbind(from_stratum, from_pooled)
+  out$loo_retained_frac <- if (is.null(loo)) NA_real_
+                           else loo$retained_frac[match(out$stratum_peak_id, loo$peak_id)]
+  out <- out[order(!out$recurrent, out$q_stratum, -out$freq, na.last = TRUE), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+#' Row-wise choice between two equally-shaped data frames.
+ifelse_rows <- function(test, yes, no) {
+  out <- no; out[test, ] <- yes[test, ]; rownames(out) <- NULL; out
+}
+
+#' Question 2 — the loci Q1 called recurrent, scored in the reference stratum.
+#'
+#' Restricted to Q1's recurrent loci because the question is conditional ("if so, are
+#' THEY the same"). Both frequencies come from the pooled run's calls. A locus with no
+#' pooled peak is kept with NA and a reason: it cannot be scored in the reference group
+#' on the same background model, and dropping it would hide the stratum's most specific
+#' finding. No verdict column — at n ~ 9 the intervals are the answer.
+q2_same_loci_table <- function(q1, pooled, grp, target = "MMRd-high", ref = "MMRp-high") {
+  if (is.null(q1)) return(NULL)
+  r <- q1[q1$recurrent, , drop = FALSE]
+  if (!nrow(r)) return(r[, 0, drop = FALSE])
+  ft <- scna_freq_table(pooled$mat, grp)
+  ft <- ft[as.character(ft$scna_group) == ref, , drop = FALSE]
+  m  <- match(r$pooled_peak_id, ft$peak_id)
+  data.frame(locus = r$locus, direction = r$direction, q_stratum = r$q_stratum,
+             freq_target = r$freq, ci_lo_target = r$ci_lo, ci_hi_target = r$ci_hi,
+             freq_ref = ft$freq[m], ci_lo_ref = ft$ci_lo[m], ci_hi_ref = ft$ci_hi[m],
+             n_ref = ft$n[m], diff = r$freq - ft$freq[m],
+             note = ifelse(is.na(r$pooled_peak_id), "no pooled-run peak: not scorable in ref",
+                           ifelse(r$calls_from == "pooled run", "", r$calls_from)),
+             stringsAsFactors = FALSE)
+}
+
+#' How concordant would two groups be if they were the SAME population, at these n?
+#'
+#' Spearman's rho between per-peak frequencies has no meaningful fixed benchmark here:
+#' peaks near 0% in both groups, shared arm-level events and correlated peaks on one arm
+#' all push it up, while n ~ 9 pulls it down. So it is read against two references:
+#'  - `null_*`: rho between two random splits of the SAME patients (target + ref pooled,
+#'    labels shuffled, group sizes kept). This is the ceiling "the same" reaches at this
+#'    n. Permuting PATIENTS keeps every peak-peak correlation, so arm structure is in the
+#'    null too. An observed rho inside this range is consistent with "the same"; below
+#'    its 2.5% quantile it is less concordant than chance splits of one population.
+#'  - `ref_rho`: rho of target against a group expected to differ (default MMRp-low), the
+#'    floor.
+#' `cols` restricts to a peak subset (e.g. Q1's recurrent loci). ⚠️ Those loci were
+#' chosen for being frequent in the target, so the target's frequencies there are biased
+#' upward and the reference's regress; that bias pushes rho DOWN, toward "different", and
+#' the shuffled splits do not carry it.
+concordance_null <- function(mat, grp, target = "MMRd-high", ref = "MMRp-high",
+                             floor_group = "MMRp-low", cols = NULL, B = 1000, seed = 1) {
+  A <- abs(mat) >= 1
+  if (!is.null(cols)) A <- A[, intersect(cols, colnames(A)), drop = FALSE]
+  i1 <- which(grp == target); i2 <- which(grp == ref)
+  if (ncol(A) < 3 || !length(i1) || !length(i2)) return(NULL)
+  f   <- function(rows) colMeans(A[rows, , drop = FALSE], na.rm = TRUE)
+  rho <- function(a, b) suppressWarnings(stats::cor(a, b, method = "spearman"))
+
+  obs  <- rho(f(i1), f(i2))
+  pool <- c(i1, i2); k <- length(i1)
+  set.seed(seed)
+  null <- replicate(B, { s <- sample(pool); rho(f(s[seq_len(k)]), f(s[-seq_len(k)])) })
+  i3 <- which(grp == floor_group)
+  list(rho = obs, n_peaks = ncol(A),
+       null_median = stats::median(null, na.rm = TRUE),
+       null_lo = unname(stats::quantile(null, 0.025, na.rm = TRUE)),
+       null_hi = unname(stats::quantile(null, 0.975, na.rm = TRUE)),
+       frac_null_below = mean(null <= obs, na.rm = TRUE),
+       floor_group = floor_group,
+       ref_rho = if (length(i3)) rho(f(i1), f(i3)) else NA_real_,
+       B = B)
 }

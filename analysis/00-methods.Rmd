@@ -151,13 +151,24 @@ coarse to fine:
 |---|---|---|
 | Jaccard of the five runs' peak sets | membership | a stratum shares peaks with the pooled run |
 | `coGisticChromPlot()`, the two runs back to back | G-score amplitude by position | peaks at the same loci, similar height |
-| `scna_concordance_plot()` — per-peak frequency, one group against the other | per-peak frequency | points on the diagonal; Spearman's rho near 1 |
+| `scna_concordance_plot()` — per-peak frequency, one group against the other | per-peak frequency | points on the diagonal; rho inside the range random splits of the same patients reach |
 
 The scatter is the one that answers the question as asked: one point per pooled-run peak,
 its frequency in MMRd-high against MMRp-high, with the diagonal drawn. Both frequencies
 come from the **pooled** run's per-sample calls, so the two axes share one background model
 — the peak-discovery-vs-per-sample-call separation Part 3 already rests on. The difference
 tests keep their place afterwards as the formal endpoint, under the two inference families.
+
+Three rules keep the two answers honest. **Recurrence is a GISTIC call, not a frequency
+cut:** question 1 reads the union of the pooled and MMRd-high runs' peaks and calls a locus
+recurrent only at q <= the configured cutoff on the MMRd-high run, because aneuploidy-high
+tumours clear "altered in half of them" on burden alone. **Question 2 is conditional:** its
+table keeps only question 1's recurrent loci and scores them in MMRp-high with an interval
+for each group. **Spearman's rho has no fixed benchmark:** zero-frequency peaks and arm-level
+peak correlation inflate it and n ≈ 9 deflates it, so it is read against rho between random
+splits of the same patients (the ceiling "the same" reaches at this n) and against MMRp-low
+(a floor). The panel permutation does not control burden either; a random-panel control
+matched on amplification and deletion counts sits beside it.
 
 ### What the aneuploidy result is measured against
 
