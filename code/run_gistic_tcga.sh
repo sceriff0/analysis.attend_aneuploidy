@@ -83,9 +83,15 @@ fi
 # --- locate the hg19 refgene ------------------------------------------------
 # Distributions disagree on the filename; try the common ones rather than hard-coding.
 if [ -z "$REFGENE" ]; then
+  # Case matters on Linux, and the two sources disagree: bzhanglab/GISTIC2_example ships
+  # hg19.UCSC.add_miR.140312.refgene.mat (capital R, 3,138,861 bytes) while some GISTIC
+  # distributions bundle the lowercase spelling. Both are probed — the capital-R form first,
+  # since that is what you get downloading from GitHub today.
   for cand in \
+      refgenefiles/hg19.UCSC.add_miR.140312.refgene.mat \
       refgenefiles/hg19.UCSC.add_mir.140312.refgene.mat \
       refgenefiles/hg19.mat \
+      /opt/GISTIC/refgenefiles/hg19.UCSC.add_miR.140312.refgene.mat \
       /opt/GISTIC/refgenefiles/hg19.UCSC.add_mir.140312.refgene.mat \
       /opt/GISTIC/refgenefiles/hg19.mat \
       "$GISTIC_REFDIR/hg19.mat"; do
