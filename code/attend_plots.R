@@ -1205,8 +1205,31 @@ highlight_coverage <- function(df, highlight = if (exists("attend_highlight")) a
            suppressWarnings(as.numeric(ids)) %in% present_num[!is.na(present_num)]))
     }, logical(1))
     miss <- cfg[!hit]
-    sprintf("  %s: %d/%d matched%s", nm, sum(hit), length(cfg),
-            if (length(miss)) paste0(" | missing: ", paste(miss, collapse = ", ")) else "")
+    # A configured id matching NOTHING is the overlay's worst failure — the mark simply is
+    # not drawn and the figure looks finished. So when every spelling misses, print the
+    # closest ids actually present, which is what turns "0/1 matched" into a diagnosis. The
+    # comparison ignores separators and case ONLY for this suggestion; matching itself stays
+    # exact, because a fuzzy match could mark the wrong patient.
+    hint <- ""
+    if (!sum(hit) && length(present)) {
+      key  <- function(v) toupper(gsub("[^A-Za-z0-9]", "", v))
+      want <- key(cfg)
+      near <- present[vapply(key(present), function(k)
+        any(nchar(k) > 2 & (startsWith(k, substr(want, 1, 3)) |
+                            utils::adist(k, want, ignore.case = TRUE)[1] <= 2)), logical(1))]
+      hint <- if (length(near))
+        paste0("\n      nothing matched — ids present that look close: ",
+               paste(utils::head(near, 5), collapse = ", "),
+               "\n      add the right spelling to attend_highlight$groups$", nm, "$ids")
+      else "\n      nothing matched, and no similar id is present in this frame"
+    }
+    # A group's `ids` are ALTERNATIVE SPELLINGS OF THE SAME SAMPLE, not separate samples, so
+    # the group is MATCHED when any one of them resolves. Reporting "1/3 matched" made a
+    # success read as a two-thirds shortfall the moment aliases were added.
+    if (sum(hit))
+      sprintf("  %s: MATCHED (as %s)", nm, paste(cfg[hit], collapse = ", "))
+    else
+      sprintf("  %s: NOT MATCHED — tried %s%s", nm, paste(cfg, collapse = ", "), hint)
   }, character(1))
   paste0("highlight coverage (id cols: ", paste(cand, collapse = "/"), ")\n",
          paste(lines, collapse = "\n"), "\n")

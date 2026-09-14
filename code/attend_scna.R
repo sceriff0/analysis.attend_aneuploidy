@@ -261,6 +261,35 @@ family_adjust <- function(p, family = c("A", "B"), cfg = attend_scna, n = length
 #' Layer 3 of the report. At n=9 "is MYC differentially frequent?" is unanswerable,
 #' but "do the two groups recurrently alter the same loci?" is — as a set-overlap
 #' question rather than a per-peak test.
+#' Which GISTIC runs exist, and which are USABLE — as a table a report can print.
+#'
+#' run_gistic.sh guards its group sweep per group (`|| echo WARN ... continuing`), so one
+#' group failing leaves the rest intact and a report simply finds nothing where that group
+#' should be: a section that renders empty rather than one that says a run is missing.
+#' readGistic() additionally needs ALL FOUR of all_lesions / amp_genes / del_genes /
+#' scores.gistic and hard-stops without them, so "the folder exists" is not "the run is
+#' usable". Both distinctions are reported here rather than inferred from a blank page.
+gistic_run_inventory <- function(run_dirs, cnv = attend_cnv) {
+  need <- c(cnv$gistic$all_lesions_glob, cnv$gistic$amp_genes_glob,
+            cnv$gistic$del_genes_glob,   cnv$gistic$scores_glob)
+  do.call(rbind, lapply(names(run_dirs), function(nm) {
+    d <- run_dirs[[nm]]
+    if (!dir.exists(d))
+      return(data.frame(run = nm, files = "0/4", status = "MISSING - no folder",
+                        stringsAsFactors = FALSE))
+    got <- vapply(need, function(g) length(Sys.glob(file.path(d, g))) > 0, logical(1))
+    # A folder holding only gistic_inputs.mat is GISTIC started and died; distinguishing that
+    # from "never attempted" is what tells you whether to fix the .seg or the GISTIC call.
+    started <- length(list.files(d)) > 0
+    data.frame(run = nm, files = paste0(sum(got), "/4"),
+               status = if (all(got)) "complete"
+                        else if (started) paste0("INCOMPLETE - started, missing ",
+                                                 paste(gsub("[*]", "", need[!got]), collapse = ", "))
+                        else "EMPTY - folder created, nothing written",
+               stringsAsFactors = FALSE)
+  }))
+}
+
 peak_set_structure <- function(union_tbl) {
   srcs <- unique(union_tbl$source)
   sets <- lapply(srcs, function(s) unique(union_tbl$union_id[union_tbl$source == s]))

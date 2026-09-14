@@ -160,9 +160,16 @@ hl_cfg <- list(groups = list(polipo = list(ids = "21S188", color = HIGHLIGHT_BLU
 got <- highlight_group_of(data.frame(pid = c("P021", "P019", "P007"),
                                      stringsAsFactors = FALSE), highlight = hl_cfg)
 stopifnot(identical(got, c("polipo", NA_character_, NA_character_)))
-stopifnot(grepl("1/1 matched", highlight_coverage(data.frame(pid = "P021",
-                                                            stringsAsFactors = FALSE),
-                                                 highlight = hl_cfg)))
+## Both directions, and "MATCHED" alone will not do: it is a substring of "NOT MATCHED", so
+## a one-sided grepl here would pass on exactly the failure it is meant to catch — which is
+## how the silently-unmatched overlay survived in the first place (polipo was configured as
+## 21S188 while the data spells it 21_5_188, and nothing said so).
+.hit  <- highlight_coverage(data.frame(pid = "P021", stringsAsFactors = FALSE), highlight = hl_cfg)
+.miss <- highlight_coverage(data.frame(pid = "P999", stringsAsFactors = FALSE), highlight = hl_cfg)
+stopifnot(grepl("polipo: MATCHED", .hit, fixed = TRUE),
+          !grepl("NOT MATCHED", .hit, fixed = TRUE),
+          grepl("polipo: NOT MATCHED", .miss, fixed = TRUE),
+          grepl("21S188", .miss, fixed = TRUE))   # an unmatched id must name itself
 ## Empty registry -> literal matching only, exactly the pre-crosswalk behaviour.
 register_highlight_xwalk()
 stopifnot(identical(highlight_expand_ids("21S188"), "21S188"))

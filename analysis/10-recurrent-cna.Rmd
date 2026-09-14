@@ -249,6 +249,23 @@ run_dirs <- c(all       = file.path(gx_dir, "all"),
               mmrd_high = file.path(gx_dir, "mmrd_high"))
 have_gistic <- dir.exists(run_dirs[["all"]])
 
+# Which of the five runs exist and are usable — gistic_run_inventory(), attend_scna.R.
+gistic_inv <- gistic_run_inventory(run_dirs)
+loo_dir_n <- { d <- file.path(gx_dir, "loo")
+               if (dir.exists(d)) length(list.dirs(d, recursive = FALSE)) else 0L }
+
+print(knitr::kable(gistic_inv, row.names = FALSE, caption = paste0(
+  "GISTIC runs found under `", gx_dir, "`. Every panel below names the run it needs; a run ",
+  "listed MISSING or INCOMPLETE is why the corresponding section is skipped. Leave-one-out ",
+  "sub-runs found: ", loo_dir_n, ".")))
+
+if (any(gistic_inv$status != "complete"))
+  cat("\nTo rebuild a missing run: `MODE=groups Rscript code/prep_gistic_group_segs.R`",
+      "writes output/gistic_input/attend_<group>.seg, then `MODE=groups bash",
+      "code/run_gistic.sh` runs GISTIC over them. run_one() SKIPS a group whose .seg is",
+      "absent, so a group with no folder at all usually means its .seg was never written,",
+      "while a folder holding only gistic_inputs.mat means GISTIC started and failed.\n")
+
 if (!have_master) {
   cat("Master table absent — run report 01 first.\n")
 } else if (!have_gistic) {

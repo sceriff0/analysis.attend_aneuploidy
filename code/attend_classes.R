@@ -216,7 +216,21 @@ attend_highlight <- list(
     # vanished on report 06's non-responder box) and when the retired cohort group was
     # #E69F00 (identical to MMRd, same problem on report 03). test_figure_system.R and
     # test_plot_style.R rule [5] both pin it.
-    polipo = list(ids = c("21S188"), color = "#0077BB")
+    # ⚠️ THREE SPELLINGS OF ONE SAMPLE, and this is why the overlay drew nothing.
+    # The configured id was "21S188" alone. The sequencing data spells the same sample
+    # "21_5_188" — separators inserted AND the S transcribed as a 5 — which is visible in
+    # the GISTIC leave-one-out folder names (data/gistic/loo/mmrd_high_drop_21_5_188, beside
+    # a sibling spelled mmrd_high_drop_23_S_64, so the two forms coexist in one cohort).
+    # norm_id() only upper-cases and trims and .norm_id() only strips a ".0" suffix, so
+    # neither bridges it: the id matched nothing, in every barcode-keyed figure, silently.
+    # That is the exact failure CLAUDE.md calls the worst an overlay has, recurring under a
+    # different spelling.
+    #
+    # Listed EXPLICITLY rather than fixed by a cleverer normaliser. Treating "5" and "S" as
+    # interchangeable would be a rule that can match the WRONG sample, and an overlay that
+    # marks the wrong patient is worse than one that marks none. Add a spelling here when
+    # the data shows one; highlight_coverage() now names any id that resolves to nothing.
+    polipo = list(ids = c("21S188", "21_S_188", "21_5_188"), color = "#0077BB")
   )
 )
 
