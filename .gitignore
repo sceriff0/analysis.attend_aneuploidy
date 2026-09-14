@@ -76,3 +76,6 @@ CLAUDE.md
 
 # MATLAB MCR component cache, created by code/run_gistic.sh (container has no /tmp)
 .mcr_cache/
+
+# Singularity/Apptainer images (gistic2.sif is multi-GB — never commit it)
+*.sif

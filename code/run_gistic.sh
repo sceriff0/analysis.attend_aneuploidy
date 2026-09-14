@@ -119,9 +119,35 @@ MAXSEG="${MAXSEG:-46000}"
 _abs () { case "$1" in /*) printf '%s' "$1" ;; *) printf '%s/%s' "$ROOT" "$1" ;; esac; }
 REFGENE="$(_abs "$REFGENE")"; SEG="$(_abs "$SEG")"; OUTDIR="$(_abs "$OUTDIR")"
 
+# GISTIC_SIF is TRIMMED, then VALIDATED, then auto-detected — in that order.
+#
+# Trimmed because an exported variable picks up whitespace easily and `[ -n " " ]` is true,
+# so a blank-looking value silently takes the container branch. Validated because a stale
+# export from an earlier shell is the likeliest way this goes wrong: a GISTIC_SIF pointing at
+# a DIRECTORY (the repo root, say) passed `[ -n ]`, survived _abs() unchanged because it was
+# already absolute, and died as "does not exist" naming a path that plainly does exist —
+# which reads as a bug in the script rather than a stale variable. Auto-detected because the
+# image normally sits in the repo root as gistic2.sif, exactly as the header instructs, so
+# the common case should need no environment at all.
+GISTIC_SIF="$(printf '%s' "$GISTIC_SIF" | tr -d '[:space:]')"
 if [ -n "$GISTIC_SIF" ]; then
   GISTIC_SIF="$(_abs "$GISTIC_SIF")"
-  [ -f "$GISTIC_SIF" ] || { echo "ERROR: GISTIC_SIF '$GISTIC_SIF' does not exist."; exit 1; }
+  if [ -d "$GISTIC_SIF" ]; then
+    echo "note: GISTIC_SIF='$GISTIC_SIF' is a DIRECTORY, not a .sif — ignoring it."
+    echo "      (a stale 'export GISTIC_SIF=...' in this shell? check with: echo \"[\$GISTIC_SIF]\")"
+    GISTIC_SIF=""
+  elif [ ! -f "$GISTIC_SIF" ]; then
+    echo "note: GISTIC_SIF='$GISTIC_SIF' does not exist — ignoring it and looking in the repo."
+    GISTIC_SIF=""
+  fi
+fi
+if [ -z "$GISTIC_SIF" ]; then
+  for _c in "$ROOT/gistic2.sif" "$ROOT"/*.sif; do
+    [ -f "$_c" ] && { GISTIC_SIF="$_c"; echo "found container: $GISTIC_SIF"; break; }
+  done
+fi
+
+if [ -n "$GISTIC_SIF" ]; then
   # ⚠️ BIND AS LITTLE AS POSSIBLE. genepattern/docker-gistic is a MINIMAL image — it has no
   # /tmp, no /var/tmp and no /etc/passwd, which singularity announces as "Skipping mount
   # /tmp: /tmp doesn't exist in container". An image that thin cannot have mount points
@@ -156,13 +182,31 @@ if [ -n "$GISTIC_SIF" ]; then
   echo "gistic: $GISTIC_SIF -> $GISTIC_BIN"
   echo "  binds: ${_bound[*]:-none needed (\$HOME and cwd are auto-bound)}"
   echo "  MCR_CACHE_ROOT: $MCR_CACHE_ROOT"
-  # Prove the binary is reachable BEFORE launching five multi-hour runs against it.
-  if ! singularity exec "${BIND_ARGS[@]}" "$GISTIC_SIF" test -x "$GISTIC_BIN" 2>/dev/null; then
-    echo "ERROR: '$GISTIC_BIN' is not executable inside $GISTIC_SIF."
-    echo "       Check the path with:"
-    echo "         singularity exec $GISTIC_SIF bash -lc 'ls -l /usr/local/bin /opt/GISTIC 2>/dev/null'"
-    exit 1
+  # Prove the binary is reachable BEFORE launching five multi-hour runs against it, and find
+  # it if the configured name is wrong. The default is `gistic2`, which this image does NOT
+  # ship — genepattern/docker-gistic puts /usr/local/bin/gp_gistic2_from_seg instead — so
+  # without the probe the zero-config path fails for a reason the FATAL does not name.
+  _bin_ok () { singularity exec "${BIND_ARGS[@]}" "$GISTIC_SIF" test -x "$1" 2>/dev/null; }
+  if ! _bin_ok "$GISTIC_BIN"; then
+    _found=""
+    for _b in /usr/local/bin/gp_gistic2_from_seg /opt/GISTIC/gp_gistic2_from_seg \
+              /opt/GISTIC/gistic2 gp_gistic2_from_seg gistic2; do
+      _bin_ok "$_b" && { _found="$_b"; break; }
+    done
+    if [ -n "$_found" ]; then
+      echo "note: GISTIC_BIN='$GISTIC_BIN' is not executable in the image; using '$_found'."
+      GISTIC_BIN="$_found"
+    else
+      echo "ERROR: no GISTIC binary found inside $GISTIC_SIF."
+      echo "       Tried: $GISTIC_BIN, /usr/local/bin/gp_gistic2_from_seg,"
+      echo "              /opt/GISTIC/gp_gistic2_from_seg, /opt/GISTIC/gistic2, gistic2"
+      echo "       List what is actually there with:"
+      echo "         singularity exec $GISTIC_SIF bash -lc 'ls -l /usr/local/bin /opt/GISTIC 2>/dev/null'"
+      exit 1
+    fi
   fi
+  RUN=(singularity exec "${BIND_ARGS[@]}" "$GISTIC_SIF" "$GISTIC_BIN")
+  echo "  binary: $GISTIC_BIN (verified executable in the image)"
 else
   command -v "$GISTIC_BIN" >/dev/null 2>&1 || {
     echo "ERROR: '$GISTIC_BIN' is not on PATH and GISTIC_SIF is unset."
