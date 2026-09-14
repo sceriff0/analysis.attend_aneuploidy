@@ -9,7 +9,7 @@
 # base-R colour names — and five themes. Nothing failed; every report knitted. The drift was
 # only visible by reading ten files side by side, which is precisely the job a test should do.
 #
-# Seven rules:
+# Eight rules:
 #   [1] no literal hex in a report — colour comes from the palette, not from the call site
 #   [2] no raw ggplot theme_*() in a report — attend_theme() is the one theme
 #   [3] no base-R colour NAME as a colour/fill constant ("red", "firebrick", "turquoise3")
@@ -17,6 +17,7 @@
 #   [5] the highlight-group colours collide with no semantic palette colour
 #   [6] km_facet()'s default palette is not a hardcoded pair of colour names
 #   [7] no call site passes an argument an attend_plots.R helper does not have
+#   [8] a fill SCALE and a fill MAPPING appear together, or neither does
 
 source(file.path("code", "attend_plots.R"))   # base-R-sourceable: no top-level library()
 
@@ -220,6 +221,65 @@ if (!ok_src) {
       note(basename(f), ": unknown argument(s) passed to an attend_plots.R helper — ",
            paste(unique(bad), collapse = " | "),
            ". R would raise \"unused argument\" at knit time, on the cluster, mid-build.")
+  }
+}
+
+# ---- [8] a fill scale and a fill mapping must exist together ----------------
+# Report 06's TMB-by-aneuploidy panel carried scale_fill_manual(attend_aneu_cols) over a
+# ggplot whose aes() mapped x and y and NOT fill. attend_box(fill = NULL) means "inherit the
+# parent fill", so geom_boxplot fell back to its own default — WHITE — and the scale, having
+# no aesthetic to bind, was discarded. Nothing errored, nothing warned: the figure simply
+# rendered with no colour and no legend, and read as if the palette had been chosen that way.
+# The mirror case is as bad and was live in three reports: aes(fill = <var>) with no scale at
+# all falls through to ggplot's default hue wheel, i.e. colour from outside the palette, which
+# is exactly what rule [1] exists to stop but cannot see because no hex is written down.
+#
+# Scoped PER CHUNK, not per file: report 06 had a correctly-scaled fill elsewhere in the same
+# file, so a file-level check would have passed it. Parsed, not grepped, so `labs(fill = NULL)`
+# and `attend_box(fill = NULL)` — neither of which is a mapping — cannot be mistaken for one.
+# A chunk drawing several plots is checked as a unit, which is deliberately permissive: it can
+# only produce false PASSES, never a false failure.
+fname_of <- function(e) {
+  if (is.name(e)) return(as.character(e))
+  if (is.call(e) && identical(as.character(e[[1]]), "::")) return(as.character(e[[3]]))
+  ""
+}
+for (f in reports) {
+  lines  <- readLines(f, warn = FALSE)
+  opens  <- grep("^```\\{r", lines)
+  closes <- grep("^```\\s*$", lines)
+  for (o in opens) {
+    cl <- closes[closes > o]
+    if (!length(cl)) next
+    body <- lines[(o + 1):(cl[1] - 1)]
+    ex <- tryCatch(parse(text = paste(body, collapse = "\n")), error = function(e) NULL)
+    if (is.null(ex)) next            # test_rmd_parse.R owns un-parseable chunks
+    aes_fill <- FALSE; fill_scale <- FALSE
+    walk <- function(e) {
+      if (!is.call(e)) return(invisible(NULL))
+      fn <- fname_of(e[[1]])
+      nms <- names(e); nms <- if (is.null(nms)) character(0) else nms[-1]
+      if (fn %in% c("aes", "aes_string", "aes_") && "fill" %in% nms) aes_fill <<- TRUE
+      if (grepl("^scale_fill_", fn)) fill_scale <<- TRUE
+      # scale_colour_*(aesthetics = c("colour", "fill")) sets both from one call.
+      if (grepl("^scale_colou?r_", fn) && "aesthetics" %in% nms &&
+          grepl("fill", paste(deparse(e), collapse = " "))) fill_scale <<- TRUE
+      for (i in seq_along(e)[-1]) {
+        if (identical(e[i], list(quote(expr = )))) next
+        walk(e[[i]])
+      }
+      invisible(NULL)
+    }
+    for (e in ex) walk(e)
+    if (fill_scale && !aes_fill)
+      note(basename(f), ":", o, ": scale_fill_*() in a chunk that maps no aes(fill = ) — ",
+           "the scale binds to nothing and is DISCARDED, and the geom renders in its own ",
+           "default (white for a boxplot). Map fill in the top-level aes(); ",
+           "attend_box(fill = NULL) inherits it.")
+    if (aes_fill && !fill_scale)
+      note(basename(f), ":", o, ": aes(fill = ) with no scale_fill_*() — the fill falls ",
+           "through to ggplot's default hue wheel, i.e. colour from outside the palette. ",
+           "Use a semantic palette from attend_plots.R, or attend_pal(n) for a nominal set.")
   }
 }
 

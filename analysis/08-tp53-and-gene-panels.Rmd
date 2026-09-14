@@ -344,6 +344,11 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
   print(ggplot(plot_tbl, aes(Hugo_Symbol, freq, fill = scna_group)) +
     geom_col(position = position_dodge(width = 0.8), width = 0.75) +
     coord_flip() +
+    # scna_group is MMR x aneuploidy, and both components already own a colour. Without this
+    # scale the bars fell through to ggplot's default hue wheel — four colours from no
+    # palette. attend_scna_cols keeps MMR as the hue (rule [A]: MMRp grey, MMRd orange) and
+    # the aneuploidy pole as the saturation, so both splits are readable in one legend.
+    scale_fill_manual(values = attend_scna_cols) +
     scale_y_continuous(labels = scales::percent_format(accuracy = 1),
                        expand = expansion(mult = c(0, 0.05))) +
     labs(title = "Mutation frequency by subgroup (TCGA Fig. 2d convention)",

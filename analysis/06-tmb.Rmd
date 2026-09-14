@@ -369,17 +369,67 @@ if (have_aneu_tmb) {
 }
 ```
 
+Both two-group tests on the **continuous** TMB, one pair per (MMR group × TMB definition)
+cell, computed here so the figure below carries no statistics of its own. The **Welch
+t-test** runs on **log10 TMB**, not on raw mut/Mb: TMB spans orders of magnitude and the
+MMRd arm is hypermutated, so a t on the raw scale is set by whichever single patient sits
+highest and its p is not the p it claims to be. The **Mann-Whitney** (`wilcox.test`) runs on
+the raw values as the companion, not a substitute — it is rank-based, so the log would not
+move it, and it asks about stochastic ordering rather than a mean difference. A cell needs
+at least two patients in each aneuploidy arm to be tested; below that both p-values are NA.
+A TMB of exactly zero has no log and is dropped from the t-test only, so `n_zero` is
+reported beside the counts. Neither p is adjusted across the cells shown.
+
+```{r aneu-tmb-pvals}
+if (nrow(ta) > 0) {
+  aneu_tmb_p <- ta |>
+    group_by(definition, mmr_group) |>
+    group_modify(function(.x, ...) {
+      n_lo <- sum(.x$aneu_class == "aneuploidy-low")
+      n_hi <- sum(.x$aneu_class == "aneuploidy-high")
+      ok   <- n_lo >= 2 && n_hi >= 2
+      # The t-test's own frame: zeros removed, because log10(0) is -Inf and would otherwise
+      # silently take the whole group's mean with it. Counted, never absorbed.
+      lg <- .x[is.finite(.x$tmb) & .x$tmb > 0, , drop = FALSE]
+      t_p <- if (ok && sum(lg$aneu_class == "aneuploidy-low")  >= 2 &&
+                       sum(lg$aneu_class == "aneuploidy-high") >= 2) {
+        tryCatch(stats::t.test(log10(tmb) ~ aneu_class, data = lg)$p.value,
+                 error = function(e) NA_real_)
+      } else NA_real_
+      w_p <- if (ok) {
+        tryCatch(suppressWarnings(stats::wilcox.test(tmb ~ aneu_class, data = .x)$p.value),
+                 error = function(e) NA_real_)
+      } else NA_real_
+      tibble(n_low = n_lo, n_high = n_hi,
+             n_zero = sum(.x$tmb <= 0, na.rm = TRUE), t_p = t_p, mw_p = w_p)
+    }) |>
+    ungroup() |>
+    # One two-line label per facet, drawn at the panel ceiling by the figure below.
+    mutate(.lab = paste0("t p = ",    ifelse(is.na(t_p),  "NA", signif(t_p,  2)),
+                         "\nMW p = ", ifelse(is.na(mw_p), "NA", signif(mw_p, 2))))
+} else {
+  aneu_tmb_p <- tibble()
+  cat("No aneuploidy/TMB data — the two-group tests are skipped.\n")
+}
+```
+
 The two boxplots the analysis calls for: TMB (raw mut/Mb) in aneuploidy-high vs
 aneuploidy-low tumours, faceted **by MMR group** (columns: MMRp, MMRd) and **by TMB
-definition** (rows). Boxes are filled by aneuploidy status (light blue = low, red =
-high — the shared attend_aneu_cols palette the other reports use); the
-dashed red line is the TMB-high cut
+definition** (rows). Boxes are filled by aneuploidy status (pale blue = low, salmon =
+high — the shared attend_aneu_cols palette every other report uses); the
+dashed grey line is the TMB-high cut
 (attend_thresholds$tmb = `r attend_thresholds$tmb` mut/Mb). Points are individual
-patients (jittered), not group means.
+patients (jittered), not group means. Each panel carries the Welch-t (on log10 TMB) and
+Mann-Whitney p from the chunk above; at these group sizes they are suggestive, not
+confirmatory.
 
 ```{r aneu-tmb-box, fig.width=9, fig.height=4.2 * n_aneu_defs + 1.8}
 if (nrow(ta) > 0) {
-  ggplot(ta, aes(aneu_class, tmb)) +
+  # fill rides the TOP-LEVEL aes and attend_box(fill = NULL) inherits it — the idiom every
+  # other semantic-fill box in the pipeline uses. Without it geom_boxplot falls back to its
+  # own default (white) and the scale_fill_manual below binds to nothing and is DISCARDED,
+  # silently: the boxes rendered with no colour and no legend, and nothing errored.
+  ggplot(ta, aes(aneu_class, tmb, fill = aneu_class)) +
     # points = FALSE: highlight_points() supplies the point layer, partitioned so no patient
     # is drawn twice, and carries the polipo overlay this figure used to be missing.
     attend_box(ta, x = "aneu_class", y = "tmb", by = c("definition", "mmr_group"),
@@ -390,15 +440,22 @@ if (nrow(ta) > 0) {
     # the pipeline is a neutral dashed grey. A threshold is a reference, not a result.
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = "grey40") +
+    geom_text(data = aneu_tmb_p, inherit.aes = FALSE,
+              aes(x = 1.5, y = Inf, label = .lab),
+              vjust = 1.1, size = 2.7, lineheight = 0.95, colour = "grey25") +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
+    # Headroom at the top for the two-line p label; attend_box(label_n = FALSE) adds no
+    # y scale of its own here, so this one is not replacing anything.
+    scale_y_continuous(expand = expansion(mult = c(0.05, 0.20))) +
     # Short horizontal tick labels — the fill legend already spells out the full
     # aneuploidy status, so the x-axis needn't repeat it (frees per-panel width).
     scale_x_discrete(labels = as_label) +
     facet_grid(definition ~ mmr_group, scales = "free_y", labeller = as_labeller) +
     labs(title = "TMB by aneuploidy status, split by MMR group",
          subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb,
-                           " mut/Mb); aneuploidy-high = score ≥ ", aneu_cut),
+                           " mut/Mb); aneuploidy-high = score ≥ ", aneu_cut,
+                           "; t on log10 TMB, MW on raw"),
          x = NULL, y = "TMB (mut/Mb)") +
     attend_theme() +
     theme(axis.text.x = element_text(angle = 0),
@@ -415,7 +472,11 @@ tmb_class_of() (the same cut every TMB-keyed figure uses), and the table reports
 **count and fraction of TMB-high tumours in the aneuploidy-low vs -high groups**. A
 **Fisher exact test** on the 2×2 (aneuploidy status × TMB-high/low) asks whether the
 TMB-high fraction differs by aneuploidy status. Cells with an aneuploidy group of
-fewer than 3 patients report NA.
+fewer than 3 patients report NA. The Welch-t and Mann-Whitney p-values computed above are
+joined on as the last two columns, so one table carries all three: Fisher asks whether the
+*proportion over the 10 mut/Mb cut* differs, the other two ask whether the *distribution*
+does, and they can disagree — a shifted distribution that never crosses the cut moves the
+latter two and not Fisher.
 
 ```{r aneu-tmb-test}
 if (nrow(ta) > 0) {
@@ -445,7 +506,11 @@ if (nrow(ta) > 0) {
         fisher_p      = p
       )
     }) |>
-    ungroup()
+    ungroup() |>
+    # The two continuous tests were computed above on the SAME (definition, mmr_group)
+    # grouping, so this is a key-for-key join, not a re-derivation.
+    left_join(select(aneu_tmb_p, definition, mmr_group, t_p, mw_p),
+              by = c("definition", "mmr_group"))
 
   knitr::kable(
     aneu_tmb_tab |>
@@ -456,10 +521,14 @@ if (nrow(ta) > 0) {
                     sprintf("%d (%.0f%%)", tmbhigh_low,  pct_low),  "—"),
                 `TMB-high | aneu-high` = ifelse(is.finite(pct_high),
                     sprintf("%d (%.0f%%)", tmbhigh_high, pct_high), "—"),
-                `Fisher p` = signif(fisher_p, 3)),
+                `Fisher p` = signif(fisher_p, 3),
+                `t p (log10)` = signif(t_p, 3),
+                `Mann-Whitney p` = signif(mw_p, 3)),
     caption = paste0("TMB-high tumours (≥ ", attend_thresholds$tmb,
                      " mut/Mb) as count (%) within the aneuploidy-low vs -high groups, ",
-                     "and Fisher's exact p, per MMR group and TMB definition.")
+                     "with Fisher's exact p on the 2×2 and the two continuous-TMB tests ",
+                     "(Welch t on log10, Mann-Whitney on raw), per MMR group and TMB ",
+                     "definition.")
   )
 } else {
   cat("No aneuploidy/TMB data — test skipped.\n")

@@ -989,6 +989,12 @@ icat <- imaging_pt |>
 if (nrow(icat) > 0) {
   ggplot(icat, aes(aneuploidy_class, fill = level)) +
     geom_bar(position = "fill") +
+    # The pathologist's category sets differ per covariate and have no semantic palette of
+    # their own, so they take the project's qualitative one POSITIONALLY. Without it these
+    # bars used ggplot's default hue wheel. A stacked bar carries no per-patient highlight
+    # point, so the reserved blue at attend_pal()[1] cannot hide one here (rule [C], the
+    # same exemption the KM and ECDF palettes take).
+    scale_fill_manual(values = attend_pal(dplyr::n_distinct(icat$level))) +
     facet_wrap(~ covariate, scales = "free_x", nrow = 1) +
     labs(title = "Pathologist categorical calls by aneuploidy class (MMR-deficient only)",
          x = NULL, y = "proportion of patients", fill = NULL) +

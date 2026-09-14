@@ -786,6 +786,7 @@ icat <- imaging_pt |>
 if (nrow(icat) > 0) {
   ggplot(icat, aes(response_class, fill = level)) +
     geom_bar(position = "fill") +
+    scale_fill_manual(values = attend_pal(dplyr::n_distinct(icat$level))) +  # cf. report 04
     facet_wrap(~ covariate, scales = "free_x", nrow = 1) +
     labs(title = "Pathologist categorical calls by response class (all patients)",
          x = NULL, y = "proportion of patients", fill = NULL) +

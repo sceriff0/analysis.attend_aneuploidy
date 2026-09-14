@@ -248,6 +248,29 @@ attend_cohort_cols <- c(`TCGA UCEC (primary)`  = unname(ATTEND_PALETTE["grey"]),
                         TCGA   = unname(ATTEND_PALETTE["grey"]),
                         ATTEND = unname(ATTEND_PALETTE["teal"]))
 
+# MMR x aneuploidy subgroup (add_scna_group(): MMRp-low / MMRp-high / MMRd-low / MMRd-high).
+# Report 08's Fig-2d frequency panel coloured by this with NO scale, so it fell through to
+# ggplot's default hue wheel — four colours from no palette, on a variable both of whose
+# components already have one. The construction keeps both components readable at once:
+# the HUE is MMR (rule [A]: MMRp reference grey, MMRd orange), and the aneuploidy pole is
+# the SATURATION, high at full strength and low mixed toward white. So a reader sees the
+# MMR split across the legend and the aneuploidy split within each pair, which is the two-
+# factor structure the subgroup actually has. Derived from ATTEND_PALETTE rather than
+# written as four new hexes, so a repalette moves these with everything else.
+#
+# Rule [B] holds: the only other fill on that figure is nothing — it is the sole grouping.
+# Rule [C] holds: no member is the highlight blue, and none is near it.
+.toward_white <- function(hex, f = 0.55) {
+  m <- grDevices::col2rgb(hex)
+  grDevices::rgb(t(m + (255 - m) * f), maxColorValue = 255)
+}
+
+attend_scna_cols <- c(
+  `MMRp-low`  = .toward_white(unname(ATTEND_PALETTE["grey"])),
+  `MMRp-high` = unname(ATTEND_PALETTE["grey"]),
+  `MMRd-low`  = .toward_white(unname(ATTEND_PALETTE["orange"])),
+  `MMRd-high` = unname(ATTEND_PALETTE["orange"]))
+
 # ============================================================================
 # THE THEME — one base_size, one grid policy.
 # ============================================================================
