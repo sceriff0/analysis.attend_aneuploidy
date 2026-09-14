@@ -58,7 +58,7 @@ identical is deliberate — it is what makes the two groupings comparable rather
 separate analyses that happen to use the same cells.
 
 Both cohorts are drawn for every figure, always in the same order (all patients first,
-MMR-deficient second). Report 05 restricts to MMRd because MMR deficiency is itself a route
+MMR-deficient second). Report 04 restricts to MMRd because MMR deficiency is itself a route
 to genomic instability and would otherwise confound an aneuploidy contrast. Response has no
 such built-in confound with MMR status, so the whole cohort is the primary cohort here and
 the MMRd panel is the stratified check.
@@ -100,7 +100,7 @@ knitr::kable(response_counts(master),
                               resp_cut, " months on ", attend_cols$surv_time, ")"))
 
 if (!have_resp)
-  message("Survival columns are still placeholders in attend_cols — every figure below ",
+  note_skip("Survival columns are still placeholders in attend_cols — every figure below ",
           "is skipped. Set surv_time / surv_event and re-knit.")
 ```
 
@@ -133,7 +133,7 @@ cat(highlight_coverage(master |> filter(!is.na(response_class))))
 "Cell type" is `phenotype_clean`, the parenthetical phenotype label in the FlowPath export
 (changeable in `code/load_phenotypes.R`). Every count is taken inside the annotated region
 and expressed as a fraction, but the denominator changes the question, so all three are
-shown — this is the same three-way normalization report 05 uses:
+shown — this is the same three-way normalization report 04 uses:
 
 | Normalization | Denominator | The question it answers |
 |---|---|---|
@@ -210,7 +210,7 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
   sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
             else        "raw fraction; Wilcoxon rank-sum"
   # One call fixes the ceiling and the p-value height together — see box_by_aneu() in
-  # report 05 and frac_display_y() in attend_plots.R for why they cannot be separate.
+  # report 04 and frac_display_y() in attend_plots.R for why they cannot be separate.
   # A title fragment per scope. The fallback capitalises rather than passing the scope
   # through verbatim -- an unmapped scope produced a title starting in lower case.
   what <- if (is.null(scope)) "Cell types"
@@ -249,7 +249,7 @@ box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = N
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = if (free_y) NULL else yy$label_y) +
     shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_resp_cols) +
+    scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
     labs(title = wrap_fig_text(paste0(what, " by response — ", cohort_label),
                                width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
@@ -275,23 +275,23 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
     filter(is.finite(.v))
   if (nrow(d_all) == 0) {
-    message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
+    note_skip("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
   }
   cohorts <- list(`all patients`  = d_all,
                   `MMR-deficient` = filter(d_all, pid %in% mmrd_pids))
-  # Focus set first for each cohort, then every cell type — same reason as report 05.
+  # Focus set first for each cohort, then every cell type — same reason as report 04.
   for (nm in names(cohorts)) {
     foc <- filter(cohorts[[nm]], cell_type %in% attend_ihc_focus)
     if (nrow(foc) > 0) {
       p <- box_by_resp(foc, denom_label, nm, arcsin, scope = "focus set")
       if (!is.null(p)) print(p)
     }
-    # Tumour phenotypes dropped -- see report 05: one of them at ~1.0 flattens every
+    # Tumour phenotypes dropped -- see report 04: one of them at ~1.0 flattens every
     # immune panel, and tumour content has its own panel below.
     p <- box_by_resp(filter(cohorts[[nm]], !grepl(attend_ihc_tumor_pattern, cell_type)),
                      denom_label, nm, arcsin, scope = "all cell types", ncol = 3,
                      free_y = attend_ihc_all_free_y)
-    if (is.null(p)) message("Skipped: ", nm, " / ", denom_label,
+    if (is.null(p)) note_skip("Skipped: ", nm, " / ", denom_label,
                             " — no finite fractions, or only one response arm present.")
     else print(p)
   }
@@ -305,7 +305,7 @@ while all four of these sit under ~0.6, so an axis wide enough for `Tumor` leave
 unreadable — and these four are what the figure is for.
 
 Every cell type is drawn in **one figure per normalization and cohort, on a single shared y
-axis**, exactly as in report 05: a panel's height reads as that cell type's abundance
+axis**, exactly as in report 04: a panel's height reads as that cell type's abundance
 relative to every other one, rather than against a rescaled axis of its own. Each cohort's
 axis is computed from its own patients, so read the adjacent pair on which cell types moved,
 not on absolute box heights.
@@ -443,7 +443,7 @@ cat("values above 1 (a ratio, not a proportion):", n_over,
     if (n_over > 0) " <- clamped by arcsin_sqrt() in the transformed figures" else "", "\n")
 
 # Raw then arcsine/t-test, per cohort. The companion carries the clamp count for the same
-# reason as report 05: arcsin_sqrt() bounds to [0, 1] and CD45+/tumour is a ratio.
+# reason as report 04: arcsin_sqrt() bounds to [0, 1] and CD45+/tumour is a ratio.
 for (nm in c("all patients", "MMR-deficient"))
   for (asin in c(FALSE, TRUE)) {
     base <- if (nm == "MMR-deficient") filter(mix_all, pid %in% mmrd_pids) else mix_all
@@ -515,7 +515,7 @@ box_immune_resp <- function(df, denom_, cohort_label, arcsin = FALSE, width_in =
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = if (free_y) NULL else yy$label_y) +
     shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_resp_cols) +
+    scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
     labs(title = wrap_fig_text(paste0("Immune content by response (", cohort_label, ") — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
          x = NULL,
@@ -544,7 +544,7 @@ for (dn in unique(imm_all$denom_label)) {
   for (nm in names(imm_cohorts)) {
     for (tr in c(FALSE, TRUE)) {
       p <- box_immune_resp(imm_cohorts[[nm]], dn, nm, arcsin = tr)
-      if (is.null(p)) message("Skipped immune panel: ", nm, " / ", dn,
+      if (is.null(p)) note_skip("Skipped immune panel: ", nm, " / ", dn,
                               if (tr) " (arcsin)" else " (raw)",
                               " — no finite metrics, or only one response arm present.")
       else print(p)
@@ -573,7 +573,7 @@ resp_arcsin_t_wilcox <- function(df, cohort_label, metric_, denom_) {
     droplevels()
   tab <- table(d$response_class)
   if (length(tab) < 2 || any(tab < 2)) {
-    message(cohort_label, " ", metric_, " / ", denom_,
+    note_skip(cohort_label, " ", metric_, " / ", denom_,
             ": insufficient n per response arm — skipping.")
     return(invisible(NULL))
   }
@@ -601,7 +601,7 @@ if (!is.null(res_primary)) {
     highlight_points(d, "response_class", "frac", base_size = 1.2, base_alpha = 0.5,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-    scale_fill_manual(values = attend_resp_cols) +
+    scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
     labs(title = "PRIMARY: CD45+ immune fraction (all cells inside) by response",
          subtitle = paste0("landmark ", resp_cut, " mo | arcsin(sqrt) t p = ",
                            signif(res_primary$t$p.value, 3),
@@ -609,7 +609,7 @@ if (!is.null(res_primary)) {
                            " (n = ", nrow(d), "; small-n — suggestive only)"),
          x = NULL, y = "CD45+ fraction of all cells inside") +
     attend_theme() + theme(legend.position = "none")
-} else message("Primary immune contrast skipped — see message above.")
+} else note_skip("Primary immune contrast skipped — see message above.")
 ```
 
 ### Does the response effect differ between MMR strata
@@ -638,7 +638,7 @@ if (nrow(imm_int) > 4 && dplyr::n_distinct(imm_int$response_class) == 2 &&
     as.data.frame(summary(fit)$coefficients)
   print(knitr::kable(coef_tbl, digits = 3,
         caption = "arcsin(sqrt(CD45+/all-cells-inside)) ~ response_class * mmr_group — BOTH MMR groups, no correction"))
-} else message("Not enough patients across both MMR groups and both response arms for the interaction model.")
+} else note_skip("Not enough patients across both MMR groups and both response arms for the interaction model.")
 ```
 
 ## Response against the molecular covariates
@@ -693,11 +693,11 @@ for (nm in names(pt_cohorts)) {
                          base_const = "black") +
         stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
         facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
-        scale_fill_manual(values = attend_resp_cols) +
+        scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
         labs(title = paste0("Molecular covariates by response (", nm, ")"),
              x = NULL, y = "covariate value") +
         attend_theme() + theme(legend.position = "none"))
-  } else message("Not enough ", nm, " with a response class and a covariate — skipping.")
+  } else note_skip("Not enough ", nm, " with a response class and a covariate — skipping.")
 }
 ```
 
@@ -705,7 +705,7 @@ for (nm in names(pt_cohorts)) {
 
 The direct cross-tabulation of the two groupings — the one in
 [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) against the one used here — with a Fisher
-exact test on the 2×2. Everything in this report is drawn on the same cells report 05 draws,
+exact test on the 2×2. Everything in this report is drawn on the same cells report 04 draws,
 so if these two splits largely coincide then the two reports are describing one contrast
 under two names rather than two independent ones. The test is on patients, not images.
 
@@ -717,7 +717,7 @@ if (nrow(xt) > 0 && n_distinct(xt$response_class) == 2 && n_distinct(xt$aneuploi
   print(knitr::kable(as.data.frame.matrix(tab),
         caption = paste0("Response class vs aneuploidy class, all patients (n = ", nrow(xt), ")")))
   cat("Fisher exact p =", signif(fisher.test(tab)$p.value, 3), "\n")
-} else message("Not enough patients with both a response class and an aneuploidy class.")
+} else note_skip("Not enough patients with both a response class and an aneuploidy class.")
 ```
 
 ## Response against the pathologist's imaging calls
@@ -766,11 +766,11 @@ if (nrow(icc) > 2 && n_distinct(icc$response_class) == 2) {
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
     facet_wrap(~ covariate, scales = "free_y") +
-    scale_fill_manual(values = attend_resp_cols) +
+    scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
     labs(title = "Pathologist immune scores by response class (all patients)",
          x = NULL, y = "pathologist %") +
     attend_theme() + theme(legend.position = "none")
-} else message("Not enough patients with a pathologist score in both response arms.")
+} else note_skip("Not enough patients with a pathologist score in both response arms.")
 ```
 
 Categorical calls as stacked proportions — how each call distributes within the two

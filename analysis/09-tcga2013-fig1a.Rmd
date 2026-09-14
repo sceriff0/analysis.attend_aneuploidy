@@ -31,7 +31,7 @@ source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_
 
 # The clustering cut and metric are configuration and live in attend_classes.R with every
 # other method parameter, so this report and 00-methods.Rmd cannot disagree about them. Using
-# the SAME pair as report 09 is deliberate: any difference between the two reports is then the
+# the SAME pair as report 07 is deliberate: any difference between the two reports is then the
 # cohort and the platform, never the method.
 ```
 > **Question.** Run on TCGA's own data, does this pipeline's Fig-1a reproduction recover TCGA's published copy-number partition — and where do MMR status and aneuploidy sit on that figure?
@@ -43,16 +43,16 @@ This is [07-molecular-classification](07-molecular-classification.html)'s figure
 on **TCGA's own tumours**. It exists because here **the right answer is published**: the 2013
 study ships its own copy-number cluster assignment (`CNA_CLUSTER_K4`), so the pipeline can be
 scored rather than merely inspected. If it cannot recover TCGA's partition on TCGA's data,
-report 09's ATTEND clusters need a second look before they are interpreted.
+report 07's ATTEND clusters need a second look before they are interpreted.
 
 It also draws something the paper could not. TCGA 2013 has **no per-sample aneuploidy score**
 — the score used here is retrofitted from the later PanCancer-Atlas work — so the
 relationship between the four SCNA clusters and aneuploidy was never plotted. Every heatmap
 below carries an aneuploidy bar, and Part 4 makes the comparison explicit.
 
-Two properties make this a cleaner test than report 09 can be:
+Two properties make this a cleaner test than report 07 can be:
 
-* **The peaks are published.** Report 09 clusters peaks GISTIC learned *from ATTEND*, and a
+* **The peaks are published.** Report 07 clusters peaks GISTIC learned *from ATTEND*, and a
   TCGA run of our own would need parameters TCGA never published (the Supplementary Methods
   say only *"identified from segmented data using GISTIC 2.0"* — no `-ta`/`-td`/`-conf`, no
   reference build). Here the peak list is TCGA's own, from Supplementary Data File S2.1, so
@@ -63,7 +63,7 @@ Two properties make this a cleaner test than report 09 can be:
 
 What remains ours, and cannot be taken from the paper: the **distance and linkage**. The
 Supplementary Methods name none for the copy-number clustering, so this report uses the
-pipeline's configured pair, exactly as report 09 does.
+pipeline's configured pair, exactly as report 07 does.
 
 ## Part 1 — the two matrices
 
@@ -151,8 +151,7 @@ if (!is.null(disp_mat)) {
   }
 }
 
-# cat(), not message(): opts_chunk sets message = FALSE, so a message() here is invisible on
-# the knitted page and a skipped section then looks like nothing happened at all.
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
 if (!have_seg)
   cat("**No TCGA segments** (data/tcga_2013/data_cna_hg19.seg) —",
       "run `Rscript code/fetch_tcga_ucec_2013.R`. Every panel below is skipped.\n")
@@ -217,7 +216,7 @@ published partition falls and the published serous-like tumours stop concentrati
 highest-burden cluster. The distance × cohort table in Part 3 prints both, so the trade is
 visible on the page rather than buried in a flag.
 
-**TP53 is absent from this report's annotation stack**, unlike report 09's. `data/tcga_2013/`
+**TP53 is absent from this report's annotation stack**, unlike report 07's. `data/tcga_2013/`
 carries clinical tables and segments only — no mutation calls — so there is nothing to build
 a TP53 bar from, and an all-NA bar is dropped rather than drawn as an empty row.
 
@@ -271,7 +270,7 @@ high_cluster <- if (!is.null(cl)) cnv_high_cluster_burden(cl) else NA_integer_
 # means nothing; Fig. 1a runs quiet -> high, left -> right. Relabelling is presentation only
 # (the partition is untouched, and ARI is label-invariant), but it is what makes the figure
 # read as the paper's, and it makes cluster numbers comparable to TCGA's published 1..4 and
-# to report 09's ATTEND clusters. `high_cluster` is TRANSLATED rather than assumed to be k:
+# to report 07's ATTEND clusters. `high_cluster` is TRANSLATED rather than assumed to be k:
 # it comes from cnv_high_cluster_burden() on the PEAK matrix, and whether the pipeline's own
 # rule agrees with the display-matrix ordering is exactly what Part 3 checks.
 if (!is.null(cl) && !is.null(disp_mat)) {
@@ -365,7 +364,7 @@ if (!is.null(cl)) {
 The same canvas with the cluster assignment at every k from 2 to 8 stacked beneath it. The
 dendrogram is computed once and cut repeatedly, so the partitions are nested and can share
 one figure: reading a column downward shows how that tumour's label subdivides as k grows.
-Here it answers a question report 09 cannot — TCGA fixed k = 4 and published the result, so
+Here it answers a question report 07 cannot — TCGA fixed k = 4 and published the result, so
 the `Published_CN_cluster` bar above is the reference the sweep can be read against.
 
 ```{r hm-ksweep, fig.height=9}
@@ -391,7 +390,7 @@ cluster that actually overlaps published cluster 4 (TCGA's serous-like group) mo
 burden rule is a **heuristic** — greatest mean |value| — and on thresholded features mean
 |value| counts a deep deletion and a high amplification identically, so a small
 deletion-heavy cluster can outrank the genuinely serous-like one. **When the two disagree the
-heuristic has failed**, and since report 09 uses that same rule on ATTEND, where no published
+heuristic has failed**, and since report 07 uses that same rule on ATTEND, where no published
 answer exists to catch it, this is the only place the failure is visible at all.
 
 ```{r ari}
@@ -421,7 +420,7 @@ if (!is.null(cl) && nrow(tcga_clin) > 0 && any(!is.na(tcga_clin$cn_cluster_k4)))
     knitr::kable(scored, caption = paste0(
       "Recomputed clusters scored against TCGA's published CNA_CLUSTER_K4. ",
       "heuristic_ok = FALSE means the greatest-mean-|value| serous rule picked the wrong ",
-      "cluster on this cohort, which is a warning about report 09's use of the same rule."))
+      "cluster on this cohort, which is a warning about report 07's use of the same rule."))
   }
 }
 if (is.null(scored)) cat("Scoring skipped — needs the clustering and CNA_CLUSTER_K4.\n")

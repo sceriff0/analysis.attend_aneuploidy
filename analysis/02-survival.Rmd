@@ -76,7 +76,7 @@ columns as the curves below.
 ```{r surv-table}
 if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group)) {
   tryCatch(surv_table(master, group = attend_cols$km_group),
-           error = function(e) message("surv_table skipped (gtsummary/cardx): ", conditionMessage(e)))
+           error = function(e) note_skip("surv_table skipped (gtsummary/cardx): ", conditionMessage(e)))
 }
 ```
 
@@ -127,11 +127,11 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols
               eff$n, eff$n_events,
               if (small_flag) " — SMALL SAMPLE, treat as suggestive only" else ""))
   ct <- tryCatch(cox_table(mmrd_aneuhigh, covariates = attend_cols$km_group),
-                 error = function(e) { message("cox_table skipped: ", conditionMessage(e)); NULL })
+                 error = function(e) { note_skip("cox_table skipped: ", conditionMessage(e)); NULL })
   if (!is.null(ct))
     knitr::kable(ct$tidy, digits = 3,
                  caption = "MMRd + aneuploidy-high — Cox PH: PFS ~ treatment arm (HR, 95% CI). n/events via logrank_cox_effect().")
-} else message("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
+} else note_skip("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
 ```
 
 A three-way Cox model on the master, treatment arm x aneuploidy class x MMR status, so
@@ -170,8 +170,8 @@ if (levels_ok && n_int >= 20 && events_int >= 10) {
         n_int, events_int, ddf, chi,
         if (is.na(p)) "NA (rank-deficient — an empty cell)" else formatC(p, digits = 3, format = "g"),
         if (under) " — **UNDERPOWERED: interpret as suggestive, not confirmatory**" else ""))
-  } else message("3-way interaction Cox models failed to fit (rank-deficient/empty cell).")
-} else message(sprintf("3-way interaction skipped — need arm/aneu/MMR each 2 levels and n>=20/events>=10 (got n=%d, events=%d).", n_int, events_int))
+  } else note_skip("3-way interaction Cox models failed to fit (rank-deficient/empty cell).")
+} else note_skip(sprintf("3-way interaction skipped — need arm/aneu/MMR each 2 levels and n>=20/events>=10 (got n=%d, events=%d).", n_int, events_int))
 ```
 
 ## Split by TMB (cutoff `r attend_thresholds$tmb`) — both TMB definitions
@@ -280,7 +280,7 @@ Treatment arm within each MMR stratum, split by immune content.
 if (have_ihc && have_cols(ihc_surv, attend_cols$surv_time, attend_cols$surv_event,
                           attend_cols$mmr_status, "immune_class")) {
   km_facet(ihc_surv, group = "immune_class", facets = attend_cols$mmr_status)
-} else message("survival columns not set in attend_cols — skipping KM by IHC feature.")
+} else note_skip("survival columns not set in attend_cols — skipping KM by IHC feature.")
 ```
 
 Aneuploidy class crossed with immune content. This panel keeps the **MMR-deficient**
@@ -300,8 +300,8 @@ if (nrow(mmrd_imaged) > 0) {
   if (have_cols(imm, attend_cols$surv_time, attend_cols$surv_event,
                 "immune_class", "aneuploidy_class")) {
     km_facet(imm, group = "immune_class", facets = "aneuploidy_class")
-  } else message("survival columns not set in attend_cols — skipping KM.")
-} else message("No MMR-deficient imaged patients — aneuploidy x immune KM skipped.")
+  } else note_skip("survival columns not set in attend_cols — skipping KM.")
+} else note_skip("No MMR-deficient imaged patients — aneuploidy x immune KM skipped.")
 ```
 
 ```{r session-info}

@@ -130,7 +130,7 @@ if (nrow(long) > 0) {
          x = "TMB (mut/Mb)", y = "density") +
     attend_theme()
 } else {
-  message("No TMB values to plot.")
+  note_skip("No TMB values to plot.")
 }
 ```
 
@@ -275,10 +275,10 @@ if (have_syn) {
       attend_theme() +
       theme(axis.text.x = element_text(angle = 20, hjust = 1))
   } else {
-    message("No finite separation metrics to plot.")
+    note_skip("No finite separation metrics to plot.")
   }
 } else {
-  message("Battery unavailable — synthesis skipped.")
+  note_skip("Battery unavailable — synthesis skipped.")
 }
 ```
 
@@ -333,7 +333,7 @@ have_aneu_tmb <- nrow(long) > 0 &&
 
 if (have_aneu_tmb) {
   # Per-patient aneuploidy class + MMR group, joined onto the per-(patient, definition)
-  # TMB rows read back from report 07.
+  # TMB rows from tmb_long(), computed in this report's setup chunk (no build order).
   meta <- master |>
     transmute(
       pid,
@@ -461,7 +461,7 @@ if (nrow(ta) > 0) {
     theme(axis.text.x = element_text(angle = 0),
           legend.position = "top")
 } else {
-  message("No aneuploidy/TMB data to plot.")
+  note_skip("No aneuploidy/TMB data to plot.")
 }
 ```
 
@@ -754,7 +754,8 @@ if (have_tcga) {
       geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = "grey50") +
       scale_y_log10() +
       facet_wrap(~ cohort, nrow = 1) +
-      scale_fill_manual(values = attend_mmr_cols) +
+      scale_fill_manual(values = attend_mmr_cols, labels = as_label,
+                        name = attend_mmr_legend) +
       labs(title = "TMB by MMR status — ATTEND definitions vs the TCGA paired reference",
            subtitle = "log10 y-axis for display only; all tests above are on the raw scale",
            x = NULL, y = "TMB (mut/Mb, log10)") +

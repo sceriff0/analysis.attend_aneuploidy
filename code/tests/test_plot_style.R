@@ -9,7 +9,7 @@
 # base-R colour names — and five themes. Nothing failed; every report knitted. The drift was
 # only visible by reading ten files side by side, which is precisely the job a test should do.
 #
-# Eight rules:
+# Nine rules:
 #   [1] no literal hex in a report — colour comes from the palette, not from the call site
 #   [2] no raw ggplot theme_*() in a report — attend_theme() is the one theme
 #   [3] no base-R colour NAME as a colour/fill constant ("red", "firebrick", "turquoise3")
@@ -18,6 +18,7 @@
 #   [6] km_facet()'s default palette is not a hardcoded pair of colour names
 #   [7] no call site passes an argument an attend_plots.R helper does not have
 #   [8] a fill SCALE and a fill MAPPING appear together, or neither does
+#   [9] a semantic scale sets `name =`, and a class scale also sets `labels =`
 
 source(file.path("code", "attend_plots.R"))   # base-R-sourceable: no top-level library()
 
@@ -280,6 +281,65 @@ for (f in reports) {
       note(basename(f), ":", o, ": aes(fill = ) with no scale_fill_*() — the fill falls ",
            "through to ggplot's default hue wheel, i.e. colour from outside the palette. ",
            "Use a semantic palette from attend_plots.R, or attend_pal(n) for a nominal set.")
+  }
+}
+
+# ---- [9] a semantic scale names itself, and a class scale labels itself -----
+# A ggplot with no `name =` titles its legend with the DATA COLUMN NAME, so the site
+# published legends headed "aneuploidy_class", "response_class" and "level"; only three of
+# about twenty semantic scales set a title. A ggplot with no `labels =` prints the raw factor
+# levels, so the SAME variable appeared as "aneuploidy-high" (report 04), "AS High" (06, 11),
+# "aneu-high" (the Fig-1a bar and aneu_point_layers) and, for TP53, as "mut"/"wt" and
+# "mutant"/"wild-type" in ADJACENT figures on one page.
+#
+# The COLOURS were right in every one of those, because attend_aneu_cols and attend_tp53_cols
+# key every spelling — which is exactly why nothing caught it for so long. Rule [8] checks
+# that a fill scale EXISTS; this one checks what it SAYS.
+#
+# `name = NULL` counts: an explicit "this legend needs no title" is a decision, an inherited
+# column name is an accident. Two documented exemptions: `guide = "none"` (no legend to
+# title) and a `values = unname(...)` POSITIONAL scale, which is how km_facet() and the
+# ggsurvfit KM must pass colours — those take their keys from the formula, not from us.
+SEM_CLASS <- c("attend_aneu_cols", "attend_tp53_cols", "attend_mmr_cols", "attend_aneu_high")
+SEM_OTHER <- c("attend_resp_cols", "attend_cohort_cols", "attend_scna_cols")
+for (f in reports) {
+  lines  <- readLines(f, warn = FALSE)
+  opens  <- grep("^```\\{r", lines)
+  closes <- grep("^```\\s*$", lines)
+  for (o in opens) {
+    cl <- closes[closes > o]; if (!length(cl)) next
+    ex <- tryCatch(parse(text = paste(lines[(o + 1):(cl[1] - 1)], collapse = "\n")),
+                   error = function(e) NULL)
+    if (is.null(ex)) next
+    walk <- function(e) {
+      if (!is.call(e)) return(invisible(NULL))
+      fn <- fname_of(e[[1]])
+      if (grepl("^scale_(fill|colou?r|shape)_manual$", fn)) {
+        txt  <- paste(deparse(e), collapse = " ")
+        nms  <- names(e); nms <- if (is.null(nms)) character(0) else nms[-1]
+        pos  <- grepl("unname\\s*\\(", txt)
+        none <- grepl('guide\\s*=\\s*"none"', txt)
+        if (!pos && !none) {
+          isc <- any(vapply(SEM_CLASS, function(k) grepl(k, txt, fixed = TRUE), logical(1)))
+          iso <- any(vapply(SEM_OTHER, function(k) grepl(k, txt, fixed = TRUE), logical(1)))
+          if ((isc || iso) && !("name" %in% nms))
+            note(basename(f), ":", o, ": ", fn, "() over a semantic palette with no `name =` — ",
+                 "the legend inherits the DATA COLUMN NAME as its title. Use the constant ",
+                 "(attend_as_legend / attend_mmr_legend / attend_tp53_legend / ",
+                 "attend_resp_legend / attend_cohort_legend), or `name = NULL` to say so.")
+          if (isc && !("labels" %in% nms))
+            note(basename(f), ":", o, ": ", fn, "() over a CLASS palette with no `labels =` — ",
+                 "the legend prints raw factor levels, and the same class is spelled three ",
+                 "ways across the site. Pass `labels = as_label`.")
+        }
+      }
+      for (i in seq_along(e)[-1]) {
+        if (identical(e[i], list(quote(expr = )))) next
+        walk(e[[i]])
+      }
+      invisible(NULL)
+    }
+    for (e in ex) walk(e)
   }
 }
 

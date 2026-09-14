@@ -99,7 +99,7 @@ maf_long_cls <- tryCatch(load_maf_long(), error = function(e) NULL)
 # barcode -> pid crosswalk (the same derivation every other report uses)
 cw <- tryCatch(
   build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
-  error = function(e) { message("crosswalk unavailable: ", conditionMessage(e)); NULL }
+  error = function(e) { note_skip("crosswalk unavailable: ", conditionMessage(e)); NULL }
 )
 
 have_master <- !is.null(master)
@@ -115,7 +115,7 @@ if (have_master && have_cw) {
   pole_tbl <- tryCatch(
     pole_ultramutated(maf_long = maf_long_cls, crosswalk = cw,
                       tmb_tbl = master |> transmute(pid, TMB_SCORE = .data[[attend_cols$tmb]])),
-    error = function(e) { message("POLE call unavailable: ", conditionMessage(e)); NULL })
+    error = function(e) { note_skip("POLE call unavailable: ", conditionMessage(e)); NULL })
   if (!is.null(pole_tbl)) master <- master |> left_join(pole_tbl, by = "pid")
   master <- add_promise_class(master)
 }
@@ -174,8 +174,7 @@ disp_mat   <- tryCatch(load_gistic_continuous(), error = function(e) NULL)   # I
 ascets_aneu <- tryCatch(load_ascets_aneuploidy(), error = function(e) NULL)
 
 have_cnv <- !is.null(cnv_mat) && nrow(cnv_mat) >= k_cnv
-# cat(), not message(): opts_chunk sets message = FALSE, so a message() here is invisible on
-# the knitted page and a skipped CNV section then looks like nothing happened at all.
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
 if (!have_cnv) {
   cat("No GISTIC matrix with >=", k_cnv, "samples — run GISTIC (see the bottom of this",
       "report) so data/gistic/all_thresholded.by_genes.txt exists.",
@@ -264,9 +263,7 @@ if (!is.null(cl)) {
   high_cluster <- cnv_high_cluster_burden(cl, direction = feat_dir)
   burden_tbl   <- cluster_scna_burden(cl, direction = feat_dir)
   high_absolute <- cnv_high_cluster_burden(cl)          # the undirected call, for comparison
-  # cat(), not message(): opts_chunk sets message = FALSE, so this flag — which
-  # 00-methods tells the reader to check BEFORE interpreting any cluster label — was
-  # being discarded and never appeared on the knitted page at all.
+  # cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
   cat("\nSerous-like call, on the PEAK matrix, BEFORE any relabelling:",
       "\n  directional burden (concordant events only) picks cluster:", high_cluster,
       "\n  undirected mean |value| would pick cluster              :", high_absolute,
@@ -281,7 +278,7 @@ if (!is.null(cl)) {
   # the heatmap blocks came out in a sequence that means nothing. Relabelling is presentation
   # only — the partition is untouched and ARI is label-invariant — but it is what makes the
   # figure read as the paper's, and it makes ATTEND's cluster numbers comparable to TCGA's
-  # published 1..4 and to report 10's.
+  # published 1..4 and to report 09's.
   #
   # DONE HERE, before `ann` and the cascade join are built, because everything downstream keys
   # on these labels: relabelling after `ann` would leave the top annotation on old labels and
@@ -533,7 +530,7 @@ if (!is.null(cl) && requireNamespace("cluster", quietly = TRUE)) {
          subtitle = paste0("dashed = cascade cut k = ", k_cnv, "; higher = more coherent partition"),
          x = "number of clusters (k)", y = "mean silhouette width") +
     attend_theme()
-} else message("Silhouette-vs-k skipped — install the optional `cluster` package.")
+} else note_skip("Silhouette-vs-k skipped — install the optional `cluster` package.")
 ```
 
 **TCGA Fig. 1b — progression-free survival by copy-number cluster.** KM of clinical
@@ -543,7 +540,7 @@ barcodes mapped to pid through the report-01 crosswalk. Log-rank P as in the pap
 ```{r cnv-km-pfs, fig.height=5}
 if (!is.null(cl) && have_master && have_cw) {
   km_by_cluster(cl$assignment, cw, master)
-} else message("KM skipped — need CNV clusters + master + crosswalk.")
+} else note_skip("KM skipped — need CNV clusters + master + crosswalk.")
 ```
 
 Per-sample silhouette at the cascade cut k_cnv, computed on the same Euclidean
@@ -863,17 +860,21 @@ if (exists("classed") && all(c("cnv_high", "TP53_pathogenic") %in% names(classed
     ggplot(tp, aes(cluster, fill = tp53)) +
       geom_bar(position = "fill", width = 0.6) +
       scale_y_continuous(labels = scales::percent) +
+      # labels/name through the shared vocabulary: this legend said "wild-type"/"mutant"
+      # under the title "TP53 pathogenic" while the Fig-1a bar on the SAME PAGE said
+      # "wt"/"mut" under "TP53", for one variable. as_label() maps both onto one pair.
       scale_fill_manual(values = c(`TRUE` = unname(attend_tp53_cols[["mut"]]),
                                    `FALSE` = unname(attend_tp53_cols[["wt"]])),
-                        name = "TP53 pathogenic", labels = c("wild-type", "mutant")) +
+                        name = attend_tp53_legend,
+                        labels = as_label(c("wt", "mut"))) +
       geom_hline(yintercept = 0.90, linetype = 2, colour = "grey30") +
       labs(title = "TP53 mutation fraction by copy-number cluster",
            subtitle = "dashed = TCGA serous-like ~90% TP53-mut benchmark",
            x = NULL, y = "% TP53 pathogenic") +
       attend_theme()
-  } else message("TP53-enrichment QC: no CN-high assignments with TP53 status yet.")
+  } else note_skip("TP53-enrichment QC: no CN-high assignments with TP53 status yet.")
 } else {
-  message("TP53-enrichment QC skipped — needs cnv_high (from clustering) + TP53_pathogenic on the master.")
+  note_skip("TP53-enrichment QC skipped — needs cnv_high (from clustering) + TP53_pathogenic on the master.")
 }
 ```
 

@@ -151,10 +151,20 @@ attend_pal <- function(n = 8, names = NULL) {
 # into it from the last figure. This is deliberately not any hue above.
 attend_neutral <- "#BFBFBF"
 
+# Keyed by EVERY spelling MMR reaches a figure as, including the RAW CLINICAL TEXT
+# ("Deficient"/"Intact") that add_molecular_classes() copies verbatim into MMR_class. Without
+# those two keys a fill scale over MMR_class matches nothing and every box renders in
+# ggplot's NA grey, with the legend silently dropped -- the exact failure this audit was
+# about, one variable further along. The raw pair mirrors attend_levels$mmr_deficient and its
+# complement; they are written here rather than read from attend_classes.R because this file
+# is sourced in a base-R bootstrap env and the source ORDER between the two varies by report.
+# test_class_level_order.R asserts the two stay in step.
 attend_mmr_cols <- c(MMRp = unname(ATTEND_PALETTE["grey"]),
                      MMRd = unname(ATTEND_PALETTE["orange"]),
                      `MMR proficient` = unname(ATTEND_PALETTE["grey"]),
-                     `MMR deficient`  = unname(ATTEND_PALETTE["orange"]))
+                     `MMR deficient`  = unname(ATTEND_PALETTE["orange"]),
+                     Intact    = unname(ATTEND_PALETTE["grey"]),
+                     Deficient = unname(ATTEND_PALETTE["orange"]))
 
 # Aneuploidy is a two-pole scale, not a reference/altered pair, so both poles carry a
 # hue. LIGHT BLUE (quiet) -> RED (altered) reads the same direction as the SCNA heatmap
@@ -189,6 +199,19 @@ attend_aneu_high <- unname(ATTEND_PALETTE["salmon"])
 attend_as_axis   <- "Aneuploidy score (AS, 0-1)"  # every axis showing the continuous score
 attend_as_legend <- "AS class"                    # every legend keyed on AS High / AS Low
 attend_mmr_lab   <- c(deficient = "MMRd", proficient = "MMRp")  # the group names, everywhere
+
+# LEGEND TITLES, one per concept. Without these a ggplot titles the legend with the DATA
+# COLUMN NAME, so the site published legends headed `aneuploidy_class`, `response_class` and
+# `level`. Only three of about twenty semantic scales set a title before the 2026-09-14
+# audit; the rest inherited whatever the column happened to be called, which also meant
+# renaming a column silently rewrote a figure. Same argument as attend_as_axis above: one
+# edit moves every figure, and a report cannot invent a spelling without it showing in a
+# diff of THIS file.
+attend_mmr_legend    <- "MMR status"
+attend_tp53_legend   <- "TP53 status"
+attend_resp_legend   <- "Response"
+attend_cohort_legend <- "Cohort"
+attend_tmb_axis      <- "TMB (mut/Mb)"        # every axis showing TMB on the raw scale
 
 # --- CURVE-ONLY palettes, and why they may hold the reserved blue ------------------------
 # Rule [C] keeps #0077BB unclaimed because highlight points are drawn ON TOP of boxes filled
@@ -297,6 +320,30 @@ attend_theme <- function(base_size = 11) {
       panel.grid.minor   = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_line(linewidth = 0.3, colour = "grey88"))
+}
+
+# ============================================================================
+# note_skip() — say on the PAGE why a figure is not there.
+# ============================================================================
+# Every report sets knitr::opts_chunk$set(message = FALSE), and none overrides it. So a
+# message() in a report is written to the console during the build and NEVER REACHES THE
+# RENDERED HTML: verified against docs/, where the only occurrences of a skip string are
+# inside the echoed <code> block, never in an output block. Sixty-one of them had
+# accumulated across the reports, every one explaining why a figure or table is absent —
+# and every one invisible to the person reading the page. What the reader saw was a gap.
+#
+# That is the same failure the pipeline refuses everywhere else: an absence rendering as
+# nothing rather than as a stated absence. pathogenic_by_patient() returns NA instead of
+# FALSE for "not measured"; response_counts() prints the unclassifiable count beside the
+# figure; this is the display half of the same rule.
+#
+# Drop-in for message(): same ... semantics (pasted with no separator), a trailing newline
+# added once, and any newline the caller already supplied collapsed rather than doubled.
+# cat() rather than message() because cat() writes to stdout, which knitr captures into the
+# page; message() writes to stderr, which `message = FALSE` discards.
+note_skip <- function(...) {
+  msg <- paste0(..., collapse = "")
+  cat("NOTE: ", sub("[\r\n]+$", "", msg), "\n", sep = "")
 }
 
 # ============================================================================
@@ -567,6 +614,38 @@ as_proportion <- function(v) {
   length(v) > 0 && min(v) >= 0 && max(v) <= 1
 }
 
+# --- The DISPLAY vocabulary -------------------------------------------------------------
+# One row per DATA spelling that reaches a figure. Every key below was found on a rendered
+# axis, legend or facet strip during the 2026-09-14 label audit. A lookup rather than a
+# chain of sub() calls, so adding a spelling is one line and test_figure_system.R can read
+# the mapping directly instead of restating it.
+#
+# DATA spellings are NOT renamed -- see the as_label() docblock for why that would orphan
+# five GISTIC runs. This is the last step before ink.
+.attend_display_labels <- c(
+  # MMR: the raw clinical text, the long form and the short form all land on one pair.
+  `Deficient`      = "MMRd",
+  `Intact`         = "MMRp",
+  `MMR deficient`  = "MMRd",
+  `MMR proficient` = "MMRp",
+  # TP53: four spellings collapse to two. The hyphenated pair is the DATA spelling report 04
+  # builds and the one attend_tp53_cols is documented under; the display drops the hyphen so
+  # a legend key reads as English rather than as a factor level.
+  `TP53-abnormal`  = "TP53 abnormal",
+  `TP53-normal`    = "TP53 normal",
+  `mut`            = "TP53 abnormal",
+  `wt`             = "TP53 normal",
+  `mutant`         = "TP53 abnormal",
+  `wild-type`      = "TP53 normal",
+  # The remaining two-pole classes, so a KM facet strip and a boxplot agree.
+  `TMB-high`       = "TMB high",
+  `TMB-low`        = "TMB low",
+  `HRD-high`       = "HRD high",
+  `HRD-low`        = "HRD low",
+  `MSI-high`       = "MSI high",
+  `MSS`            = "MSS"
+)
+
 #' Display label for an aneuploidy class: "AS High" / "AS Low".
 #'
 #' DISPLAY ONLY — the DATA values stay "aneuploidy-high"/"aneuploidy-low". That separation is
@@ -582,6 +661,21 @@ as_proportion <- function(v) {
 #' used by the Fig-1a annotation bar and aneu_point_layers(), and the "MMRd aneuploidy-high"
 #' of mmrd_aneuploidy_split(). Anything else passes through untouched, so it is safe as a
 #' blanket scale labeller on an axis that mixes classes.
+#'
+#' It also covers the OTHER class vocabularies, after an audit found the same variable
+#' legended three and four different ways across the site:
+#'   * MMR reached a figure as "Deficient"/"Intact" (report 02's KM strips read the RAW
+#'     gianlu__MMR_STATUS text, because add_molecular_classes() copies that column through
+#'     verbatim), as "MMR deficient"/"MMR proficient", and as "MMRd"/"MMRp".
+#'   * TP53 reached a figure as "TP53-abnormal"/"TP53-normal" (report 04), as "mut"/"wt"
+#'     (report 07's Fig-1a bar) and as "mutant"/"wild-type" (report 07's cluster bar) --
+#'     the last two in ADJACENT figures on one page.
+#' The COLOURS were right in every case, because attend_tp53_cols and attend_aneu_cols key
+#' both spellings. That permissive key set is exactly what let the drift survive unseen.
+#'
+#' "mut"/"wt" are mapped unconditionally. They are ambiguous tokens in general, but in this
+#' pipeline they are a DISPLAY spelling only TP53 uses (attend_mut_positive's parsing tokens
+#' never reach an axis), and as_label() is only ever applied to a scale, a strip or a tick.
 as_label <- function(x) {
   v <- as.character(x)
   out <- sub("(^|\\b)(aneuploidy|aneu)-high$", "AS High", v)
@@ -589,6 +683,9 @@ as_label <- function(x) {
   # "MMRd aneuploidy-high" -> "MMRd AS High": keep the stratum prefix, relabel the class.
   out <- sub("^(.*) (aneuploidy|aneu)-high$", "\\1 AS High", out)
   out <- sub("^(.*) (aneuploidy|aneu)-low$",  "\\1 AS Low",  out)
+  # Everything else that has a display spelling, in one table lookup.
+  hit <- match(out, names(.attend_display_labels))
+  out[!is.na(hit)] <- unname(.attend_display_labels[hit[!is.na(hit)]])
   out[is.na(v)] <- NA_character_
   out
 }
@@ -726,6 +823,45 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
 # The explicit label given to samples with no value, so "missing" appears in the LEGEND
 # instead of showing up as an unexplained grey block. See .fig1a_top_annotation().
 .fig1a_na_label <- "not classified"
+
+# The annotation NAME is both the left-hand row label and the legend title on the Fig-1a
+# bars. Left as the data-frame column name it published "Aneuploidy_hl" -- a column name,
+# underscore and all -- next to a boxplot legend reading "AS class" for the same variable.
+# Mapped here from the SAME constants the ggplots use, so the two destinations cannot drift.
+.fig1a_ann_titles <- c(
+  Aneuploidy_hl        = attend_as_legend,
+  Aneuploidy           = attend_as_axis,
+  MMR                  = attend_mmr_legend,
+  TP53                 = attend_tp53_legend,
+  TCGA_class           = "TCGA 2013 class",
+  ProMisE              = "ProMisE class",
+  Published_CN_cluster = "CN cluster (published)",
+  CN_cluster_published = "CN cluster (published)"
+)
+
+# Relabel a Fig-1a annotation frame and its colour list for DISPLAY, in one place so the two
+# cannot disagree. The bars carried DATA spellings straight into the legend: "aneu-high" /
+# "aneu-low" here while every boxplot said "AS High" / "AS Low", and "mut" / "wt" here while
+# report 04 said "TP53-abnormal" / "TP53-normal" and report 07's own cluster bar, on the same
+# page, said "mutant" / "wild-type". The COLOURS were right throughout -- attend_aneu_cols
+# and attend_tp53_cols key every spelling -- which is precisely what kept it invisible.
+#
+# A column is left alone when two of its levels would collapse onto one display label; that
+# cannot happen with the vocabularies in .attend_display_labels, but a silent level merge
+# would drop patients out of a bar, so it is refused rather than risked.
+.fig1a_relabel_display <- function(a, cols) {
+  for (nm in names(a)) {
+    x <- a[[nm]]
+    if (!is.factor(x) && !is.character(x)) next
+    lv <- if (is.factor(x)) levels(x) else sort(unique(stats::na.omit(as.character(x))))
+    nl <- as_label(lv)
+    if (!length(lv) || anyDuplicated(nl)) next
+    a[[nm]] <- factor(as_label(as.character(x)), levels = nl)
+    if (!is.null(cols[[nm]]) && !is.function(cols[[nm]]))
+      names(cols[[nm]]) <- as_label(names(cols[[nm]]))
+  }
+  list(a = a, cols = cols)
+}
 .fig1a_na_col   <- "#FFFFFF"        # white = absent; never used for a real category
 
 .fig1a_covariate_cols <- function(a) {
@@ -870,12 +1006,22 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
   a   <- a[, c(intersect(ord, names(a)), setdiff(names(a), ord)), drop = FALSE]
   a   <- a[, vapply(a, function(x) !all(is.na(x)), logical(1)), drop = FALSE]  # drop all-NA
   if (!ncol(a)) return(NULL)
+  # DISPLAY relabel LAST, after every derivation above has keyed on the data spellings.
+  rl   <- .fig1a_relabel_display(a, .fig1a_covariate_cols(a))
+  a    <- rl$a
+  cols <- rl$cols
+  lab  <- stats::setNames(names(a), names(a))
+  hit  <- intersect(names(a), names(.fig1a_ann_titles))
+  if (length(hit)) lab[hit] <- .fig1a_ann_titles[hit]
   # na_col = white so any REMAINING missing value (MMR, aneuploidy) reads as an empty cell
   # rather than as a category; border = TRUE keeps those white cells visible as cells.
-  ComplexHeatmap::HeatmapAnnotation(df = a, which = "column",
-                                    col = .fig1a_covariate_cols(a),
-                                    na_col = .fig1a_na_col, border = TRUE,
-                                    annotation_name_side = "left")
+  ComplexHeatmap::HeatmapAnnotation(
+    df = a, which = "column", col = cols,
+    annotation_label = unname(lab),
+    annotation_legend_param = stats::setNames(
+      lapply(names(a), function(n) list(title = unname(lab[[n]]))), names(a)),
+    na_col = .fig1a_na_col, border = TRUE,
+    annotation_name_side = "left")
 }
 
 # ============================================================================
@@ -1380,8 +1526,11 @@ aneu_point_layers <- function(df, value_col = "aneuploidy_value",
   layers <- list(
     ggplot2::geom_point(data = base, ggplot2::aes(shape = .data[[".aneu_high"]]),
                         position = pj, size = 1.7, alpha = 0.65, colour = "grey20"),
+    # name/labels from the shared constants: this legend read "aneuploidy" over keys
+    # "aneu-low"/"aneu-high" while the boxplots one page away read "AS class" over
+    # "AS Low"/"AS High" -- a fourth title and a third vocabulary for one variable.
     ggplot2::scale_shape_manual(values = c(`aneu-low` = 16, `aneu-high` = 17),
-                                name = "aneuploidy", drop = FALSE)
+                                labels = as_label, name = attend_as_legend, drop = FALSE)
   )
   if (nrow(hlpts)) {
     hlpts$.hl <- factor(hlpts$.hl, levels = names(col_map))

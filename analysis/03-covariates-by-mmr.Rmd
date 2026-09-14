@@ -29,7 +29,7 @@ master <- get_master()
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
 > **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
 > **Reads.** attend_master_joined only.
-> **Out of scope.** Anything conditioned on aneuploidy class -> reports [05](04-aneuploidy-mmrd.html) to [08](06-tmb.html). Survival -> [02-survival](02-survival.html).
+> **Out of scope.** Anything conditioned on aneuploidy class -> reports [04](04-aneuploidy-mmrd.html) to [06](06-tmb.html). Survival -> [02-survival](02-survival.html).
 
 Whole distributions, not group averages. The expected differences here are tail phenomena:
 MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than
@@ -104,7 +104,7 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
     attend_theme() +
     theme(legend.position = "top")
 } else {
-  message("No covariate columns or the MMR column are present in the master.")
+  note_skip("No covariate columns or the MMR column are present in the master.")
 }
 ```
 
@@ -189,12 +189,14 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
     highlight_points(am, "MMR", "aneuploidy", base_size = 1.2, base_alpha = 0.55,
                      base_const = "black") +
     geom_hline(yintercept = attend_thresholds$aneuploidy, linetype = 2, colour = "grey40") +
-    scale_fill_manual(values = attend_mmr_cols) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_mmr_cols, labels = as_label,
+                      name = attend_mmr_legend) +
     labs(title = "Aneuploidy score by MMR status",
          subtitle = p_lab, x = NULL, y = attend_as_axis) +
     attend_theme() + theme(legend.position = "none")
 } else {
-  message("Need ", aneu_col, " and ", mmr_col, " on the master for the aneuploidy contrast.")
+  note_skip("Need ", aneu_col, " and ", mmr_col, " on the master for the aneuploidy contrast.")
 }
 ```
 

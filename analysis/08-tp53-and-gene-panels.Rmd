@@ -201,7 +201,7 @@ if (length(panel) > 0) {
   maftools::oncoplot(maf, genes = panel, clinicalFeatures = covar,
                      sortByAnnotation = TRUE, removeNonMutated = FALSE)
 } else {
-  message("None of the configured panel genes are mutated in this cohort.")
+  note_skip("None of the configured panel genes are mutated in this cohort.")
 }
 ```
 
@@ -241,7 +241,7 @@ if (!length(prot)) {
   # such inputs, so the filter is set here rather than left to the default.
   od <- tryCatch(maftools::oncodrive(maf = maf, AACol = prot[1], minMut = 3,
                                      pvalMethod = "zscore"),
-                 error = function(e) { message("oncodrive(): ", conditionMessage(e)); NULL })
+                 error = function(e) { note_skip("oncodrive(): ", conditionMessage(e)); NULL })
   if (is.null(od) || !nrow(od)) {
     cat("OncodriveCLUST returned nothing at minMut = 3 — no gene has enough mutations ",
         "to test for positional clustering.\n", sep = "")
@@ -348,7 +348,7 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
     # scale the bars fell through to ggplot's default hue wheel — four colours from no
     # palette. attend_scna_cols keeps MMR as the hue (rule [A]: MMRp grey, MMRd orange) and
     # the aneuploidy pole as the saturation, so both splits are readable in one legend.
-    scale_fill_manual(values = attend_scna_cols) +
+    scale_fill_manual(values = attend_scna_cols, name = NULL) +
     scale_y_continuous(labels = scales::percent_format(accuracy = 1),
                        expand = expansion(mult = c(0, 0.05))) +
     labs(title = "Mutation frequency by subgroup (TCGA Fig. 2d convention)",
@@ -362,7 +362,7 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
   print(knitr::kable(fdr_tbl |> arrange(fdr) |> mutate(across(c(p, fdr), ~ signif(.x, 3))),
                      caption = "Per-gene Fisher test across subgroups, BH-adjusted"))
 } else {
-  message("Fewer than two non-empty scna_group strata — subgroup frequency comparison skipped.")
+  note_skip("Fewer than two non-empty scna_group strata — subgroup frequency comparison skipped.")
 }
 ```
 

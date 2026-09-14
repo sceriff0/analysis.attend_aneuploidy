@@ -131,7 +131,7 @@ cannot disagree on the same page about which peaks are significant.
 ⚠️ **Which run's files a report reads is now named, not sorted.** `find_gistic_files()`
 used to glob `data/gistic/` recursively and take the first match, so the pooled run was
 selected only because `all` sorts before `mmr*`. A run folder named earlier would have
-repointed report 07's clustering and report 08's focal overlay at a nine-patient stratum
+repointed report 07's clustering and report 10's focal overlay at a nine-patient stratum
 with nothing failing. `attend_cnv$gistic$pooled_dir` names it; `test_find_gistic_run.R`
 pins it, with an adversarial folder that sorts first.
 
@@ -206,7 +206,7 @@ on a **continuous** colour scale. That is not the matrix they clustered, and the
 not claim it is: Suppl. Methods S2 clusters **thresholded** copy number **restricted to
 significant peaks**. Two matrices, one figure, both from the same GISTIC run.
 
-So report 09 clusters `all_thresholded.by_genes.txt` inside the significant peaks
+So report 07 clusters `all_thresholded.by_genes.txt` inside the significant peaks
 (`load_gistic_thresholded()`) and **draws** `all_data_by_genes.txt` genome-wide and
 continuous (`load_gistic_continuous()`), with the columns split and coloured by the
 peak-based clusters. Drawing the clustering matrix instead — which is what this report used
@@ -412,7 +412,7 @@ if (have_master && length(tmb_recomp) >= 2) {
   knitr::kable(reclass, caption = paste0("TMB-high (>= ", attend_thresholds$tmb,
                " mut/Mb) count per definition — the ancestry-driven reclassification"))
 } else {
-  message("Ancestry-corrected TMB not on the master yet — rebuild report 1 with ",
+  note_skip("Ancestry-corrected TMB not on the master yet — rebuild report 1 with ",
           "the gnomAD-annotated MAFs synced into data/variant_annotations/.")
 }
 ```
@@ -454,9 +454,9 @@ if (!is.null(anc) && all(c("tmb__TMB_SCORE","tmb__TMB_nassar") %in% names(master
            x = "gnomAD sub-population (from self-reported ancestry)",
            y = "TMB removed (mut/Mb)") +
       attend_theme()
-  } else message("No patients with both TMB definitions and a mapped ancestry.")
+  } else note_skip("No patients with both TMB definitions and a mapped ancestry.")
 } else {
-  message("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
+  note_skip("Need the clinical ancestry column (attend_ancestry$clinical_col = '",
           attend_ancestry$clinical_col, "') and tmb__TMB_nassar on the master ",
           "for the by-ancestry view.")
 }
@@ -499,7 +499,7 @@ if (length(ref_f) > 0) {
   ref <- tryCatch(
     if (grepl("\\.csv$", ref_f[1])) readr::read_csv(ref_f[1], show_col_types = FALSE)
     else                            readr::read_tsv(ref_f[1], show_col_types = FALSE),
-    error = function(e) { message("nassar reference unreadable: ", conditionMessage(e)); NULL })
+    error = function(e) { note_skip("nassar reference unreadable: ", conditionMessage(e)); NULL })
   if (!is.null(ref)) {
     fitted <- fit_nassar_coefficients(ref, paired = ref_cfg$paired,
                                       tumor_only = ref_cfg$tumor_only, group = ref_cfg$group)
@@ -508,7 +508,7 @@ if (length(ref_f) > 0) {
     cat(sprintf("  non_european = list(m = %.4f, b = %.4f)\n", fitted$non_european$m, fitted$non_european$b))
   }
 } else {
-  message("No reference cohort in ", ref_dir, " — reporting the active coefficients only.")
+  note_skip("No reference cohort in ", ref_dir, " — reporting the active coefficients only.")
 }
 
 if (grepl("^oncopanel", nc$source)) {
@@ -579,9 +579,9 @@ if (have_master && all(need %in% names(master)) && !is.null(anc)) {
     knitr::kable(reclass_n, caption = paste0(
       "TMB-high (>= ", attend_thresholds$tmb, " mut/Mb) reclassification between the two ",
       "definitions, by ancestry group. changed_call = patients whose high/low call differs."))
-  } else message("No patients with both TMB definitions and a mapped ancestry group.")
+  } else note_skip("No patients with both TMB definitions and a mapped ancestry group.")
 } else {
-  message("Need tmb__TMB_SCORE, tmb__TMB_nassar and an ancestry column on the master ",
+  note_skip("Need tmb__TMB_SCORE, tmb__TMB_nassar and an ancestry column on the master ",
           "to show the correction effect.")
 }
 ```
@@ -604,7 +604,7 @@ never inline in a report. The entries that govern the copy-number and TMB method
 The arm-boundary table is data/arm_boundaries_hg38.tsv, derived from UCSC hg38 cytoBand
 centromeres; set attend_cnv$build and attend_cnv$arm_table to work in hg19. The clustering parameters
 cnv_method, cnv_dist, k_cnv and k_sweep are declared there too rather than at the
-top of report 08 — a parameter this file *discusses* and another file *applies* has to be
+top of report 07 — a parameter this file *discusses* and another file *applies* has to be
 visible to both.
 
 ## The aneuploidy classes

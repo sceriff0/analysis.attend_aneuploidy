@@ -181,7 +181,7 @@ if (!is.na(canon_pid_col)) {
       "  <- must be 0\n")
   disagree
 } else {
-  message("No patient-id column detected in attend_barcodes.csv — ",
+  note_skip("No patient-id column detected in attend_barcodes.csv — ",
           "set canon_pid_col manually to enable the agreement check.")
 }
 ```
@@ -212,14 +212,14 @@ if (requireNamespace("reclin2", quietly = TRUE) &&
              jaro_winkler      = round(pp$barcode, 3)) |>
         arrange(desc(jaro_winkler))
     else tibble()
-  }, error = function(e) { message("reclin2 near-miss check skipped: ", conditionMessage(e)); tibble() })
+  }, error = function(e) { note_skip("reclin2 near-miss check skipped: ", conditionMessage(e)); tibble() })
 
   if (nrow(near)) {
     cat("Canonical barcodes with a fuzzy near-miss (JW >= 0.9, not exact):\n")
     print(near, n = 50)
   } else cat("No fuzzy near-misses — the exact loss above is real, not formatting drift.\n")
 } else {
-  message("reclin2 probabilistic check skipped (package missing, nothing unmatched, ",
+  note_skip("reclin2 probabilistic check skipped (package missing, nothing unmatched, ",
           "or unmatched set too large).")
 }
 ```
@@ -315,7 +315,7 @@ if (requireNamespace("pointblank", quietly = TRUE)) {
     pointblank::rows_distinct(columns = "pid") |>
     pointblank::interrogate()
 } else {
-  message("pointblank not installed — renv::install('pointblank') to enable the QC gate.")
+  note_skip("pointblank not installed — renv::install('pointblank') to enable the QC gate.")
 }
 ```
 
@@ -331,7 +331,7 @@ counted here rather than discovered downstream. "Unmapped" means three different
 at record level, at patient level, and at cohort level — and each is reported separately.
 
 Presence is not the same as usable, so the last section checks the *contents* of the table
-report 01 wrote. That file is the contract every later report inherits, and a bad value is
+this report just wrote. That file is the contract every later report inherits, and a bad value is
 cheapest to catch here.
 
 ### Records that never reached a patient
@@ -560,10 +560,10 @@ if (requireNamespace("naniar", quietly = TRUE)) {
   print(naniar::miss_var_summary(master), n = 25)
   print(naniar::gg_miss_var(master) +
           ggplot2::labs(title = "Missingness per column (master)"))
-} else message("naniar not installed — skipping missingness summary/plot.")
+} else note_skip("naniar not installed — skipping missingness summary/plot.")
 
 if (requireNamespace("skimr", quietly = TRUE)) skimr::skim(master) else
-  message("skimr not installed — skipping typed EDA summary.")
+  note_skip("skimr not installed — skipping typed EDA summary.")
 ```
 
 Range sanity on the four genomic score tables (data/-side, read back from the
@@ -603,7 +603,7 @@ if (nrow(score_bounds) > 0) {
            n_violations = sum(x < lower | x > upper, na.rm = TRUE))
   })
 } else {
-  message("score_bounds empty — fill in column names to enable hard-bound checks.")
+  note_skip("score_bounds empty — fill in column names to enable hard-bound checks.")
 }
 ```
 
@@ -629,7 +629,7 @@ if (nrow(score_long) > 0) {
          x = "Score (units differ per panel; see 00-methods)", y = "Patients (count)") +
     attend_theme()
 } else {
-  message("No numeric score columns matched in master — check column prefixes.")
+  note_skip("No numeric score columns matched in master — check column prefixes.")
 }
 ```
 
@@ -670,7 +670,7 @@ if (have_cols(master, msi_score_col, attend_cols$msi_status)) {
          y = "WES MSI score (% unstable sites)") +
     attend_theme()
 } else {
-  message("Both msi__MSI_SCORE and ", attend_cols$msi_status,
+  note_skip("Both msi__MSI_SCORE and ", attend_cols$msi_status,
           " must be in the master — skipping MSI concordance plot.")
 }
 ```

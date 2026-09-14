@@ -137,8 +137,7 @@ knitr::kable(tibble(
   source  = c("data/ascets/ (DRAGEN .seg)", tcga_source)),
   caption = "MMR-deficient tumours per cohort, and the aneuploidy statistic each uses.")
 
-# cat(), not message(): opts_chunk sets message = FALSE, so a message() is invisible on the
-# knitted page and a skipped comparison then looks like nothing happened at all.
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
 if (!have_tcga)
   cat("\n**No TCGA MMRd data** — run `Rscript code/fetch_tcga_ucec_2013.R`, then re-knit.\n")
 if (nrow(t13) > 0 && !use_ascets)

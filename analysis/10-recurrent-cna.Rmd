@@ -87,7 +87,7 @@ those oncoplots is NA, not "neutral": missing data is not evidence of no alterat
 arm_freq <- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
 
 if (is.null(arm_freq)) {
-  message("No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.")
+  note_skip("No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.")
 } else {
   # Same eligibility gate recurrent_arm_calls() applies to top_arms (freq$eligible), so
   # the barplot and the oncoplot annotation tracks can never disagree about which arms
@@ -146,7 +146,7 @@ arm_bounds <- load_arm_boundaries()
 pile <- segment_pileup(load_cnv_data(), arm_bounds)
 
 if (is.null(pile)) {
-  message("No ClassifyCNV segments (data/cnv_annotations/) or arm-boundary table — ",
+  note_skip("No ClassifyCNV segments (data/cnv_annotations/) or arm-boundary table — ",
           "skipping the genome-wide pileup.")
 } else {
   # Capture the denominator + its source before any filter()/mutate() that could drop
@@ -376,8 +376,7 @@ gx_mmrd   <- find_gistic_files(dir = run_dirs[["mmrd_high"]])
 have_maft <- requireNamespace("maftools", quietly = TRUE)
 fdr_g     <- attend_cnv$gistic$fdr_cutoff
 
-# cat(), not message(): opts_chunk sets message = FALSE, so a skipped figure would leave
-# the page looking as though nothing was attempted.
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
 if (!have_maft) {
   cat("`maftools` is not installed — `renv::install(\"bioc::maftools\")`, then",
       "`renv::snapshot()`. The peak table above stands on its own.\n")

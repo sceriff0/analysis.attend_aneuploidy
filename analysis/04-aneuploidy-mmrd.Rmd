@@ -26,9 +26,11 @@ source(here("code", "attend_plots.R"))       # highlight_points(), attend_theme(
 source(here("code", "attend_ihc.R"))         # ihc_celltype_metrics(), ihc_content_metrics()
 source(here("code", "load_phenotypes.R"))    # load_ihc_celltypes()
 
-master <- get_master() |> add_molecular_classes() |>
-  mutate(aneuploidy_class = factor(aneuploidy_class,
-                                   levels = c("aneuploidy-high", "aneuploidy-low")))
+# No local re-factor: add_molecular_classes() now returns aneuploidy_class as an ordered
+# factor, AS Low first, matching the palette's quiet -> altered direction and reports 06/11.
+# This line used to force the opposite order, which is why this report's boxes read
+# right-to-left against every other page on the site.
+master <- get_master() |> add_molecular_classes()
 mmrd_pids <- add_scna_group(master) |> filter(mmr_group == "MMRd") |> pull(pid)
 n_mmrd <- length(mmrd_pids)
 
@@ -148,7 +150,7 @@ if (nrow(dat) > 0)
   cat("  with an aneuploidy score :", sum(!is.na(dat$aneuploidy_value)), "patients\n")
 
 if (have_mmr && nrow(dat) == 0)
-  message("No MMR-deficient patients (MMR_class == '", attend_levels$mmr_deficient,
+  note_skip("No MMR-deficient patients (MMR_class == '", attend_levels$mmr_deficient,
           "') — every figure below is skipped.")
 ```
 
@@ -447,7 +449,8 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = if (free_y) NULL else yy$label_y) +
     shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_aneu_cols) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only"),
                                width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
@@ -472,7 +475,7 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
     filter(is.finite(.v))
   if (nrow(d) == 0) {
-    message("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
+    note_skip("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
   }
   # The focus set first, on an axis of its own: these four sit under ~0.6 on the arcsin
   # scale, so sharing an axis with `Tumor` (~1.0) leaves them unreadable. Then every cell
@@ -482,7 +485,7 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
     p <- box_by_aneu(foc, denom_label, arcsin, scope = "focus set")
     if (!is.null(p)) print(p)
   } else {
-    message("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
+    note_skip("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
             paste(attend_ihc_focus, collapse = ", "), ").")
   }
   # Tumour phenotypes are dropped here: at ~1.0 on the arcsine scale one of them flattens
@@ -726,7 +729,8 @@ box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13
     stat_compare_means(method = method, label = "p.format", size = sty$p_size,
                        label.y = if (free_y) NULL else yy$label_y) +
     shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_aneu_cols) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only) — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
          x = NULL,
@@ -756,7 +760,7 @@ if (nrow(filter(imm_metrics, is.finite(frac))) > 2) {
     for (asin in c(FALSE, TRUE)) {
       p <- box_immune(imm_metrics, dn, asin); if (!is.null(p)) print(p)
     }
-} else message("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")
+} else note_skip("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")
 ```
 
 #### The pre-specified primary contrast
@@ -775,7 +779,7 @@ mmrd_arcsin_t_wilcox <- function(df, metric_, denom_) {
   d <- df |> dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac))
   tab <- table(d$aneuploidy_class)
   if (length(tab) < 2 || any(tab < 2)) {
-    message("MMRd ", metric_, " / ", denom_, ": insufficient n per aneuploidy arm — skipping.")
+    note_skip("MMRd ", metric_, " / ", denom_, ": insufficient n per aneuploidy arm — skipping.")
     return(invisible(NULL))
   }
   t_res <- t.test(arcsin_sqrt(frac) ~ aneuploidy_class, data = d)     # primary
@@ -801,14 +805,16 @@ if (!is.null(res_primary)) {
     attend_box(d, x = "aneuploidy_class", y = "frac", fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 1.2, base_alpha = 0.5, base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-    scale_fill_manual(values = attend_aneu_cols) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     labs(title = "PRIMARY: CD45+ immune fraction (all cells inside) — MMR-deficient only",
          subtitle = paste0("arcsin(sqrt) t p = ", signif(res_primary$t$p.value, 3),
                            " | Wilcoxon p = ", signif(res_primary$w$p.value, 3),
                            " (n = ", nrow(d), "; small-n — suggestive only)"),
          x = NULL, y = "CD45+ fraction of all cells inside") +
     attend_theme() + theme(legend.position = "none")
-} else message("Primary within-MMRd immune contrast skipped — see message above.")
+} else note_skip("Primary within-MMRd immune contrast skipped — see message above.")
 ```
 
 #### The one model that needs MMR-proficient patients
@@ -834,7 +840,7 @@ if (nrow(imm_int) > 4 && dplyr::n_distinct(imm_int$aneuploidy_class) == 2 &&
     as.data.frame(summary(fit)$coefficients)
   print(knitr::kable(coef_tbl, digits = 3,
         caption = "arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group — BOTH MMR groups, no correction"))
-} else message("Not enough patients across both MMR groups for the interaction model.")
+} else note_skip("Not enough patients across both MMR groups for the interaction model.")
 ```
 
 ### Aneuploidy against the continuous covariates
@@ -869,7 +875,7 @@ if (nrow(scat) > 2) {
     labs(title = "Aneuploidy score vs continuous covariates (MMR-deficient only)",
          x = "aneuploidy score", y = "covariate value", colour = NULL) +
     attend_theme() + theme(legend.position = "top")
-} else message("Not enough MMR-deficient patients with aneuploidy score + a covariate.")
+} else note_skip("Not enough MMR-deficient patients with aneuploidy score + a covariate.")
 ```
 
 The same covariates against the **binarised** aneuploidy class rather than the continuous
@@ -890,11 +896,13 @@ if (nrow(cb) > 2) {
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
     facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
-    scale_fill_manual(values = attend_aneu_cols) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     labs(title = "Continuous covariates by aneuploidy class (MMR-deficient only)",
          x = NULL, y = "covariate value") +
     attend_theme() + theme(legend.position = "none")
-} else message("Not enough MMR-deficient patients with aneuploidy class + a covariate.")
+} else note_skip("Not enough MMR-deficient patients with aneuploidy class + a covariate.")
 ```
 
 ### Aneuploidy by TP53 status
@@ -914,12 +922,14 @@ if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
     highlight_points(tp, "TP53", "aneuploidy_score", base_size = 1.5, base_alpha = 0.5,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format") +
-    scale_fill_manual(values = attend_tp53_cols) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_tp53_cols, labels = as_label,
+                      name = attend_tp53_legend) +
     labs(title = "Aneuploidy by TP53 status (MMR-deficient only)",
          x = NULL, y = attend_as_axis) +
     attend_theme() + theme(legend.position = "none")
 } else {
-  message("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",
+  note_skip("Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic ",
           "is missing from the master (rebuild report 01).")
 }
 ```
@@ -968,7 +978,9 @@ if (nrow(icc) > 2) {
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
     facet_wrap(~ covariate, scales = "free_y") +
-    scale_fill_manual(values = attend_aneu_cols) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
     labs(title = "Pathologist immune scores by aneuploidy class (MMR-deficient only)",
          x = NULL, y = "pathologist %") +
     attend_theme() + theme(legend.position = "none")

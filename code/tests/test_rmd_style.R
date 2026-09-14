@@ -249,6 +249,32 @@ for (f in numbered) {
   }
 }
 
+# ---- [8] a report never calls message() ------------------------------------
+# Every report sets knitr::opts_chunk$set(message = FALSE) and none overrides it, so a
+# message() in a report goes to stderr during the build and NEVER REACHES THE PAGE. Verified
+# against the rendered site: the only occurrences of a skip string in docs/*.html are inside
+# the echoed <code> block, never in an output block. Sixty-one had accumulated, every one
+# explaining why a figure or a table is absent, and every one invisible to the reader — who
+# saw only a gap. Four reports had already discovered this independently and worked around it
+# locally with cat(); this rule is that workaround made general.
+#
+# note_skip() (attend_plots.R) is the drop-in: same ... semantics, written to stdout, which
+# knitr captures into the page. A report has no developer audience — everything it emits is
+# for the reader — so this admits no exception, including inside error = function(e) handlers,
+# where a missing table is exactly what the reader needs explained.
+#
+# conditionMessage() is not message(): the lookbehind keeps it, and any other identifier
+# ending in "message".
+for (f in reports) {
+  lines <- readLines(f, warn = FALSE)
+  keep  <- in_any_fence(lines) & !grepl("^\\s*#", lines) & !grepl("^```", lines)
+  hit   <- keep & grepl("(?<![A-Za-z0-9._])message\\s*\\(", lines, perl = TRUE)
+  if (any(hit))
+    note(basename(f), ": message() at line(s) ", paste(which(hit), collapse = ", "),
+         " — opts_chunk sets message = FALSE, so this never reaches the knitted page and a ",
+         "skipped figure reads as though nothing was attempted. Use note_skip().")
+}
+
 # ---- report ----------------------------------------------------------------
 
 if (length(fail)) {

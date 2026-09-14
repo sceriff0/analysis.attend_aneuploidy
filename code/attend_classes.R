@@ -305,11 +305,39 @@ add_molecular_classes <- function(df,
   a       <- num(cols$aneuploidy)
   a_cut   <- if (is.null(thr$aneuploidy)) stats::median(a, na.rm = TRUE) else thr$aneuploidy
 
-  df$TMB_class        <- ifelse(num(cols$tmb) >= thr$tmb, "TMB-high", "TMB-low")
-  df$HRD_class        <- ifelse(num(cols$hrd) >= thr$hrd, "HRD-high", "HRD-low")
-  df$aneuploidy_class <- ifelse(a >= a_cut, "aneuploidy-high", "aneuploidy-low")
-  df$MSI_class        <- ifelse(chr(cols$msi_status) == lev$msi_unstable, "MSI-high", "MSS")
-  df$MMR_class        <- chr(cols$mmr_status)
+  # ORDERED FACTORS, reference state FIRST -- not characters.
+  #
+  # These were plain character vectors, so every axis, legend and facet strip got ggplot's
+  # ALPHABETICAL order. For the aneuploidy class that puts "aneuploidy-high" before
+  # "aneuploidy-low", i.e. altered on the left -- the opposite of the direction the palette
+  # is built around (light blue quiet -> red altered, see attend_aneu_cols). Report 04 then
+  # re-factored locally to high-first while reports 06 and 11 built their own low-first, so
+  # the SAME variable read left-to-right in opposite directions on different pages of one
+  # site. Fixing it here rather than at three call sites is the point: there is one
+  # derivation, so there is one order.
+  #
+  # Rule [A] extended from colour to sequence: the reference state (low, proficient, stable)
+  # comes first, and the reader travels toward the altered end.
+  #
+  # DATA spellings are unchanged -- add_scna_group()'s grepl("high", ...) and
+  # scna_group_token()'s GISTIC folder names both read these strings, and as.character() on
+  # a factor returns exactly what was there before.
+  df$TMB_class        <- factor(ifelse(num(cols$tmb) >= thr$tmb, "TMB-high", "TMB-low"),
+                                levels = c("TMB-low", "TMB-high"))
+  df$HRD_class        <- factor(ifelse(num(cols$hrd) >= thr$hrd, "HRD-high", "HRD-low"),
+                                levels = c("HRD-low", "HRD-high"))
+  df$aneuploidy_class <- factor(ifelse(a >= a_cut, "aneuploidy-high", "aneuploidy-low"),
+                                levels = c("aneuploidy-low", "aneuploidy-high"))
+  df$MSI_class        <- factor(ifelse(chr(cols$msi_status) == lev$msi_unstable,
+                                       "MSI-high", "MSS"),
+                                levels = c("MSS", "MSI-high"))
+  # MMR keeps the RAW clinical text as its values (as_label() maps it for display), but is
+  # ordered proficient-first from the data: the deficient token is configured, everything
+  # else is the reference state. Empty input yields a factor with no levels, all NA.
+  mmrv <- chr(cols$mmr_status)
+  obs  <- sort(unique(stats::na.omit(mmrv)))
+  df$MMR_class <- factor(mmrv, levels = c(setdiff(obs, lev$mmr_deficient),
+                                          intersect(obs, lev$mmr_deficient)))
   df
 }
 
