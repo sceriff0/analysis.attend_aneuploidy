@@ -39,6 +39,24 @@ cat("GISTIC preflight — repo root resolved by here(): ", here(), "\n",
     "R ", R.version$major, ".", R.version$minor,
     " | wd ", getwd(), "\n\n", sep = "")
 
+# ⚠️ IS here() EVEN THE REPO? here() locates the project by walking UP for a .Rproj / .here /
+# DESCRIPTION marker. Started from somewhere outside the project — a home directory, or an
+# interactive R session that never cd'd — it finds no marker and, rather than failing, FALLS
+# BACK TO THE WORKING DIRECTORY and returns a confidently wrong root. Every source() below
+# then resolves cleanly to a path that does not exist, and the run emits seven identical
+# "cannot open the connection" FAILs that read like a code problem and are not one. Checking
+# for one file the repo must contain turns that into the one sentence it actually is.
+if (!file.exists(file.path(here(), "code", "attend_classes.R"))) {
+  cat("FAIL  not the repo root        here() = ", here(), "\n",
+      "      code/attend_classes.R is not there, so this is not the ATTEND checkout.\n",
+      "      here() falls back to the working directory when it finds no project marker,\n",
+      "      so every path below would resolve to a file that does not exist.\n",
+      "      fix: cd into the repo and run with Rscript, not by pasting into R:\n",
+      "             cd ~/workflowR/attend_aneuploidy\n",
+      "             Rscript code/preflight_gistic.R\n", sep = "")
+  quit(status = 1)
+}
+
 # Sourcing is itself a check: an error here is a code problem, not a data one, and it is the
 # one failure mode that WOULD also break the reports.
 srcs <- c("attend_classes.R", "attend_scna.R", "attend_harmonise.R", "attend_io.R",

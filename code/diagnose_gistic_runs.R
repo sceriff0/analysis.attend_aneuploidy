@@ -30,6 +30,16 @@
 suppressPackageStartupMessages({
   library(here); library(dplyr); library(tibble); library(readr)
 })
+
+# ⚠️ Run from the repo root, with Rscript. here() falls back to the working directory when it
+# finds no project marker, so from a home directory it returns a confidently wrong root and
+# the source() below dies with "cannot open the connection" — a path problem wearing a code
+# problem's error message. Same guard, and the same reasoning, as preflight_gistic.R.
+if (!file.exists(file.path(here(), "code", "attend_classes.R")))
+  stop("not the ATTEND repo root: here() = ", here(),
+       "\n  fix: cd ~/workflowR/attend_aneuploidy && Rscript code/diagnose_gistic_runs.R",
+       call. = FALSE)
+
 source(here("code", "attend_classes.R"))
 
 # The cap GISTIC will apply. run_gistic.sh defaults to 46000; taking it from the same env
