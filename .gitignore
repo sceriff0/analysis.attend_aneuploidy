@@ -54,6 +54,18 @@ output/*
 # TCGA 2013 published GISTIC peaks (Suppl. Data File S2.1), converted to TSV — a small
 # reference table, not raw data, and the pipeline reads it instead of the .xls.
 !data/tcga_gistic_peaks_2013.tsv
+# Wu et al. (Immunity 2025) Table S3 — the pooled CRISPR-Cas9 resister/sensitizer gene
+# catalogue, converted from *mmc4.xlsx by code/fetch_crispr_screens.R. 124 kB of gene
+# symbols: a reference table on the same footing as the peaks above. The .xlsx it came
+# from is raw supplementary material and stays ignored.
+!data/crispr_t_cell_screens_wu2025.tsv
+
+# Publisher supplementary downloads landing at the repo root (Elsevier names them
+# 1-s2.0-<PII>-main.pdf / -mmcN.xlsx). Raw source material, same footing as papers/ below:
+# multi-MB, redistributable only under the article's licence, and the pipeline never reads
+# them directly — it reads the small derived tables converted out of them. Ignored at the
+# root rather than moved, because code/fetch_crispr_screens.R globs *mmc4.xlsx here.
+1-s2.0-*
 
 # --- third-party tools cloned by helper scripts (not vendored) ---
 # code/run_ascets_tcga.sh clones github.com/beroukhim-lab/ascets here.
