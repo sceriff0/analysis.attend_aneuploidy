@@ -223,9 +223,14 @@ Joining them directly gives an all-NA result *with no error*, so every lookup be
 through group_of_barcode(), built on the same crosswalk as everything else.
 
 The grouping variable scna_group composes is_mmrd() (IHC-based, MSI deliberately not a
-criterion) with aneuploidy_class at the pre-registered cut
+criterion) with aneuploidy_class at the **primary** cut
 `r attend_thresholds$aneuploidy`, the same definition Part 1's
 frequency comparison uses.
+
+⚠️ **A `r attend_thresholds$aneuploidy`-cut result, and cannot yet be anything else.** Every other
+aneuploidy figure is drawn at both cuts (`r paste(aneu_cuts(), collapse = " and ")`, [00-methods](00-methods.html));
+this one cannot — its inputs are the per-stratum **GISTIC runs on disk**, prepared from the primary cut.
+Re-running at `r max(aneu_cuts())` means regenerating them (code/prep_gistic_group_segs.R, runbooks/gistic.md).
 
 ```{r scna-gate}
 have_master <- exists("master") && !is.null(master) && nrow(master) > 0
@@ -299,17 +304,19 @@ models. The two roles are therefore kept apart:
   never called: it is scored on the MMRd-high run's own calls, labelled so, and cannot
   enter question 2.
 
-The cohort this contrast conditions on. Fisher tests whether MMR status and aneuploidy class are
-associated at all — if they are strongly associated, the MMRd-high cell is small by
+The cohort this contrast conditions on, at both cuts. Fisher tests whether MMR status and
+aneuploidy class are associated at all — if they are, the MMRd-high cell is small by
 construction and everything below is underpowered.
 
 ```{r scna-contingency, eval=have_master}
+# Both cuts: from the master, not a run — what the strata WOULD be at the other cut.
 if (all(c("mmr_group", "aneuploidy_class") %in% names(master))) {
-  tab2 <- table(MMR = master$mmr_group, Aneuploidy = master$aneuploidy_class)
-  print(knitr::kable(tab2, caption = "MMR x aneuploidy-class contingency (patient level)"))
-  ft2 <- tryCatch(fisher.test(tab2), error = function(e) NULL)
-  if (!is.null(ft2)) cat("Fisher p =", signif(ft2$p.value, 3),
-                        ", OR =", signif(unname(ft2$estimate), 3), "\n\n")
+  cc <- add_aneuploidy_cuts(master) |> filter(!is.na(mmr_group), !is.na(aneuploidy_class))
+  print(knitr::kable(cc |> count(as_cut_lab, MMR = mmr_group, aneu = as_label(aneuploidy_class)) |>
+    pivot_wider(names_from = aneu, values_from = n, values_fill = 0),
+    caption = "MMR x aneuploidy contingency at both cuts (the GISTIC runs used the primary)"))
+  print(cc |> group_by(as_cut_lab) |> summarise(
+    fisher_p = signif(fisher.test(table(mmr_group, aneuploidy_class))$p.value, 3)))
 }
 ```
 

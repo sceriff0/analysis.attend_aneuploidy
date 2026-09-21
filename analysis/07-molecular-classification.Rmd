@@ -241,7 +241,12 @@ per-sample aneuploidy score**. That aneuploidy bar is the external ASCETS aneupl
 aneu__aneuploidy_score (from data/aneu_scores.csv via report 1) mapped from pid back
 onto sequencing barcodes through the report-01 crosswalk. It is a **continuous annotation,
 not a clustering feature**: the clustering never sees it, so visible alignment between the
-high-burden cluster and the high-aneuploidy samples is corroboration, not circularity.
+high-burden cluster and the high-aneuploidy samples is corroboration, not circularity. The
+binary high/low bar beside it splits at the **primary** cut
+`r attend_thresholds$aneuploidy`; nothing in this report is keyed on the aneuploidy class —
+the clusters are learned from copy number — so it is an annotation here rather than a
+grouping, and the same tumours split at both configured cuts are in
+[12-aneuploidy-immune](12-aneuploidy-immune.html).
 
 ```{r cnv-cluster, fig.height=8}
 cl <- if (have_cnv) cluster_arm_matrix(cnv_mat, k = k_cnv,
