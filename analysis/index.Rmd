@@ -20,7 +20,7 @@ is always correct.
 
 Each report opens with a four-line scope contract: the question, the cohort, what it
 reads, and what it deliberately leaves to another report. They are numbered in reading
-order, 00 to 11.
+order, 00 to 12.
 
 **[00 — Methods](00-methods.html)** carries every justification in the pipeline, and the
 shared definitions each report links to rather than repeating: the two TMB definitions, the
@@ -102,6 +102,12 @@ alternatives — live in runbooks/.
   MMR stratum, and the TCGA MMRd survival split — including why it cannot decide anything.
   This is the report `attend_cohort_cols` exists for: TCGA is the external reference, so it
   takes the reference grey and only ATTEND carries a hue.
+- **[12 — Aneuploidy, immune infiltrate and PD-L1](12-aneuploidy-immune.html)** · all patients
+  The Fig-1a copy-number heatmap with its columns split by the four MMR × aneuploidy groups
+  instead of by copy-number clusters, then the pathologist's immune calls against aneuploidy:
+  immune infiltrate (IC %) by AS class, pooled and within each MMR group, and against the
+  continuous score; and the two banded PD-L1 calls (immune cells, tumour cells) as ordered
+  categories — the score across bands as a trend, and AS class × band with Fisher's exact test.
 
 ### Conventions
 

@@ -864,7 +864,7 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
 }
 .fig1a_na_col   <- "#FFFFFF"        # white = absent; never used for a real category
 
-.fig1a_covariate_cols <- function(a) {
+.fig1a_covariate_cols <- function(a, aneu_cut = NULL) {
   cols <- list()
   # Integrated TCGA class — factor level order is POLE > MMRd > CN-high (serous) > CN-low
   # (endometrioid). Assigned positionally so it tracks the levels the reports build.
@@ -952,7 +952,7 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
     rng <- range(a$Aneuploidy, na.rm = TRUE)
     lo  <- unname(attend_aneu_cols[["aneu-low"]]); hi <- unname(attend_aneu_cols[["aneu-high"]])
     if (all(is.finite(rng)) && diff(rng) > 0) {
-      thr <- .aneu_split_threshold(a$Aneuploidy)
+      thr <- if (is.null(aneu_cut)) .aneu_split_threshold(a$Aneuploidy) else aneu_cut
       cols$Aneuploidy <- if (is.finite(thr) && thr > rng[1] && thr < rng[2])
         circlize::colorRamp2(c(rng[1], thr, rng[2]), c(lo, "#F7F7F7", hi))
       else circlize::colorRamp2(rng, c(lo, hi))
@@ -972,13 +972,17 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
 #   (3) colour every bar from the readable .fig1a_covariate_cols() palette.
 # Returns a column HeatmapAnnotation, or NULL when nothing is left to draw. `ids` = the
 # heatmap column order (barcodes). Assumes ComplexHeatmap/circlize (callers guard first).
-.fig1a_top_annotation <- function(ann_col, ids) {
+# `aneu_cut` overrides the split used for the binary aneuploidy bar AND the midpoint of the
+# continuous one. It exists because a caller may draw the SAME cohort at more than one cut
+# (report 12 draws both): left to .aneu_split_threshold() every panel would take the one
+# configured primary cut, so the bar would contradict the column split sitting under it.
+.fig1a_top_annotation <- function(ann_col, ids, aneu_cut = NULL) {
   if (is.null(ann_col)) return(NULL)
   a <- ann_col[ids, , drop = FALSE]
   a$CN_cluster <- NULL                                  # (1) redundant with the bottom bar
   # (2) binary aneuploidy high/low from the continuous score (same split as the boxplots)
   if ("Aneuploidy" %in% names(a) && is.numeric(a$Aneuploidy) && any(is.finite(a$Aneuploidy))) {
-    thr <- .aneu_split_threshold(a$Aneuploidy)
+    thr <- if (is.null(aneu_cut)) .aneu_split_threshold(a$Aneuploidy) else aneu_cut
     a$Aneuploidy_hl <- factor(ifelse(is.na(a$Aneuploidy) | !is.finite(thr), NA_character_,
                                      ifelse(a$Aneuploidy >= thr, "aneu-high", "aneu-low")),
                               levels = c("aneu-low", "aneu-high"))
@@ -1007,7 +1011,7 @@ attend_fig_save <- function(plot, path, width = "single", data = NULL, restyle =
   a   <- a[, vapply(a, function(x) !all(is.na(x)), logical(1)), drop = FALSE]  # drop all-NA
   if (!ncol(a)) return(NULL)
   # DISPLAY relabel LAST, after every derivation above has keyed on the data spellings.
-  rl   <- .fig1a_relabel_display(a, .fig1a_covariate_cols(a))
+  rl   <- .fig1a_relabel_display(a, .fig1a_covariate_cols(a, aneu_cut))
   a    <- rl$a
   cols <- rl$cols
   lab  <- stats::setNames(names(a), names(a))
@@ -1080,8 +1084,19 @@ relabel_clusters_by_burden <- function(clusters, mat) {
 # the SAME rownames as `mat` (barcodes) carrying the existing 09/09b annotation
 # bars (TCGA_class, MMR, TP53, Aneuploidy); drawn as a top annotation. Knit-safe:
 # with ComplexHeatmap/circlize absent it draws the cluster dendrogram instead.
+#
+# The column split need not be a copy-number clustering. Report 12 splits on the four
+# MMR x aneuploidy groups instead, so `cluster_cols` (a named colour vector keyed by the
+# levels of `clusters`) and `cluster_name` (the bottom bar's label) override the numbered
+# .fig1a_cluster_cols palette. Pass `clusters` as a FACTOR to fix the block order; a
+# character vector is split alphabetically. `column_distance` / `column_linkage` order the
+# tumours WITHIN each block and default to ComplexHeatmap's own defaults, so reports 07 and
+# 09 draw exactly what they drew before; report 12 passes the pipeline's configured pair.
 fig1a_heatmap <- function(mat, feature_pos, clusters, ann_col = NULL,
-                          value_type = c("thresholded", "continuous"), main = NULL) {
+                          value_type = c("thresholded", "continuous"), main = NULL,
+                          cluster_cols = NULL, cluster_name = "Cluster",
+                          column_distance = "euclidean", column_linkage = "complete",
+                          aneu_cut = NULL) {
   value_type <- match.arg(value_type)
   if (is.null(mat) || !nrow(mat) || !ncol(mat)) { message("fig1a_heatmap(): empty matrix"); return(invisible(NULL)) }
   # Drop samples with no cluster assignment so column_split never receives NA
@@ -1109,7 +1124,8 @@ fig1a_heatmap <- function(mat, feature_pos, clusters, ann_col = NULL,
   # columns split by cluster (paper groups tumours into the k clusters)
   ids     <- colnames(M)
   cl_vec  <- factor(unname(clusters[ids]))
-  cols    <- .fig1a_cluster_cols[levels(cl_vec)]; names(cols) <- levels(cl_vec)
+  pal     <- if (is.null(cluster_cols)) .fig1a_cluster_cols else cluster_cols
+  cols    <- pal[levels(cl_vec)]; names(cols) <- levels(cl_vec)
 
   # color scale: continuous red-white-blue, or discrete GISTIC {-2..+2}
   if (value_type == "continuous") {
@@ -1126,15 +1142,17 @@ fig1a_heatmap <- function(mat, feature_pos, clusters, ann_col = NULL,
   # .fig1a_top_annotation() (drops the redundant CN_cluster, adds a binary aneuploidy bar,
   # and applies the readable covariate palette — same treatment for every TCGA report).
   bottom <- ComplexHeatmap::HeatmapAnnotation(
-    Cluster = cl_vec, col = list(Cluster = cols),
+    df = stats::setNames(data.frame(cl_vec), cluster_name),
+    col = stats::setNames(list(cols), cluster_name),
     annotation_name_side = "left", which = "column")
-  top <- .fig1a_top_annotation(ann_col, ids)
+  top <- .fig1a_top_annotation(ann_col, ids, aneu_cut)
 
   ht <- ComplexHeatmap::Heatmap(
     M, name = leg_title, col = col_fun,
     row_split = row_chr, cluster_row_slices = FALSE, cluster_rows = FALSE,
     row_title_rot = 0, row_title_gp = grid::gpar(fontsize = 7),
     column_split = cl_vec, cluster_column_slices = FALSE, cluster_columns = TRUE,
+    clustering_distance_columns = column_distance, clustering_method_columns = column_linkage,
     show_row_names = FALSE, show_column_names = FALSE,
     top_annotation = top, bottom_annotation = bottom,
     column_title = main %||% "SCNAs by tumour (columns) x chromosomal location (rows) — TCGA Fig. 1a",
