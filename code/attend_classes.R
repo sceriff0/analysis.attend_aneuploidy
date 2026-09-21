@@ -75,8 +75,67 @@ attend_thresholds <- list(
   tmb        = 10,    # TMB-high if >= 10 mut/Mb
   hrd        = 50,    # HRD-high if >= 50
   aneuploidy = 0.1,   # aneuploidy-high if aneu__aneuploidy_score >= 0.1 (fixed cutoff; was median split)
+  # The SECOND cut, reported beside the first rather than instead of it. 0.1 was never
+  # measured against an alternative -- it is a configured constant with no sweep behind it --
+  # so every aneuploidy-keyed figure is now drawn at both cuts and the reader sees which
+  # results move. attend_thresholds$aneuploidy stays the PRIMARY: it is what a bare
+  # add_molecular_classes() derives, what aneuploidy_class on the master means, and what the
+  # per-group GISTIC runs on disk were prepared from.
+  aneuploidy_alt  = 0.2,
   response_months = 6 # responder if progression-free beyond 6 months (see add_response_class)
 )
+
+# --- 2b. The two aneuploidy cuts, and the ONE way to draw both --------------------
+# WHY A HELPER RATHER THAN TWO CALL SITES. "Both cuts, side by side" could be written at
+# every figure as two frames and two plots. It is one long frame and one extra facet instead,
+# for the reason every other derivation in this file is centralised: two call sites drift.
+# A figure that re-derived the class locally is exactly how aneuploidy_class came to read
+# left-to-right in opposite directions on different pages (see add_molecular_classes()).
+#
+# aneu_cuts() is the ordered, de-duplicated pair. Setting aneuploidy_alt to NULL collapses
+# the site back to a single cut with no other edit, which is the exit this design owes the
+# reader if 0.2 turns out to answer nothing.
+aneu_cuts <- function(thr = attend_thresholds) {
+  sort(unique(c(thr$aneuploidy, thr$aneuploidy_alt)))
+}
+
+# The display spelling of a cut, as an ORDERED factor so a facet strip reads 0.1 then 0.2.
+# One spelling, in one place, for the same reason attend_as_axis exists.
+as_cut_label <- function(cut, cuts = aneu_cuts()) {
+  lv <- paste0("AS cut ", format(sort(unique(cuts))))
+  factor(paste0("AS cut ", format(cut)), levels = lv)
+}
+
+#' Repeat a patient frame once per aneuploidy cut, re-deriving the class each time.
+#'
+#' Returns `nrow(df) * length(cuts)` rows: the same patients, carrying
+#'   * `as_cut`     — the numeric cut, and
+#'   * `as_cut_lab` — its display factor, for facet_wrap(~ as_cut_lab),
+#' with `aneuploidy_class` RE-DERIVED at that cut by add_molecular_classes(), so a figure
+#' facets on one column instead of being written twice. With `scna = TRUE` the MMR x
+#' aneuploidy grouping is rebuilt per cut too (add_scna_group()), which is what the Fig-1a
+#' column split and report 10's strata key on.
+#'
+#' The other classes add_molecular_classes() derives (TMB, HRD, MSI, MMR) do not depend on
+#' the aneuploidy cut and are identical in every block — recomputing them is wasted work but
+#' keeps ONE derivation path, which is the trade this file makes everywhere.
+#'
+#' Base R (no dplyr) so it is unit-testable in the bootstrap env, like add_scna_group().
+add_aneuploidy_cuts <- function(df, cuts = aneu_cuts(), thr = attend_thresholds,
+                                scna = FALSE) {
+  cuts <- sort(unique(cuts))
+  if (!length(cuts)) stop("add_aneuploidy_cuts(): no cuts")
+  parts <- lapply(cuts, function(k) {
+    d <- add_molecular_classes(df, thr = utils::modifyList(thr, list(aneuploidy = k)))
+    if (scna) d <- add_scna_group(d)
+    d$as_cut     <- k
+    d$as_cut_lab <- as_cut_label(k, cuts)
+    d
+  })
+  out <- do.call(rbind, parts)
+  rownames(out) <- NULL
+  out
+}
 
 # --- IHC composition: the focus set -----------------------------------------------
 # The cell types the composition figure is FOR. Reports 05 and 06 draw these on one axis of

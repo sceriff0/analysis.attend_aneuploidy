@@ -617,6 +617,42 @@ into **aneuploidy-high** and **aneuploidy-low** by aneuploidy_class_of(). The cu
 configured constant, not a cohort quantile, so it does not move when the cohort grows.
 Patients without an ASCETS score are NA and are dropped from class comparisons.
 
+### Two cuts, reported side by side
+
+`r attend_thresholds$aneuploidy` was never measured against an alternative. It is a
+configured constant that replaced an earlier median split, and nothing in this pipeline ever
+asked what a different constant would do — which means the cut has been, until now, an
+untested assumption sitting under every aneuploidy result on the site.
+
+So there are two: attend_thresholds$aneuploidy = `r attend_thresholds$aneuploidy` and
+attend_thresholds$aneuploidy_alt = `r attend_thresholds$aneuploidy_alt`, returned as a pair
+by aneu_cuts(), and **every aneuploidy-keyed figure is drawn at both**. The first stays the
+**primary**: a bare add_molecular_classes() derives it, the master's aneuploidy_class column
+carries it, and the per-group GISTIC runs on disk were prepared from it. The second is drawn
+beside it so a reader can see which results depend on the threshold and which do not.
+
+The mechanism is one helper, add_aneuploidy_cuts(), which returns the patient frame **once
+per cut** with aneuploidy_class — and, on request, scna_group — re-derived at each, plus an
+ordered as_cut_lab for the facet strip. Figures therefore gain a facet rather than a second
+copy of their code. That is the point: two call sites drift, and this variable has drifted
+before (see the level-order note under the aneuploidy classes). code/tests/test_aneuploidy_cuts.R
+pins that the second block is genuinely re-derived rather than a relabelled copy of the
+first — the failure that would publish one result twice under two labels and read as "the
+threshold does not matter".
+
+Raising a cut can only demote a patient from high to low, never the reverse, so the two
+classifications are nested and the movers are exactly the patients scoring between the cuts.
+Reports print that count rather than leaving it implicit. Setting aneuploidy_alt to NULL
+collapses the whole site back to a single cut with no other edit.
+
+⚠️ **The GISTIC runs are a `r attend_thresholds$aneuploidy`-cut product.**
+scna_group_token() turns the MMR × aneuploidy groups into the run folder names under
+data/gistic/, and those runs were prepared from the primary cut. Every report that reads a
+per-group run — [10-recurrent-cna](10-recurrent-cna.html) above all — therefore reports the
+primary cut only, and says so, until the runs are regenerated at the second cut
+(code/prep_gistic_group_segs.R, then runbooks/gistic.md). A figure that splits the pooled
+matrix in memory, such as report 12's heatmaps, has no such constraint.
+
 ## Highlighted patients
 One overlay group is drawn on top of the base colouring by highlight_points(), which
 partitions the data so no patient is plotted twice:
