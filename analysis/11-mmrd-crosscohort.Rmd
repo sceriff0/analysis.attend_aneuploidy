@@ -23,17 +23,23 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 5)
 
 source(here("code", "attend_classes.R"))     # mmrd_aneuploidy_split(), dip_bimodality(),
+                                             # aneu_cuts(), add_aneuploidy_cuts(),
                                              # attend_tcga_ref, attend_tcga_ref_2013, thresholds
 source(here("code", "attend_plots.R"))       # attend_theme(), attend_box(), attend_cohort_cols
 source(here("code", "attend_io.R"))          # read_intermediate()
 source(here("code", "build_master.R"))       # get_master() — builds on demand
 source(here("code", "load_wes_results.R"))   # load_tcga_ucec_2013(), load_tcga_2013_ascets(),
                                              # load_tcga_ucec() (legacy fallback)
+
+# The configured aneuploidy cuts, as ONE ordered pair for the whole report. Every
+# cut-dependent panel below facets on the label this pair generates rather than being
+# written twice — see add_aneuploidy_cuts() for why that is a helper and not two call sites.
+cuts <- aneu_cuts()
 ```
 > **Question.** Does aneuploidy substructure MMR-deficient tumours in metastatic disease (ATTEND) in a way that is absent from primary disease (TCGA UCEC)?
 > **Cohort.** MMR-deficient only, in both cohorts, side by side.
 > **Reads.** The master (built on demand by get_master()) for the ATTEND arm; data/tcga_2013/ plus ASCETS run on its segments for the TCGA arm.
-> **Out of scope.** The ATTEND MMRd split itself, against mutations and composition -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html). ATTEND TMB bimodality and its own TCGA replication -> [06-tmb](06-tmb.html). Every ATTEND survival model -> [02-survival](02-survival.html). Cluster-level correspondence between the two cohorts -> [09-tcga2013-fig1a](09-tcga2013-fig1a.html).
+> **Out of scope.** The ATTEND MMRd split itself, against mutations and composition -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html). ATTEND TMB bimodality and its own TCGA replication -> [06-tmb](06-tmb.html). Every ATTEND survival model -> [02-survival](02-survival.html). Cluster-level correspondence between the two cohorts -> [09-tcga2013-fig1a](09-tcga2013-fig1a.html). The aneuploidy classes, the two cuts and why both are reported -> [00-methods](00-methods.html).
 
 ATTEND is a cohort of **metastatic** endometrial tumours; TCGA UCEC is **primary**.
 [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) works inside ATTEND's MMR-deficient stratum,
@@ -52,6 +58,14 @@ to carry the answer:
 * **Orthogonality** — does TMB track aneuploidy *within* an MMR stratum in TCGA? If it did,
   the aneuploidy split would be re-discovering the hypermutator phenotype rather than adding
   an axis.
+
+**Every aneuploidy-keyed figure and table here is drawn at both cuts**,
+`r paste(cuts, collapse = " and ")` — attend_thresholds$aneuploidy and $aneuploidy_alt,
+returned as a pair by aneu_cuts(); [00-methods](00-methods.html) holds the justification and
+is not restated. The cut is load-bearing for this report's central question, so a result that
+survives only one of the two is a result about the threshold. Panels that plot the
+*continuous* score carry no class and are therefore drawn once, with both cuts as reference
+lines instead of as a facet.
 
 The shared axis is the load-bearing piece. ATTEND's aneuploidy score is ASCETS (fraction of
 evaluable arms altered, 0–1); the cBioPortal column is Taylor et al. 2018, a *count* of
@@ -89,8 +103,19 @@ quoted as "TCGA's MSI group". If the ASCETS output is absent the report falls ba
 legacy PanCanAtlas export (`load_tcga_ucec()`, Taylor arm count) and drops every
 scale-dependent panel, saying so in the table.
 
+Both cohorts are classified by **one helper over one cut vector**: `add_aneuploidy_cuts()`
+re-derives `aneuploidy_class` at each cut from `attend_cols$aneuploidy`, for the ATTEND rows
+(`master_cuts`) and for the TCGA rows (`tcga_cuts_df`) alike. `same_cut` records whether the
+two vectors are identical and gates every cross-cohort panel below, because ATTEND at
+`r min(cuts)` drawn beside TCGA at `r max(cuts)` would be a comparison of two different
+questions. The last table is the cost of the choice in ATTEND MMRd patients: raising a cut
+can only demote, so the two classifications are nested and the movers score between them.
+
 ```{r cohorts}
 master      <- get_master() |> add_molecular_classes()
+# The same patients once per cut, with aneuploidy_class and the MMR x AS group re-derived at
+# each. Every cut-dependent panel facets on as_cut_lab instead of being written twice.
+master_cuts <- add_aneuploidy_cuts(master, scna = TRUE)
 attend_mmrd <- mmrd_aneuploidy_split(master)
 attend_aneu <- if (!is.null(attend_mmrd))
   attend_mmrd$aneu_value[is.finite(attend_mmrd$aneu_value)] else numeric(0)
@@ -130,12 +155,70 @@ have_tcga   <- length(tcga_aneu)   >= 4
 comparable  <- use_ascets && have_attend && have_tcga &&
                all(is.finite(range(attend_aneu))) && max(attend_aneu, na.rm = TRUE) <= 1
 
+# ONE cut vector per cohort, and the cross-cohort panels run only when the two are
+# IDENTICAL. ATTEND is always on the ASCETS [0,1] scale, so it always carries the configured
+# pair. TCGA carries the SAME pair when ASCETS has been run on its segments; on the
+# arm-COUNT fallback 0.1 and 0.2 are not its scale's numbers at all — a 0.1 line there sits
+# against the axis and would call every tumour aneuploidy-high — so it falls back to a
+# single within-cohort median, labelled with its own value. same_cut is the guard that makes
+# "ATTEND at 0.1 beside TCGA at 0.2" impossible rather than merely unintended.
+tcga_all_aneu <- if (nrow(tcga) > 0) tcga$aneuploidy[is.finite(tcga$aneuploidy)] else numeric(0)
+tcga_cuts <- if (comparable) cuts else
+  if (length(tcga_all_aneu) > 0) stats::median(tcga_all_aneu) else numeric(0)
+same_cut  <- comparable && identical(as.numeric(tcga_cuts), as.numeric(cuts))
+
+# ⚠️ TWO fallback medians, on purpose. Part 4 compares MMRd against MMRp, so its fallback cut
+# is the WHOLE cohort's median. Part 5 asks whether aneuploidy substructures MMRd — a
+# WITHIN-stratum question — so its fallback is the MMRd subset's own median. They are the
+# same number only by accident: MMRd tumours are quieter than UCEC as a whole (which carries
+# the serous, copy-number-high arm), so splitting MMRd at the cohort median can leave an
+# "aneuploidy-high" arm of two patients and answer the substructure question with an empty
+# cell. When ASCETS has been run on TCGA both collapse to the configured pair and this is
+# moot. Each part labels the cut it used.
+#
+# The TCGA frame once per cut goes through the SAME helper on the SAME column name the ATTEND
+# rows go through: one derivation, so the two halves cannot drift to different rules.
+tcga_cuts_df <- if (length(tcga_cuts) > 0 && nrow(tcga) > 0) {
+  tcga |>
+    mutate(!!attend_cols$aneuploidy := aneuploidy) |>
+    add_aneuploidy_cuts(cuts = tcga_cuts) |>
+    tibble::as_tibble()
+} else tibble()
+
+# Part 5's frame: MMRd only, cut at MMRd's own median on the fallback scale.
+tcga_mmrd_cuts <- if (comparable) cuts else
+  if (length(tcga_aneu) > 0) stats::median(tcga_aneu) else numeric(0)
+tcga_mmrd_cuts_df <- if (length(tcga_mmrd_cuts) > 0 && nrow(tcga_mmrd) > 0) {
+  tcga_mmrd |>
+    mutate(!!attend_cols$aneuploidy := aneuploidy) |>
+    add_aneuploidy_cuts(cuts = tcga_mmrd_cuts) |>
+    tibble::as_tibble()
+} else tibble()
+
 knitr::kable(tibble(
   cohort  = c(lab_attend, lab_tcga),
   MMRd_n  = c(length(attend_aneu), length(tcga_aneu)),
   scale   = c("ASCETS (fraction of evaluable arms, 0-1)", tcga_scale),
   source  = c("data/ascets/ (DRAGEN .seg)", tcga_source)),
   caption = "MMR-deficient tumours per cohort, and the aneuploidy statistic each uses.")
+
+cat("\nAneuploidy cuts — ATTEND: ", paste(cuts, collapse = ", "),
+    " | TCGA: ", if (length(tcga_cuts) > 0) paste(signif(tcga_cuts, 3), collapse = ", ") else "none",
+    if (same_cut) " — IDENTICAL, so the cross-cohort panels run.\n" else
+      " — NOT identical, so every cross-cohort class panel is skipped.\n", sep = "")
+
+# The ATTEND MMRd arm at each cut, from master_cuts. mmrd_aneuploidy_split() above and
+# add_aneuploidy_cuts() here select MMRd through the same is_mmrd() IHC criterion and read
+# the same attend_cols$aneuploidy column, so these are the same patients as attend_aneu,
+# classified at the fixed cut rather than at the split's optionally GMM-refined boundary.
+attend_by_cut <- master_cuts |>
+  filter(is_mmrd(MMR_class) %in% TRUE, !is.na(aneuploidy_class)) |>
+  count(as_cut_lab, class = as_label(aneuploidy_class)) |>
+  tidyr::pivot_wider(names_from = class, values_from = n, values_fill = 0)
+knitr::kable(attend_by_cut, caption = paste0(
+  "ATTEND MMRd tumours per aneuploidy class at each cut. Raising the cut can only demote, ",
+  "so the two classifications are nested and the difference between the AS High counts is ",
+  "the number of patients the choice of threshold moves."))
 
 # cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
 if (!have_tcga)
@@ -153,7 +236,10 @@ the level comparison that Part 2 gates behind the shared scale. TCGA is drawn in
 reference grey and only ATTEND carries a hue, because TCGA is the external cohort the ATTEND
 result is measured against. The dip test needs at least four finite values and the optional
 `diptest` package; where either is missing the annotation says so instead of printing a
-number.
+number. The score is plotted **raw**, so no class and no cut enters this panel: both cuts
+appear only as dashed reference lines, and only on a panel whose axis is the ASCETS [0,1]
+scale — on the arm-count fallback the TCGA panel carries no line, because
+`r paste(cuts, collapse = " and ")` are not numbers on that axis.
 
 ```{r density-contrast, fig.height=5}
 dip_a <- dip_bimodality(attend_aneu)
@@ -177,7 +263,14 @@ if (nrow(dens_df) > 0) {
                     lab    = c(dip_lab(dip_a), dip_lab(dip_t))) |>
     filter(cohort %in% dens_df$cohort)
 
-  ggplot(dens_df, aes(aneu)) +
+  # Reference lines per PANEL, not per figure: ATTEND is always ASCETS, TCGA only when
+  # run_ascets_tcga.sh has been run. Drawing 0.1 on an arm-count axis would put the line at
+  # the origin and read as "every TCGA tumour is aneuploidy-high".
+  cut_df <- bind_rows(
+    if (have_attend)               tibble(cohort = lab_attend, xc = cuts) else NULL,
+    if (have_tcga && use_ascets)   tibble(cohort = lab_tcga,   xc = cuts) else NULL)
+
+  p <- ggplot(dens_df, aes(aneu)) +
     geom_density(aes(fill = cohort), colour = "grey30", alpha = 0.5, adjust = 0.9) +
     geom_rug(alpha = 0.4) +
     geom_text(data = labs_df, aes(x = Inf, y = Inf, label = lab),
@@ -185,15 +278,23 @@ if (nrow(dens_df) > 0) {
     facet_wrap(~ cohort, scales = "free") +
     scale_fill_manual(values = attend_cohort_cols, guide = "none") +
     labs(title = "Aneuploidy within MMRd — metastatic vs primary",
-         subtitle = "free axes: shape only. Multimodal = a real split; unimodal = a continuum",
+         subtitle = paste0("free axes: shape only. Multimodal = a real split; unimodal = a ",
+                           "continuum. Dashed = the two AS cuts, ",
+                           paste(cuts, collapse = " and "), " (ASCETS panels only)"),
          x = "aneuploidy score (cohort-specific scale)", y = "density") +
     attend_theme()
+  if (nrow(cut_df) > 0)
+    p <- p + geom_vline(data = cut_df, aes(xintercept = xc), linetype = "dashed",
+                        colour = "grey40", linewidth = 0.4)
+  print(p)
 } else cat("No aneuploidy data for either cohort yet.\n")
 ```
 
 The same dip test as a table, so the statistic and n are legible rather than read off a
 panel annotation. Read `n` first: with a handful of tumours per cohort the dip test has very
 little power, so a non-significant p is weak evidence of unimodality and not evidence of it.
+One row per cohort and not per cut: the dip statistic is computed on the raw score vector and
+never sees a class, so both cuts would return the identical number.
 
 ```{r bimodality-table}
 knitr::kable(tibble(
@@ -210,14 +311,17 @@ knitr::kable(tibble(
 
 Part 1 compared shape; this compares **level**, which the shared ASCETS scale makes
 legitimate. Both axes are now "fraction of evaluable chromosome arms altered", so the two
-densities can be drawn on one axis and the medians compared directly. The dashed line is
-`attend_thresholds$aneuploidy` = `r attend_thresholds$aneuploidy`, ATTEND's aneuploidy-high
-cutoff, drawn in the aneuploidy-high colour because that is what it marks — and it now means
-the same thing in both cohorts.
+densities can be drawn on one axis and the medians compared directly. The dashed lines are
+the two aneuploidy-high cutoffs, `r paste(cuts, collapse = " and ")`, drawn in the
+aneuploidy-high colour because that is what they mark — and they now mean the same thing in
+both cohorts. The figure is **not** faceted by cut: it plots the raw score with no class, so
+the cut changes nothing in it except where the lines fall, which is exactly the comparison a
+reader needs in order to judge either cut.
 
 The test is a **Mann–Whitney** (rank-based, no distributional assumption) on the two MMRd
 aneuploidy vectors, reported with the rank-biserial effect size, because a p-value alone is
-uninformative when the group sizes differ by an order of magnitude. The whole part is
+uninformative when the group sizes differ by an order of magnitude. It is one test and not
+one per cut, for the same reason: it ranks the scores themselves and never thresholds them. The whole part is
 **skipped** unless ASCETS has been run on TCGA: on mismatched scales the comparison is
 meaningless rather than merely imprecise. Interpret the size of any shift against the
 purity/platform asymmetry stated at the top — the two uncorrectable biases run in opposite
@@ -240,11 +344,14 @@ if (comparable) {
 
   ggplot(both, aes(aneu, fill = cohort)) +
     geom_density(colour = "grey30", alpha = 0.45, adjust = 0.9) +
-    geom_vline(xintercept = attend_thresholds$aneuploidy, linetype = "dashed",
+    # BOTH cuts, because this panel carries no class: the lines are the only thing the
+    # choice of threshold changes here.
+    geom_vline(xintercept = cuts, linetype = "dashed",
                colour = attend_aneu_high, linewidth = 0.4) +
-    scale_fill_manual(values = attend_cohort_cols, name = NULL) +
+    scale_fill_manual(values = attend_cohort_cols, name = attend_cohort_legend) +
     labs(title = "MMRd aneuploidy, metastatic vs primary — one shared axis",
-         subtitle = "ASCETS fraction of evaluable arms altered; dashed = aneuploidy-high cutoff",
+         subtitle = paste0("ASCETS fraction of evaluable arms altered; dashed = the two ",
+                           "aneuploidy-high cutoffs, ", paste(cuts, collapse = " and ")),
          x = "ASCETS aneuploidy score (0-1)", y = "density") +
     attend_theme()
 } else if (!use_ascets) {
@@ -262,11 +369,16 @@ survival event, which is why the intervals are the part to read: with a small
 aneuploidy-high count on either side the interval stays wide even when the point estimates
 differ substantially, and a wide interval is the honest summary.
 
-The cutoff is `attend_thresholds$aneuploidy` = `r attend_thresholds$aneuploidy`, applied
-identically to both ASCETS scores, and the arm is skipped on the arm-count fallback because
-the criterion is not transferable there. The **fixed** cutoff is used deliberately, not the
-GMM-refined boundary `mmrd_aneuploidy_split()` can compute: that boundary is fitted to
-ATTEND's own distribution, so applying it to TCGA would beg the question this part asks.
+This is the arm the cut moves most, so it is computed at **both** cuts,
+`r paste(cuts, collapse = " and ")`, one block of rows each, with its **own** Fisher test per
+cut — the two cuts are never pooled into one test, because they are two different questions
+about the same patients. Inside each block a single `k` is applied to both cohorts in the
+same expression, which is what makes "ATTEND at one cut, TCGA at another" impossible rather
+than merely unintended; the whole table is additionally gated on `same_cut`. The arm is
+skipped on the arm-count fallback because neither cut is transferable there. The **fixed**
+cutoffs are used deliberately, not the GMM-refined boundary `mmrd_aneuploidy_split()` can
+compute: that boundary is fitted to ATTEND's own distribution, so applying it to TCGA would
+beg the question this part asks.
 
 ```{r prop-shared}
 prop_ci <- function(x, n) {                       # Clopper-Pearson exact interval
@@ -275,34 +387,42 @@ prop_ci <- function(x, n) {                       # Clopper-Pearson exact interv
   sprintf("%.1f%% (%.1f-%.1f)", 100 * x / n, 100 * ci[1], 100 * ci[2])
 }
 
-if (comparable) {
-  cut_shared <- attend_thresholds$aneuploidy
-  a_hi <- sum(attend_aneu >= cut_shared); a_n <- length(attend_aneu)
-  t_hi <- sum(tcga_aneu   >= cut_shared); t_n <- length(tcga_aneu)
-  ft <- stats::fisher.test(matrix(c(a_hi, a_n - a_hi, t_hi, t_n - t_hi), nrow = 2))
-  knitr::kable(tibble(
-    cohort          = c(lab_attend, lab_tcga),
-    MMRd_n          = c(a_n, t_n),
-    aneuploidy_high = c(a_hi, t_hi),
-    percent         = c(prop_ci(a_hi, a_n), prop_ci(t_hi, t_n))),
-    caption = sprintf(paste0("MMRd tumours at or above the shared ASCETS cutoff (>= %s). ",
-                             "Fisher exact p = %.3g; odds ratio %.2f (%.2f-%.2f). ",
-                             "Percentages carry exact Clopper-Pearson intervals."),
-                      cut_shared, ft$p.value, ft$estimate,
-                      ft$conf.int[1], ft$conf.int[2]))
-} else cat("Skipped — needs ASCETS on TCGA so both cohorts share one cutoff.",
+if (same_cut) {
+  # ONE k per block, applied to both cohorts in the SAME expression and with the same
+  # `>= k` rule add_molecular_classes() uses, so the two halves of a row cannot be counted
+  # at different thresholds. The test is inside the block: cuts are never pooled.
+  prop_at <- function(k) {
+    a_hi <- sum(attend_aneu >= k); a_n <- length(attend_aneu)
+    t_hi <- sum(tcga_aneu   >= k); t_n <- length(tcga_aneu)
+    ft   <- stats::fisher.test(matrix(c(a_hi, a_n - a_hi, t_hi, t_n - t_hi), nrow = 2))
+    tibble(cut             = as.character(as_cut_label(k, cuts)),
+           cohort          = c(lab_attend, lab_tcga),
+           MMRd_n          = c(a_n, t_n),
+           aneuploidy_high = c(a_hi, t_hi),
+           percent         = c(prop_ci(a_hi, a_n), prop_ci(t_hi, t_n)),
+           fisher_p        = signif(ft$p.value, 3),
+           odds_ratio      = sprintf("%.2f (%.2f-%.2f)", ft$estimate,
+                                     ft$conf.int[1], ft$conf.int[2]))
+  }
+  knitr::kable(bind_rows(lapply(cuts, prop_at)), caption = paste0(
+    "MMRd tumours at or above each shared ASCETS cutoff (>= ",
+    paste(cuts, collapse = ", "), "). Fisher exact and the odds ratio are computed ",
+    "SEPARATELY within each cut and repeat down its two rows; percentages carry exact ",
+    "Clopper-Pearson intervals. ATTEND is the first row of each pair, so the odds ratio ",
+    "reads ATTEND against TCGA at that cut."))
+} else cat("Skipped — needs ASCETS on TCGA so both cohorts share the same cutoffs.",
            "Run `bash code/run_ascets_tcga.sh`.\n")
 ```
 
 A second reference point taken **entirely from TCGA's published data**: how many of TCGA's
 MMRd tumours were assigned to copy-number **cluster 4**, its serous-like SCNA cluster? Both
 fields are TCGA's own (integrative cluster and `CNA_CLUSTER_K4`, Suppl. Data File S1.1), so
-this proportion involves no cutoff, no ASCETS and no choice of ours. It is **not the same
-criterion** as the table above — cluster membership rather than an aneuploidy threshold — so
+this proportion involves no cutoff, no ASCETS and no choice of ours — and so is one table,
+not one per cut. It is **not the same criterion** as the table above — cluster membership rather than an aneuploidy threshold — so
 the two are not interchangeable and only the shared-cutoff table supports a like-for-like
-test. This is a sanity anchor: if the shared cutoff puts a wildly different fraction of TCGA
-MMRd above the line than TCGA's own clustering did, the cutoff is drawing a different line
-than the clustering, and that needs explaining before either number is quoted. The
+test. This is a sanity anchor: if either shared cutoff puts a wildly different fraction of
+TCGA MMRd above the line than TCGA's own clustering did, that cutoff is drawing a different
+line than the clustering, and that needs explaining before either number is quoted. The
 cross-tabulation is a derived observation — the paper reports cluster 4's histology
 composition but never its subtype composition — so it is not quotable from the publication.
 
@@ -344,80 +464,92 @@ been removed.
 median TMB two orders of magnitude above the copy-number groups, so leaving them in MMRp
 would make that panel unreadable and misrepresent MMRp as high-TMB. ATTEND has no POLE cases,
 so excluding them is also what makes the two cohorts' MMRp groups comparable; the POLE count
-and median are printed separately for reference.
+and median are printed separately for reference. The aneuploidy class is taken from
+`tcga_cuts_df`, i.e. re-derived at each cut by `add_aneuploidy_cuts()` rather than
+thresholded here, so the counts below are a partition per cut and the panels that follow can
+facet on it. Where ASCETS has not been run on TCGA the cut vector collapses to that cohort's
+own median and the page says so, because `r paste(cuts, collapse = " and ")` are ASCETS
+[0,1] numbers with no meaning on an arm count.
 
 ```{r tcga-tmb-build}
-# The aneuploidy cut is the shared pipeline cutoff when the scales match, else the
-# within-cohort median — labelled either way, never tuned to the outcome.
-aneu_cut_tmb <- if (comparable) attend_thresholds$aneuploidy else
-  stats::median(tcga$aneuploidy, na.rm = TRUE)
 have_tcga_tmb <- nrow(tcga) > 0 && "tmb" %in% names(tcga) && any(is.finite(tcga$tmb))
 
-tcga_tmb <- if (have_tcga_tmb) {
-  tcga |>
-    mutate(
-      mmr_group = dplyr::case_when(!is.na(pole) & pole ~ "POLE",
-                                   mmrd %in% TRUE      ~ "MMRd",
-                                   mmrd %in% FALSE     ~ "MMRp",
-                                   TRUE                ~ NA_character_),
-      aneuploidy_class = factor(ifelse(aneuploidy >= aneu_cut_tmb,
-                                       "aneuploidy-high", "aneuploidy-low"),
-                                levels = c("aneuploidy-low", "aneuploidy-high"))) |>
+# aneuploidy_class comes from tcga_cuts_df — already re-derived once per cut by the same
+# helper the ATTEND rows go through — so nothing here re-implements the threshold rule.
+tcga_tmb <- if (have_tcga_tmb && nrow(tcga_cuts_df) > 0) {
+  tcga_cuts_df |>
+    mutate(mmr_group = dplyr::case_when(!is.na(pole) & pole ~ "POLE",
+                                        mmrd %in% TRUE      ~ "MMRd",
+                                        mmrd %in% FALSE     ~ "MMRp",
+                                        TRUE                ~ NA_character_)) |>
     filter(is.finite(tmb), !is.na(aneuploidy_class), mmr_group %in% c("MMRp", "MMRd")) |>
     mutate(mmr_group = factor(mmr_group, levels = c("MMRp", "MMRd")))
 } else tibble()
 
-if (have_tcga_tmb) {
+if (nrow(tcga_tmb) > 0) {
   pole_n   <- sum(!is.na(tcga$pole) & tcga$pole)
   pole_med <- suppressWarnings(stats::median(tcga$tmb[!is.na(tcga$pole) & tcga$pole], na.rm = TRUE))
-  cat("patients per MMR group x aneuploidy status:\n")
-  print(tcga_tmb |> count(mmr_group, aneuploidy_class) |>
-          tidyr::pivot_wider(names_from = aneuploidy_class, values_from = n, values_fill = 0))
+  if (!same_cut)
+    note_skip("The configured cuts (", paste(cuts, collapse = " and "), ") are ASCETS [0,1] ",
+              "numbers and do not transfer to TCGA's arm COUNT, so the panels below are ",
+              "drawn at ONE cut — TCGA's own within-cohort median, ",
+              signif(tcga_cuts, 3), ". Run `bash code/run_ascets_tcga.sh` for both.")
+  cat("patients per cut x MMR group x aneuploidy status:\n")
+  print(tcga_tmb |>
+          count(as_cut_lab, mmr_group, class = as_label(aneuploidy_class)) |>
+          tidyr::pivot_wider(names_from = class, values_from = n, values_fill = 0))
   cat("\nPOLE (excluded from the panels): n = ", pole_n,
       ", median TMB = ", round(pole_med, 1), " mut/Mb\n", sep = "")
 } else cat("TMB part skipped — needs the 2013 cohort with TMB_NONSYNONYMOUS.\n")
 ```
 
-TCGA TMB in aneuploidy-high versus aneuploidy-low tumours, faceted by MMR group, boxes
-filled by aneuploidy status and the dashed line at the TMB-high cut. `attend_box()` picks the
-mark per facet cell from the data — box and points where the cell has at least ten patients,
-a median crossbar and points below that — and prints n, because the TCGA MMRd
-aneuploidy-high cell is small and quartiles drawn from a handful of values would be an
-artefact of which two landed in the middle. The y-axis is free: MMRd TMB sits an order of
-magnitude above MMRp, so a shared axis would flatten the MMRp panel.
+TCGA TMB in aneuploidy-high versus aneuploidy-low tumours, one column per MMR group and one
+**row per aneuploidy cut**, boxes filled by aneuploidy status and the dashed line at the
+TMB-high cut. `attend_box()` picks the mark per facet cell from the data — box and points
+where the cell has at least ten patients, a median crossbar and points below that — so `by`
+carries the cut as well as the MMR group, or a cell's mark would be chosen from both cuts'
+patients at once. The TCGA MMRd aneuploidy-high cell is small and quartiles drawn from a
+handful of values would be an artefact of which two landed in the middle. The layout is
+`facet_wrap()` over both variables rather than `facet_grid()` because each panel needs its
+**own** y axis: MMRd TMB sits an order of magnitude above MMRp, and `facet_grid()` frees y
+by row only, which would put the two MMR groups back on one scale.
 
-```{r tcga-tmb-box, fig.width=9, fig.height=7}
+```{r tcga-tmb-box, fig.width=9, fig.height=8}
 if (nrow(tcga_tmb) > 0) {
   # fill rides the TOP-LEVEL aes and attend_box(fill = NULL) inherits it — the idiom every
   # other semantic-fill box in the pipeline uses. attend_box() applies outlier.shape = NA
   # itself (it always draws the points, so an outlier layer would double-plot patients);
   # it takes no geom_boxplot passthrough, so naming one here is an error, not a no-op.
   ggplot(tcga_tmb, aes(aneuploidy_class, tmb, fill = aneuploidy_class)) +
-    attend_box(tcga_tmb, x = "aneuploidy_class", y = "tmb", by = "mmr_group",
-               fill = NULL) +
+    attend_box(tcga_tmb, x = "aneuploidy_class", y = "tmb",
+               by = c("mmr_group", "as_cut_lab"), fill = NULL) +
     geom_hline(yintercept = attend_thresholds$tmb, linetype = "dashed",
                colour = attend_aneu_high, linewidth = 0.4) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label, name = attend_as_legend) +
     scale_x_discrete(labels = as_label) +
-    facet_wrap(~ mmr_group, scales = "free_y") +
-    labs(title = "TCGA UCEC — TMB by aneuploidy status, within MMR strata",
+    facet_wrap(~ as_cut_lab + mmr_group, scales = "free_y",
+               nrow = dplyr::n_distinct(tcga_tmb$as_cut_lab)) +
+    labs(title = "TCGA UCEC — TMB by aneuploidy status, within MMR strata, at each cut",
          subtitle = paste0("dashed = TMB-high cut (", attend_thresholds$tmb, " mut/Mb); ",
-                           "aneuploidy-high = score >= ", signif(aneu_cut_tmb, 3),
-                           "; POLE excluded"),
+                           "aneuploidy-high = score >= the row's cut (",
+                           paste(signif(tcga_cuts, 3), collapse = ", "), "); POLE excluded"),
          x = NULL, y = "TMB (mut/Mb, nonsynonymous)") +
     attend_theme()
 } else cat("No TCGA TMB/aneuploidy data to plot.\n")
 ```
 
 The same contrast as counts: the TMB-high fraction on each side of the aneuploidy line,
-within each MMR group, with a Fisher exact test per group. The test is withheld — reported as
-NA — wherever an aneuploidy group holds fewer than three patients, because a 2×2 with a cell
-of one or two produces a p-value that moves entirely with a single reclassification.
+within each MMR group **and within each cut**, with a Fisher exact test per cell of that
+grid — the cut is a grouping key, never pooled, since pooling would count the same patient
+twice under two classifications. The test is withheld — reported as NA — wherever an
+aneuploidy group holds fewer than three patients, because a 2×2 with a cell of one or two
+produces a p-value that moves entirely with a single reclassification; the higher cut demotes
+patients into the low arm, so a row can lose its test even where the lower cut kept one.
 
 ```{r tcga-tmb-test}
 if (nrow(tcga_tmb) > 0) {
   tab <- tcga_tmb |>
-    group_by(mmr_group) |>
+    group_by(as_cut_lab, mmr_group) |>
     group_modify(function(.x, ...) {
       hi    <- .x$tmb >= attend_thresholds$tmb
       is_lo <- .x$aneuploidy_class == "aneuploidy-low"
@@ -432,7 +564,8 @@ if (nrow(tcga_tmb) > 0) {
     })
   knitr::kable(tab, caption = paste0(
     "TMB-high (>= ", attend_thresholds$tmb, " mut/Mb) fraction by aneuploidy status, within ",
-    "each MMR group. Fisher exact per group; NA when an aneuploidy group has < 3 patients."))
+    "each MMR group at each cut. Fisher exact per cut x MMR group, never pooled across ",
+    "cuts; NA when an aneuploidy group has < 3 patients."))
 } else cat("TMB 2x2 skipped.\n")
 ```
 
@@ -446,8 +579,13 @@ the test cannot detect even a large hazard ratio, so a non-significant result he
 evidence that the split is absent in primary disease, and a significant one is fragile,
 threshold-dependent noise. The arms that can discriminate are shape, level and prevalence.
 
-The cut is ATTEND's own cutpoint when the scales match and the within-cohort median
-otherwise, labelled either way and frozen before the outcome is looked at.
+The cuts are ATTEND's own cutpoints when the scales match and, otherwise, a single median
+taken **within the MMRd subset itself** — this part asks whether aneuploidy substructures
+MMRd, so the fallback line has to fall inside that stratum; the cohort-wide median used in
+Part 4 would leave an aneuploidy-high arm of a handful of patients here. Labelled either
+way, and frozen before the outcome is looked at. Every row of the
+table is fitted **within one cut** — one log-rank, one unadjusted Cox and one adjusted Cox
+per cut per endpoint — so no model sees a patient under two classifications.
 Progression-free survival is the primary endpoint because it carries more events than OS in
 this cohort and is the endpoint the paper's own Fig. 1b uses; OS is reported beside it. Each
 row carries a log-rank p, an unadjusted Cox HR, and a Cox HR **adjusted for stage and
@@ -458,30 +596,32 @@ an unadjusted one from misleading.
 ```{r tcga-survival-table}
 surv_ok <- have_tcga && requireNamespace("survival", quietly = TRUE)
 
-cutx    <- if (comparable) attend_thresholds$aneuploidy else stats::median(tcga_aneu, na.rm = TRUE)
 # Braces required: a top-level `if (x) a` with `else` on the NEXT line is an R syntax error.
-cut_lab <- if (comparable) {
-  paste0("ATTEND cutpoint (ASCETS >= ", cutx, ")")
+cut_lab <- if (same_cut) {
+  paste0("ATTEND cutpoints (ASCETS >= ", paste(cuts, collapse = ", "), ")")
 } else {
-  paste0("within-cohort median (>= ", signif(cutx, 3), ")")
+  # MMRd's OWN median, not the cohort's — this is a within-stratum split (see the cohorts
+  # chunk), and the label has to say which line the curves were actually cut at.
+  paste0("within-MMRd median (>= ", signif(tcga_mmrd_cuts, 3), ")")
 }
 
-tcga_surv <- if (surv_ok) {
-  tcga_mmrd |>
-    filter(is.finite(aneuploidy)) |>
-    mutate(aneuploidy_class = factor(ifelse(aneuploidy >= cutx,
-                                            "aneuploidy-high", "aneuploidy-low"),
-                                     levels = c("aneuploidy-low", "aneuploidy-high")),
-           stage_bin = factor(dplyr::case_when(stage %in% c("Stage I", "Stage II")   ~ "I-II",
+# MMRd rows of the per-cut frame: aneuploidy_class is already re-derived at each cut, so the
+# only thing added here is the stage/grade adjustment model's inputs.
+tcga_surv <- if (surv_ok && nrow(tcga_mmrd_cuts_df) > 0) {
+  tcga_mmrd_cuts_df |>
+    filter(mmrd %in% TRUE, is.finite(aneuploidy)) |>
+    mutate(stage_bin = factor(dplyr::case_when(stage %in% c("Stage I", "Stage II")   ~ "I-II",
                                                stage %in% c("Stage III", "Stage IV") ~ "III-IV",
                                                TRUE ~ NA_character_)),
            grade_f   = factor(grade))
 } else NULL
 
-fit_one <- function(tcol, ecol, label) {
-  if (is.null(tcga_surv) || !all(c(tcol, ecol) %in% names(tcga_surv))) return(NULL)
-  x <- tcga_surv |> filter(is.finite(.data[[tcol]]), !is.na(.data[[ecol]]),
-                           !is.na(aneuploidy_class))
+# `d` is ONE cut's rows. Taking the frame as an argument rather than reading tcga_surv is
+# what keeps a model from pooling the two classifications of the same patient.
+fit_one <- function(d, tcol, ecol, label) {
+  if (is.null(d) || !all(c(tcol, ecol) %in% names(d))) return(NULL)
+  x <- d |> filter(is.finite(.data[[tcol]]), !is.na(.data[[ecol]]),
+                   !is.na(aneuploidy_class))
   if (nrow(x) == 0 || dplyr::n_distinct(x$aneuploidy_class) < 2) return(NULL)
   S  <- survival::Surv(x[[tcol]], x[[ecol]])
   sd <- survival::survdiff(S ~ x$aneuploidy_class)
@@ -503,47 +643,64 @@ fit_one <- function(tcol, ecol, label) {
            sprintf("%.2f (%.2f-%.2f)", adj[1], adj[2], adj[3]))
 }
 
-st <- bind_rows(fit_one("pfs_months", "pfs_event", "PFS (primary)"),
-                fit_one("os_months",  "os_event",  "OS"))
+st <- NULL
+if (!is.null(tcga_surv) && nrow(tcga_surv) > 0) {
+  st <- bind_rows(lapply(split(tcga_surv, droplevels(tcga_surv$as_cut_lab)), function(d)
+    bind_rows(fit_one(d, "pfs_months", "pfs_event", "PFS (primary)"),
+              fit_one(d, "os_months",  "os_event",  "OS")) |>
+      mutate(cut = as.character(d$as_cut_lab[1]), .before = 1)))
+}
 if (!is.null(st) && nrow(st) > 0) {
   knitr::kable(st, caption = paste0(
-    "TCGA UCEC MMRd survival by aneuploidy split — ", cut_lab,
-    ". READ events_total FIRST: below ~30 events neither a significant nor a ",
-    "non-significant result is informative."))
+    "TCGA UCEC MMRd survival by aneuploidy split, one block per cut — ", cut_lab,
+    ". Every model is fitted within its own cut. READ events_total FIRST: below ~30 events ",
+    "neither a significant nor a non-significant result is informative."))
 } else cat("TCGA survival table skipped — needs data/tcga_2013/ + the survival package.\n")
 ```
 
-The Kaplan–Meier for whichever endpoint carries the most events — the least underpowered
-picture available, not a separate analysis. Curves take the aneuploidy palette, so
-aneuploidy-high is the same red here as in every other figure on the site. The risk table is
-the part to read: it shows how quickly both arms run out of patients at risk, which is the
-concrete form of the power limit stated above.
+The Kaplan–Meier for whichever endpoint carries the most events at that cut — the least
+underpowered picture available, not a separate analysis — drawn **once per cut, in a loop**
+rather than as a faceted figure: `ggsurvfit` builds its p-value annotation and its risk table
+per plot, and a facet would leave one risk table under two sets of curves. Each cut therefore
+gets its own endpoint choice, its own p and its own risk table. Curves take the aneuploidy
+palette, so aneuploidy-high is the same red here as in every other figure on the site. The
+risk table is the part to read: it shows how quickly both arms run out of patients at risk,
+which is the concrete form of the power limit stated above.
 
 ```{r tcga-survival-km, fig.height=5}
 if (!is.null(tcga_surv) && requireNamespace("ggsurvfit", quietly = TRUE) &&
     !is.null(st) && nrow(st) > 0) {
-  best <- st$endpoint[which.max(st$events_total)]
-  tcol <- if (grepl("^PFS", best)) "pfs_months" else "os_months"
-  ecol <- if (grepl("^PFS", best)) "pfs_event"  else "os_event"
-  d <- tcga_surv |>
-    filter(is.finite(.data[[tcol]]), !is.na(.data[[ecol]]), !is.na(aneuploidy_class)) |>
-    mutate(time = .data[[tcol]], event = .data[[ecol]])
-  if (nrow(d) > 0 && dplyr::n_distinct(d$aneuploidy_class) == 2) {
-    print(
-      ggsurvfit::survfit2(survival::Surv(time, event) ~ aneuploidy_class, data = d) |>
-        ggsurvfit::ggsurvfit(linewidth = 1) +
-        ggsurvfit::add_pvalue() + ggsurvfit::add_risktable() +
-        # POSITIONAL, in the factor's own level order, not name-matched: ggsurvfit labels its
-        # strata from the formula and the exact spelling it lands on is its business, so a
-        # named lookup would fail with "insufficient values in manual scale" at knit time.
-        # Same reason km_facet() takes attend_pal(2) positionally.
-        ggplot2::scale_colour_manual(
-          values = unname(attend_aneu_cols[c("aneuploidy-low", "aneuploidy-high")])) +
-        ggplot2::labs(title = paste0("TCGA UCEC MMRd — ", best, " by aneuploidy split (",
-                                     cut_lab, ")"),
-                      subtitle = paste0("n = ", nrow(d), ", ", sum(d$event),
-                                        " events — underpowered; read the CI, not the p")))
-  } else cat("Not enough TCGA MMRd rows for the split KM.\n")
+  for (lv in levels(droplevels(tcga_surv$as_cut_lab))) {
+    sl <- st |> filter(cut == lv)
+    if (nrow(sl) == 0) { note_skip(lv, ": no fitted endpoint, so no KM."); next }
+    best <- sl$endpoint[which.max(sl$events_total)]
+    tcol <- if (grepl("^PFS", best)) "pfs_months" else "os_months"
+    ecol <- if (grepl("^PFS", best)) "pfs_event"  else "os_event"
+    d <- tcga_surv |>
+      filter(as.character(as_cut_lab) == lv, is.finite(.data[[tcol]]),
+             !is.na(.data[[ecol]]), !is.na(aneuploidy_class)) |>
+      mutate(time = .data[[tcol]], event = .data[[ecol]])
+    if (nrow(d) > 0 && dplyr::n_distinct(d$aneuploidy_class) == 2) {
+      print(
+        ggsurvfit::survfit2(survival::Surv(time, event) ~ aneuploidy_class, data = d) |>
+          ggsurvfit::ggsurvfit(linewidth = 1) +
+          ggsurvfit::add_pvalue() + ggsurvfit::add_risktable() +
+          # POSITIONAL, in the factor's own level order, not name-matched: ggsurvfit labels
+          # its strata from the formula and the exact spelling it lands on is its business,
+          # so a named lookup would fail with "insufficient values in manual scale" at knit
+          # time. Same reason km_facet() takes attend_pal(2) positionally. The loop is what
+          # keeps this safe across the two cuts: add_molecular_classes() rebuilds
+          # aneuploidy_class with the SAME low-then-high level order at every cut
+          # (test_class_level_order.R), and the n_distinct() == 2 guard above means both
+          # strata are present, so position 1 is always aneuploidy-low.
+          ggplot2::scale_colour_manual(
+            values = unname(attend_aneu_cols[c("aneuploidy-low", "aneuploidy-high")])) +
+          ggplot2::labs(title = paste0("TCGA UCEC MMRd — ", best, " by aneuploidy split (",
+                                       lv, ")"),
+                        subtitle = paste0("n = ", nrow(d), ", ", sum(d$event),
+                                          " events — underpowered; read the CI, not the p")))
+    } else note_skip(lv, ": not enough TCGA MMRd rows, or only one class, for the split KM.")
+  }
 } else cat("TCGA survival KM skipped — needs survival + ggsurvfit.\n")
 ```
 

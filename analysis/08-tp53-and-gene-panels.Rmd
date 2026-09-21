@@ -33,6 +33,14 @@ MAF_DATA_OK <- has_maf_data()                    # code/load_wes_results.R
 ONCO_OK     <- MAFTOOLS_OK && MAF_DATA_OK
 master <- get_master() |> add_molecular_classes() |> add_scna_group()
 n_mmrd_high <- sum(master$scna_group == "MMRd-high", na.rm = TRUE)
+
+# The same patients once per aneuploidy cut, with aneuploidy_class and scna_group re-derived
+# at each. The oncoplots carry one annotation bar per cut; the Fig-2d frequency comparison is
+# computed once per cut. See 00-methods for why both are reported.
+master_cuts <- add_aneuploidy_cuts(master, scna = TRUE)
+cuts        <- aneu_cuts()
+# One annotation column per cut, named for the strip a reader sees: AS_cut_0.1 / AS_cut_0.2.
+aneu_cut_cols <- stats::setNames(paste0("AS_cut_", format(cuts)), format(cuts))
 ```
 
 > **Question.** Which genes are altered across this cohort — TP53, the MMR panel, the Wnt genes — and does mutation frequency differ between the aneuploidy x MMR subgroups?
@@ -120,10 +128,22 @@ if (!is.null(arm_rec) && nrow(arm_rec$wide_top) > 0) {
 clin <- maf_long |>
   distinct(Tumor_Sample_Barcode) |>
   mutate(pid = cw$pid[match(Tumor_Sample_Barcode, cw$barcode)]) |>
-  left_join(master |> select(pid, aneuploidy_class, all_of(tmb_cls05),
+  left_join(master |> select(pid, all_of(tmb_cls05),
                              MSI_class, MMR_class, all_of(cnv_cls05)),
-            by = "pid") |>
-  select(Tumor_Sample_Barcode, aneuploidy_class, all_of(tmb_cls05),
+            by = "pid")
+
+# ONE ANNOTATION BAR PER CUT, rather than one oncoplot per cut: the oncoplot is the same
+# figure either way — same patients, same genes, same memo sort — and only the aneuploidy
+# band changes, so drawing it twice would ask the reader to compare two dense grids instead
+# of two adjacent rows. Labelled through as_label() like every other displayed class.
+for (k in cuts) {
+  clin[[aneu_cut_cols[[format(k)]]]] <-
+    as_label(master_cuts$aneuploidy_class[match(paste(clin$pid, k),
+                                                paste(master_cuts$pid, master_cuts$as_cut))])
+}
+
+clin <- clin |>
+  select(Tumor_Sample_Barcode, all_of(unname(aneu_cut_cols)), all_of(tmb_cls05),
          MSI_class, MMR_class, all_of(cnv_cls05))
 
 # GISTIC2 focal peaks, if present, overlay gene-level amp/del directly in the mutation
@@ -167,7 +187,7 @@ layout readers expect from an OncoPrint. The annotation-sorted panel below answe
 different question — where alterations concentrate within a covariate — not this one.
 
 ```{r oncoplot-memo, eval=ONCO_OK, fig.height=9}
-covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+covar <- c(unname(aneu_cut_cols), tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
 maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
                    sortByAnnotation = FALSE, removeNonMutated = FALSE)
 ```
@@ -182,7 +202,7 @@ removeNonMutated = FALSE keeps unmutated patients in the figure, so the percenta
 down the side are out of the **whole cohort**, not out of mutated patients only.
 
 ```{r oncoplot, eval=ONCO_OK, fig.height=9}
-covar <- c("aneuploidy_class", tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
+covar <- c(unname(aneu_cut_cols), tmb_cls05, "MSI_class", "MMR_class", cnv_cls05)
 maftools::oncoplot(maf, top = 20, clinicalFeatures = covar,
                    sortByAnnotation = TRUE, removeNonMutated = FALSE)
 ```
@@ -275,12 +295,15 @@ min_mut patients are tested — testing a gene mutated once produces noise, not 
 
 Frequencies are *within-group*: the denominator is that subgroup's own patient count, so
 a small subgroup shows large jumps per patient. Group sizes are printed with the table.
+The whole comparison is run **once per aneuploidy cut**
+(`r paste(aneu_cuts(), collapse = " and ")`), because the subgroups themselves are what the
+cut redefines — the genes and the MAF are identical in both passes, only which patients sit
+in MMRd-high and MMRp-high moves. Each pass carries its own BH correction across its own
+genes; the two passes are the same patients and are not independent evidence.
 
 ```{r mutfreq-groups, eval=ONCO_OK, fig.width=11, fig.height=7}
 min_mut  <- 3    # a gene must be mutated in at least this many patients to be tested
 top_freq <- 25   # genes shown, ranked by overall mutation frequency
-
-master_grp <- add_scna_group(master)      # mmr_group + scna_group (MMR x aneuploidy)
 
 mut_by_pid <- maf_long |>
   mutate(pid = cw$pid[match(Tumor_Sample_Barcode, cw$barcode)]) |>
@@ -296,8 +319,10 @@ mut_by_pid <- maf_long |>
 # is printed rather than absorbed.
 sequenced_pids <- unique(mut_by_pid$pid)
 
-grp_tbl_all <- master_grp |>
-  filter(!is.na(scna_group)) |>
+for (k in cuts) {
+
+grp_tbl_all <- master_cuts |>
+  filter(as_cut == k, !is.na(scna_group)) |>
   select(pid, scna_group) |>
   mutate(scna_group = factor(scna_group, levels = attend_scna$group_levels))
 
@@ -308,9 +333,10 @@ n_by_grp <- count(grp_tbl, scna_group, name = "n_group")
 
 if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
   print(knitr::kable(n_by_grp,
-    caption = paste0("Patients per subgroup — the denominators below. Restricted to the ",
-                     "patients the MAF reached; ", n_dropped, " patient(s) with a subgroup ",
-                     "but no MAF are excluded rather than counted as wild-type.")))
+    caption = paste0("AS cut ", k, " — patients per subgroup, the denominators below. ",
+                     "Restricted to the patients the MAF reached; ", n_dropped,
+                     " patient(s) with a subgroup but no MAF are excluded rather than ",
+                     "counted as wild-type.")))
 
   genes_keep <- mut_by_pid |>
     semi_join(grp_tbl, by = "pid") |>
@@ -351,7 +377,7 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
     scale_fill_manual(values = attend_scna_cols, name = NULL) +
     scale_y_continuous(labels = scales::percent_format(accuracy = 1),
                        expand = expansion(mult = c(0, 0.05))) +
-    labs(title = "Mutation frequency by subgroup (TCGA Fig. 2d convention)",
+    labs(title = paste0("Mutation frequency by subgroup (TCGA Fig. 2d convention) — AS cut ", k),
          subtitle = paste0("Fisher across subgroups, BH-adjusted across ",
                            nrow(fdr_tbl), " genes; * = FDR < 0.05. ",
                            "Frequencies are within-subgroup."),
@@ -360,9 +386,13 @@ if (nrow(grp_tbl) > 0 && dplyr::n_distinct(grp_tbl$scna_group) >= 2) {
     theme(legend.position = "top"))
 
   print(knitr::kable(fdr_tbl |> arrange(fdr) |> mutate(across(c(p, fdr), ~ signif(.x, 3))),
-                     caption = "Per-gene Fisher test across subgroups, BH-adjusted"))
+                     caption = paste0("AS cut ", k,
+                                      " — per-gene Fisher test across subgroups, BH-adjusted")))
 } else {
-  note_skip("Fewer than two non-empty scna_group strata — subgroup frequency comparison skipped.")
+  note_skip("AS cut ", k, ": fewer than two non-empty scna_group strata — subgroup ",
+            "frequency comparison skipped.")
+}
+
 }
 ```
 

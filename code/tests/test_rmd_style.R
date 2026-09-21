@@ -36,6 +36,12 @@ OVER_CAP <- c(
           "concordance part was its own report and was folded in here because validating a",
           "measurement IS quality control; splitting it back out would restore a report",
           "whose scope contract duplicated this one's"),
+  "05-response.Rmd" =
+    paste("the deliberate mirror of 04's composition panels, keyed on responder status:",
+          "every panel, normalisation and test is the same one, which is what makes the two",
+          "readable against each other, so the bulk cannot be split without separating",
+          "figures that exist to be compared. It sat exactly AT the cap, and the",
+          "response x aneuploidy cross-tab now runs at both aneuploidy cuts"),
   "07-molecular-classification.Rmd" =
     paste("two classifications of the same patients that only mean something beside each",
           "other: the 2013 TCGA cascade, whose CN-high group is a cluster, and ProMisE /",

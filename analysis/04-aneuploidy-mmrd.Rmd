@@ -31,6 +31,17 @@ source(here("code", "load_phenotypes.R"))    # load_ihc_celltypes()
 # This line used to force the opposite order, which is why this report's boxes read
 # right-to-left against every other page on the site.
 master <- get_master() |> add_molecular_classes()
+
+# The same patients once per aneuploidy cut, with aneuploidy_class re-derived at each.
+# Every CUT-DEPENDENT figure below — every figure whose x axis, fill or model term is the
+# aneuploidy class — facets on as_cut_lab rather than being written twice. The figures that
+# plot the raw score are NOT faceted: their boxes, their n and their p-values are identical
+# at either cut, so they carry the two cuts as dashed lines instead. See 00-methods.
+master_cuts <- add_aneuploidy_cuts(master, scna = TRUE)
+cuts        <- aneu_cuts()
+
+# mmr_group does not depend on the aneuploidy cut, so the MMRd restriction is still one
+# vector of pids — applied to the LONG frames below with the same filter(pid %in% mmrd_pids).
 mmrd_pids <- add_scna_group(master) |> filter(mmr_group == "MMRd") |> pull(pid)
 n_mmrd <- length(mmrd_pids)
 
@@ -40,17 +51,25 @@ n_mmrd <- length(mmrd_pids)
 # pid-keyed frames; before that resolution existed it matched nothing here and drew nothing.
 ```
 
-> **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition?
-> **Cohort.** MMR-deficient only (n = `r n_mmrd`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
+> **Question.** Within MMR-deficient tumours, what does aneuploidy track — mutation status, or cell-type composition — and does either answer move when the aneuploidy cut does?
+> **Cohort.** MMR-deficient only (n = `r n_mmrd`), every aneuploidy-class figure drawn at both cuts (`r paste(cuts, collapse = " and ")`), with one marked exception: the interaction model, which cannot be estimated inside a single stratum.
 > **Reads.** The master (built on demand by get_master()), the long MAF, and the FlowPath annotation tree.
-> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [06-tmb](06-tmb.html). The same composition panels keyed on treatment response -> [05-response](05-response.html).
+> **Out of scope.** Anything on the full cohort. Aneuploidy against TMB across both MMR strata -> [06-tmb](06-tmb.html). The same composition panels keyed on treatment response -> [05-response](05-response.html). Why there are two cuts and why both are reported -> [00-methods](00-methods.html).
 
 The restriction is the point. MMR deficiency is itself a route to genomic instability, so
 in the whole cohort any variable that tracks MMR status will also appear to track
 aneuploidy. Conditioning on MMRd removes that shortcut. The outcome in every figure is the
 same continuous aneuploidy score; what changes is the grouping on the x-axis — mutation
-status in Part 1, cell-type composition in Part 2. The cohort definition, the aneuploidy
-cut and the highlight colours are in [00-methods](00-methods.html).
+status in Part 1, cell-type composition in Part 2. The cohort definition, the two aneuploidy
+cuts and the highlight colours are in [00-methods](00-methods.html).
+
+The two cuts, `r paste(cuts, collapse = " and ")`, split this report in two ways. Part 1
+puts the **score** on the y axis and mutation status on the x axis, so its panels are the
+same at either cut and both cuts are drawn as dashed lines across them. Part 2 puts the
+**class** on the x axis, so every one of its figures is drawn at both cuts — the two cuts
+are the columns of each figure, and each column carries its own test. Raising the cut can
+only move a patient from the high box to the low box, so the columns are nested rather than
+independent: only patients scoring between the cuts move.
 
 ## Part 1 — aneuploidy by mutation status
 
@@ -191,6 +210,12 @@ aneu_box <- function(d, vars, title, subtitle = NULL, ncol = 3) {
     # where the fractions span orders of magnitude; the aneuploidy score is the outcome here
     # and is read directly as a fraction of altered arms.
     stat_compare_means(label = "p.format", size = 3) +
+    # NOT faceted by aneuploidy cut, deliberately. The score is the OUTCOME here and the
+    # class is not the grouping, so every box, every n and every p-value is identical at
+    # either cut — a cut facet would print the same figure twice. Both cuts are drawn as
+    # dashed lines instead; the point colour is the PRIMARY cut, so a salmon point below the
+    # upper line is a patient the higher cut demotes.
+    geom_hline(yintercept = cuts, linetype = 2, colour = "grey40") +
     labs(title = title, subtitle = subtitle, x = NULL, y = attend_as_axis) +
     attend_theme() +
     theme(axis.text.x = element_text(angle = 20, hjust = 1))
@@ -236,6 +261,10 @@ if (nrow(dat) > 0) {
 
 Aneuploidy score (aneu__aneuploidy_score, ASCETS arm-level burden from data/ascets/)
 in mutated versus wild-type patients, one panel per MMR gene, over the dat cohort above.
+The score is the outcome and the class is not the grouping, so this figure is the same at
+either cut and is drawn once: the two dashed lines are
+`r paste(cuts, collapse = " and ")`, and moving the cut moves only the point colours, never
+a box or a p-value.
 
 ```{r mmr-gene-box, fig.height=7}
 if (nrow(dat) > 0)
@@ -259,7 +288,8 @@ if (nrow(dat) > 0)
                caption = "Patients per group, Wnt pathway genes (MMR-deficient cohort)")
 ```
 
-The same aneuploidy score against Wnt-pathway mutation status, two panels.
+The same aneuploidy score against Wnt-pathway mutation status, two panels. Cut-independent
+for the same reason as the MMR panels above — the dashed lines carry both cuts.
 
 ```{r wnt-gene-box, fig.height=4.5}
 if (nrow(dat) > 0)
@@ -284,7 +314,8 @@ if (nrow(dat) > 0)
 ```
 
 Aneuploidy score by TP53 status and by the MMR union, side by side, so a union signal can
-be read against the per-gene panels above that would have to explain it.
+be read against the per-gene panels above that would have to explain it. Both dashed lines
+are the two cuts; neither box nor test depends on which one is chosen.
 
 ```{r tp53-union-box, fig.height=4.5}
 if (nrow(dat) > 0)
@@ -301,6 +332,8 @@ MMR-deficient.
 
 MSI is worth reading carefully: MMR loss is the usual *cause* of microsatellite
 instability, so within an MMRd cohort the MSI-stable group is both small and unusual.
+None of these three classes is derived from the aneuploidy score, so the figure is again
+one figure with the two cuts drawn as dashed lines across it.
 
 ```{r other-classes-box, fig.height=4.5}
 other_vars <- c("TMB_class", "HRD_class", "MSI_class")
@@ -339,26 +372,43 @@ cell type per normalization that is many comparisons, so every p-value here is d
 Three things are joined on pid: the aneuploidy class from the master, the per-patient
 cell-type composition read from the FlowPath tree by ihc_celltype_metrics(), and the
 continuous covariates. MMR status comes from add_scna_group(), so it is the same
-is_mmrd() call the copy-number and classification reports use. The counts printed here
-are the cohort for every figure below.
+is_mmrd() call the copy-number and classification reports use. The class is joined from the
+LONG frame, so every patient appears once per cut carrying the class that cut gives them —
+the table below prints how many patients each cut calls high, and the difference between
+its two rows is exactly the patients the higher cut demotes.
 
 ```{r composition-data}
 master_grp <- add_scna_group(master)        # adds mmr_group ("MMRd"/"MMRp") + scna_group
 
+# One row per patient PER CUT, carrying the class that cut derives. Every cut-dependent
+# figure in Part 2 joins against this rather than re-deriving a class locally, which is how
+# aneuploidy_class came to read in two directions on one site (see add_molecular_classes()).
+cuts_pt <- master_cuts |> select(pid, as_cut, as_cut_lab, aneuploidy_class)
+
+# many-to-many is DECLARED, not silenced by accident: one metric row per patient meets two
+# cut rows per patient, and doubling the frame is exactly the intended shape.
+with_cuts <- function(d)
+  d |>
+    left_join(cuts_pt, by = "pid", relationship = "many-to-many") |>
+    filter(!is.na(aneuploidy_class))
+
 # per-patient cell-type composition inside the annotation (reads the FlowPath tree)
-ct_all <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class))
-ct <- ct_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
+ct_base <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data())
+ct_all  <- with_cuts(ct_base)
+ct      <- ct_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
+# The SINGLE-ROW MMRd frame. ihc_series_metrics() builds the content panels from raw counts
+# and unique()s its constants, so it must see each patient once — handing it the long frame
+# would double every celltype- and immune-sourced series.
+ct_pt   <- ct_base |> filter(pid %in% mmrd_pids)
 
 # The leukocyte metrics are built HERE, beside ct, not in the immune section further down:
 # the tissue-content panels above that section need imm_metrics, and a chunk that reads a
 # variable a LATER chunk assigns knits fine in an interactive session (where it is already
 # in the global env) and dies on a clean build with "object not found".
-imm_all <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data()) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class))
+imm_base    <- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data())
+imm_all     <- with_cuts(imm_base)
 imm_metrics <- imm_all |> filter(pid %in% mmrd_pids)      # <- the MMRd restriction
+imm_pt      <- imm_base |> filter(pid %in% mmrd_pids)
 
 # per-patient continuous covariates + TP53 status, restricted the same way
 numcol <- function(col) if (col %in% names(master)) suppressWarnings(as.numeric(master[[col]])) else NA_real_
@@ -381,12 +431,21 @@ covar_cols04 <- c(tmb_labs04, "HRD", "MSI")
 
 pt <- pt_all |> filter(pid %in% mmrd_pids)          # <- the MMRd restriction
 
+# The same covariates once per cut, for the binarised panel further down. The scatter and
+# the TP53 panel plot the raw score and stay on the single-row frame above, or every patient
+# would be drawn twice at the same coordinates.
+pt_cuts <- pt_all |> select(-aneuploidy_class) |> with_cuts() |> filter(pid %in% mmrd_pids)
+
 cat("MMR-deficient patients                       :", length(mmrd_pids), "\n")
 cat("  ... with cell-type metrics + aneuploidy class:", n_distinct(ct$pid), "\n")
 cat("  ... cell types measured                      :", n_distinct(ct$cell_type), "\n")
-cat("TMB definitions plotted:", paste(tmb_labs04, collapse = " | "), "\n\n")
-if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
-  ct |> distinct(pid, aneuploidy_class) |> pull(aneuploidy_class)))))
+cat("TMB definitions plotted:", paste(tmb_labs04, collapse = " | "), "\n")
+cat("aneuploidy cuts drawn side by side:", paste(cuts, collapse = " and "), "\n\n")
+if (nrow(ct) > 0) {
+  cls_by_cut <- ct |> distinct(pid, as_cut_lab, aneuploidy_class)
+  print(table(cut        = droplevels(cls_by_cut$as_cut_lab),
+              aneuploidy = droplevels(factor(cls_by_cut$aneuploidy_class))))
+}
 ```
 
 ```{r box-helpers, include=FALSE}
@@ -397,9 +456,14 @@ if (nrow(ct) > 0) print(table(aneuploidy = droplevels(factor(
 # arcsin/t-test versions cannot drift apart the way two copied functions did.
 # The y variable is always `.v`, prepared by draw_composition() — the transform happens there
 # because the axis has to be computed on the same values the panels plot.
+#
+# THE TWO ANEUPLOIDY CUTS ARE THE COLUMNS, the cell type is the row. That way round, and not
+# the other, because `free_y` gives each ROW its own axis: with the cuts on the rows a cell
+# type would be drawn against two different y ranges and the two halves of the comparison
+# could not be read against each other, and every cell type would be back on one shared axis.
 box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
                         width_in = 13, height_in = 13, unit_override = NULL,
-                        extra_note = "", ncol = NULL, free_y = FALSE) {
+                        extra_note = "", free_y = FALSE) {
   d <- df |> filter(is.finite(.v)) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   method <- if (arcsin) "t.test" else "wilcox.test"
@@ -426,22 +490,28 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
   # word "aneuploidy", which is information, not decoration.
   fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
   xlv       <- levels(droplevels(as.factor(d[["aneuploidy_class"]])))
-  nc_eff    <- if (!is.null(ncol)) ncol else
-                 max(1L, ceiling(sqrt(nlevels(droplevels(as.factor(d[[fvar]]))))))
-  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
+  # The grid is two columns wide whatever the panel count: one per aneuploidy cut.
+  nc_eff    <- nlevels(droplevels(as.factor(d[["as_cut_lab"]])))
+  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, max(1L, nc_eff),
                              max(1L, length(xlv)), sty$base_size - 2)
   # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
   # overflows a quarter-width panel into its neighbour.
-  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
-                              1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
-  yy  <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type"))
+  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in,
+                              max(1L, nc_eff), 1L, sty$base_size - 1,
+                              advance = 0.78)   # bold runs wider
+  # The cut is a display key too: a class is re-derived per cut, so the whiskers a panel is
+  # zoomed to must be computed per cut as well.
+  yy  <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type", "as_cut_lab"))
   ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = ".v", by = "cell_type", fill = NULL,
-               points = FALSE, expand_y = FALSE,
+    # "as_cut_lab" is in `by` because the n-aware mark is decided PER PANEL: a group of
+    # twelve at the lower cut can be a group of four at the higher one, and that panel must
+    # then draw a median crossbar rather than quartiles from four patients.
+    attend_box(d, x = "aneuploidy_class", y = ".v", by = c("cell_type", "as_cut_lab"),
+               fill = NULL, points = FALSE, expand_y = FALSE,
                linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "aneuploidy_class", ".v", base_size = 1.0, base_alpha = 0.6,
                      base_const = "black") +
-    facet_wrap(~ cell_type, ncol = ncol, scales = if (free_y) "free_y" else "fixed") +
+    facet_grid(cell_type ~ as_cut_lab, scales = if (free_y) "free_y" else "fixed") +
     scale_x_discrete(labels = wrap_class_labels) +
     # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
     # would sit at one absolute height in panels that no longer share one. NULL hands
@@ -451,7 +521,7 @@ box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
     shared_frac_y(if (free_y) NULL else yy) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
-    labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only"),
+    labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only, both AS cuts"),
                                width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
                                   width_in, sty$sub_size, sty$gutter_in),
@@ -482,7 +552,8 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
   # type on one axis, which is the comparison the shared scale exists for.
   foc <- filter(d, cell_type %in% attend_ihc_focus)
   if (nrow(foc) > 0) {
-    p <- box_by_aneu(foc, denom_label, arcsin, scope = "focus set")
+    p <- box_by_aneu(foc, denom_label, arcsin, scope = "focus set",
+                     width_in = 9, height_in = 20)
     if (!is.null(p)) print(p)
   } else {
     note_skip("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
@@ -491,17 +562,21 @@ draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
   # Tumour phenotypes are dropped here: at ~1.0 on the arcsine scale one of them flattens
   # every immune panel under 0.35 into a line, and tumour content has its own panel below.
   d_nt <- filter(d, !grepl(attend_ihc_tumor_pattern, cell_type))
-  p <- box_by_aneu(d_nt, denom_label, arcsin, scope = "all cell types", ncol = 3,
-                   free_y = attend_ihc_all_free_y)
+  p <- box_by_aneu(d_nt, denom_label, arcsin, scope = "all cell types",
+                   width_in = 9, height_in = 20, free_y = attend_ihc_all_free_y)
   if (!is.null(p)) print(p)
 }
 ```
 
 ### Cell-type composition by aneuploidy class
 
-One panel per cell type, aneuploidy-high vs -low, within MMRd, from the ct table built
-above. Each normalization is shown as a raw-fraction/Wilcoxon figure followed by its
-arcsine/t-test companion.
+One row per cell type and **one column per aneuploidy cut**, aneuploidy-high vs -low within
+each, over MMRd only, from the ct table built above. Each normalization is shown as a
+raw-fraction/Wilcoxon figure followed by its arcsine/t-test companion, and every test is
+computed inside its own panel, so the left and right columns are separate tests and are
+never pooled. Moving the cut moves patients from the high box to the low box and nothing
+else: the fractions on the y axis are the same numbers in both columns, so a contrast that
+survives the move is one the threshold is not making.
 
 Each normalization is drawn **twice**: first the cell types in `attend_ihc_focus`
 (`T cytotoxic`, `T helper`, `Macrophages`, `M1`) on an axis of their own, then every cell
@@ -519,8 +594,10 @@ deliberately — on the tumour-cell denominator these cell types span orders of 
 the rarest panels sit low against a scale set by the most abundant.
 
 The two figures differ in one respect on purpose: the **focus set shares one y axis**, so
-those four cell types are directly comparable, while the **overview gives each panel its
-own**. Over every measured cell type a single abundant one sets a ceiling the rest never
+those four cell types are directly comparable, while the **overview gives each cell-type row
+its own** — a row, not a panel, so the two cut columns of one cell type always stay on one
+axis and the only difference between them is which patients sit in which box. Over every
+measured cell type a single abundant one sets a ceiling the rest never
 approach, and panels that are boxes in the focus figure flatten to lines. Abundance is still
 readable from each overview panel's own axis, and the content panels below carry it
 directly. The policy is `attend_ihc_all_free_y`.
@@ -544,14 +621,14 @@ Groups smaller than `attend_min_box_n` still show a median crossbar instead of a
 Each cell type as a fraction of every cell in the annotation, so a panel reads "how much
 of the tissue is this". Raw fractions, Wilcoxon.
 
-```{r box-inside, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-inside, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_inside", "all cells inside")
 ```
 
 The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
 variance-stabilised companion rather than an alternative answer.
 
-```{r box-inside-arcsin, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-inside-arcsin, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
 ```
 
@@ -560,13 +637,13 @@ draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
 Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
 survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon.
 
-```{r box-tumor, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-tumor, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-tumor-arcsin, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-tumor-arcsin, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
 ```
 
@@ -575,13 +652,13 @@ draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
 Composition *of the immune compartment*: the denominator is leukocytes, so tumour-content
 differences between patients cannot drive the contrast. Raw fractions, Wilcoxon.
 
-```{r box-cd45, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-cd45, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside")
 ```
 
 The arcsine/t-test companion of the panels above.
 
-```{r box-cd45-arcsin, fig.width=14, fig.height=17, out.width="100%"}
+```{r box-cd45-arcsin, fig.width=9, fig.height=20, out.width="100%"}
 draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
 ```
 
@@ -597,7 +674,9 @@ cell-type rows because the export splits tumour across several phenotypes (`PanC
 select. **`all cells inside` is the only denominator on which all three are meaningful** —
 `Tumor` over tumour cells and CD45+ over CD45+ cells are both identically 1 — so this panel
 is drawn once, not once per normalization. Raw fractions with a Wilcoxon, then the
-arcsine/t-test companion.
+arcsine/t-test companion, each with the two aneuploidy cuts as its columns and its own
+Wilcoxon per column — raising the cut cannot change any of these three fractions, only which
+box a patient's fraction is counted in.
 
 ⚠️ **The PD-L1 column has a smaller cohort than the other two.** PD-L1 was stained in only
 some batches, so a patient from an unstained batch is NA for PD-L1 and present in tumour and
@@ -606,15 +685,16 @@ axis are not all drawn from the same patients. **Read the n printed under each b
 comparing their heights.** PD-L1+ per unit of tumour, the other denominator, is in the
 immune-content section below.
 
-```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
-ct_content <- ihc_series_metrics(ct, imm_metrics, attend_ihc_content) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class))
+```{r box-content, fig.width=9, fig.height=10, out.width="100%"}
+# Built from the SINGLE-ROW frames: ihc_series_metrics() reads raw counts, and a patient
+# arriving twice (once per cut) would be counted twice in every series. The cuts are joined
+# on afterwards, which is what makes the two columns of the figure.
+ct_content <- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content) |> with_cuts()
 
 for (asin in c(FALSE, TRUE)) {
   d <- ct_content |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
   p <- box_by_aneu(d, "all cells inside", asin, scope = "tissue content",
-                   width_in = 13, height_in = 7, unit_override = "")
+                   width_in = 9, height_in = 10, unit_override = "")
   if (!is.null(p)) print(p)
 }
 ```
@@ -640,15 +720,16 @@ drawn, and the count of values above 1 is printed above the figures **and** in t
 transformed figure's own subtitle: those patients all land on the same value there, so a
 clamped group is a wall of identical numbers and its t-test is not interpretable. Read the
 raw/Wilcoxon panel whenever that count is non-zero; when it is zero the transform is exact
-and the two panels are the usual pair.
+and the two panels are the usual pair. The two aneuploidy cuts are again the columns, and
+the clamp count is a property of the ratios, so it is identical in both.
 
-```{r box-content-mixed, fig.width=13, fig.height=7, out.width="100%"}
-mix <- ihc_series_metrics(ct, imm_metrics, attend_ihc_content_mixed) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class)) |>
-  mutate(.v = frac)
+```{r box-content-mixed, fig.width=9, fig.height=10, out.width="100%"}
+# Same single-row input as the panel above, and the clamp count is taken BEFORE the cut join
+# so it counts patients, not patient-cut rows — the two cuts do not change a ratio.
+mix_pt <- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content_mixed)
+mix    <- mix_pt |> with_cuts() |> mutate(.v = frac)
 
-n_over <- sum(mix$frac > 1, na.rm = TRUE)
+n_over <- sum(mix_pt$frac > 1, na.rm = TRUE)
 cat("patients:", n_distinct(mix$pid), "| series:",
     paste(gsub("\n", " ", levels(mix$cell_type)), collapse = " | "),
     "\nvalues above 1 (a ratio, not a proportion):", n_over,
@@ -666,7 +747,7 @@ for (asin in c(FALSE, TRUE)) {
   d <- mix |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
   p <- box_by_aneu(d, "the denominator in each panel", arcsin = asin,
                    scope = "tissue content, mixed denominators",
-                   width_in = 13, height_in = 7, unit_override = "", extra_note = note)
+                   width_in = 9, height_in = 10, unit_override = "", extra_note = note)
   if (!is.null(p)) print(p)
 }
 ```
@@ -692,8 +773,11 @@ cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
 # the same numerator over all cells inside — so the panels that are not being compared set
 # the scale for the ones that are. Splitting on denom_label means every panel in a figure is
 # a fraction OF THE SAME THING, which is the only case where a shared axis is honest.
+#
+# Metrics are the rows and the two aneuploidy cuts are the columns, for the same reason as
+# box_by_aneu(): a free y axis is free per ROW, so the two cuts of one metric keep one scale.
 box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13,
-                       ncol = NULL, free_y = FALSE) {
+                       free_y = FALSE) {
   d <- df |> filter(is.finite(frac), denom_label == denom_) |> droplevels()
   if (nrow(d) == 0) return(NULL)
   if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
@@ -706,22 +790,24 @@ box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13
   # word "aneuploidy", which is information, not decoration.
   fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
   xlv       <- levels(droplevels(as.factor(d[["aneuploidy_class"]])))
-  nc_eff    <- if (!is.null(ncol)) ncol else
-                 max(1L, ceiling(sqrt(nlevels(droplevels(as.factor(d[[fvar]]))))))
+  # Two columns, one per aneuploidy cut, whatever the metric count.
+  nc_eff    <- max(1L, nlevels(droplevels(as.factor(d[["as_cut_lab"]]))))
   tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
                              max(1L, length(xlv)), sty$base_size - 2)
   # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
   # overflows a quarter-width panel into its neighbour.
   strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
                               1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
-  yy  <- frac_display_y(d, "frac", c("aneuploidy_class", "metric"))
+  yy  <- frac_display_y(d, "frac", c("aneuploidy_class", "metric", "as_cut_lab"))
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = "frac", by = "metric", fill = NULL,
-               points = FALSE, expand_y = FALSE,
+    # The cut is in `by` so the n-aware mark is decided inside each panel: a metric that
+    # earns a box at one cut can fall under attend_min_box_n at the other.
+    attend_box(d, x = "aneuploidy_class", y = "frac", by = c("metric", "as_cut_lab"),
+               fill = NULL, points = FALSE, expand_y = FALSE,
                linewidth = sty$linewidth, label_size = sty$label_size) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 1.0, base_alpha = 0.6,
                      base_const = "black") +
-    facet_wrap(~ metric) +
+    facet_grid(metric ~ as_cut_lab, scales = if (free_y) "free_y" else "fixed") +
     scale_x_discrete(labels = wrap_class_labels) +
     # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
     # would sit at one absolute height in panels that no longer share one. NULL hands
@@ -731,7 +817,7 @@ box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13
     shared_frac_y(if (free_y) NULL else yy) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
-    labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only) — ", ttl), width_in, sty$title_size, sty$gutter_in),
+    labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only, both AS cuts) — ", ttl), width_in, sty$title_size, sty$gutter_in),
          subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
          x = NULL,
          y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
@@ -746,19 +832,22 @@ box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13
 }
 ```
 
-CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy class, one facet per
-normalization, within MMRd. One figure per denominator rather than one figure with all
-three: a shared axis is only honest between panels that are fractions of the same thing,
-and CD3+CD45+ over CD45+ sits an order of magnitude above the same numerator over all cells
-inside. The denominator is named in each subtitle.
+CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy class, one row per
+metric and one column per aneuploidy cut, within MMRd. One figure per denominator rather
+than one figure with all three: a shared axis is only honest between panels that are
+fractions of the same thing, and CD3+CD45+ over CD45+ sits an order of magnitude above the
+same numerator over all cells inside. The denominator is named in each subtitle. Each column
+carries its own test on the same fractions, so a contrast present in only one of them is one
+the threshold is producing.
 
-```{r immune-box, fig.width=12, fig.height=8, out.width="100%"}
+```{r immune-box, fig.width=10, fig.height=9, out.width="100%"}
 if (nrow(filter(imm_metrics, is.finite(frac))) > 2) {
   # Denominator order is the order ihc_immune_metrics() declares its specs in, so the
   # figures come out widest-denominator first however the table happened to be sorted.
   for (dn in unique(imm_metrics$denom_label))
     for (asin in c(FALSE, TRUE)) {
-      p <- box_immune(imm_metrics, dn, asin); if (!is.null(p)) print(p)
+      p <- box_immune(imm_metrics, dn, asin, width_in = 10, height_in = 9)
+      if (!is.null(p)) print(p)
     }
 } else note_skip("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")
 ```
@@ -772,49 +861,70 @@ The other two normalizations, and CD3+CD45+, are **secondary** — they can and 
 to a skip when counts are missing.
 
 Naming one primary endpoint in advance is what keeps this from being a search across six
-panels for the smallest p-value.
+panels for the smallest p-value. The endpoint is named once and tested **once per cut**: two
+cuts is two tests of one pre-specified contrast, not two chances at it, and a primary that
+holds at one cut and not the other is reported as exactly that.
 
 ```{r immune-mmrd-test}
 mmrd_arcsin_t_wilcox <- function(df, metric_, denom_) {
-  d <- df |> dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac))
-  tab <- table(d$aneuploidy_class)
-  if (length(tab) < 2 || any(tab < 2)) {
-    note_skip("MMRd ", metric_, " / ", denom_, ": insufficient n per aneuploidy arm — skipping.")
-    return(invisible(NULL))
+  base <- df |> dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac))
+  rows <- list()
+  # One test per cut, never pooled: the two blocks hold the same patients under two
+  # classifications, so a test across both would count every patient twice.
+  for (lab in levels(droplevels(base$as_cut_lab))) {
+    d   <- base |> dplyr::filter(as_cut_lab == lab)
+    tab <- table(d$aneuploidy_class)   # a factor, so an empty arm is a 0, not a dropped name
+    if (length(tab) < 2 || any(tab < 2)) {
+      note_skip("MMRd ", metric_, " / ", denom_, " at ", lab,
+                ": insufficient n per aneuploidy arm — no test at this cut.")
+      next
+    }
+    t_res <- t.test(arcsin_sqrt(frac) ~ aneuploidy_class, data = d)     # primary
+    w_res <- wilcox.test(frac ~ aneuploidy_class, data = d)             # companion
+    cat(sprintf(paste0("MMRd %-10s / %-20s %-11s n=%d (high=%d, low=%d)  ",
+                       "arcsin-t p=%.3g  Wilcoxon p=%.3g\n"),
+        metric_, denom_, lab, nrow(d), tab[["aneuploidy-high"]], tab[["aneuploidy-low"]],
+        t_res$p.value, w_res$p.value))
+    rows[[lab]] <- data.frame(as_cut_lab = lab, n = nrow(d),
+                              n_high = tab[["aneuploidy-high"]],
+                              n_low  = tab[["aneuploidy-low"]],
+                              t_p = t_res$p.value, w_p = w_res$p.value,
+                              stringsAsFactors = FALSE)
   }
-  t_res <- t.test(arcsin_sqrt(frac) ~ aneuploidy_class, data = d)     # primary
-  w_res <- wilcox.test(frac ~ aneuploidy_class, data = d)             # companion
-  cat(sprintf("MMRd %-10s / %-20s  n=%d (high=%d, low=%d)  arcsin-t p=%.3g  Wilcoxon p=%.3g\n",
-      metric_, denom_, nrow(d), tab[["aneuploidy-high"]], tab[["aneuploidy-low"]],
-      t_res$p.value, w_res$p.value))
-  list(d = d, t = t_res, w = w_res)
+  if (!length(rows)) return(invisible(NULL))
+  list(d = base, stats = do.call(rbind, rows))
 }
 res_primary <- mmrd_arcsin_t_wilcox(imm_metrics, "CD45+", "all cells inside")      # PRIMARY
 res_tumor   <- mmrd_arcsin_t_wilcox(imm_metrics, "CD45+", "tumour cells inside")   # secondary
 res_cd45n   <- mmrd_arcsin_t_wilcox(imm_metrics, "CD3+CD45+", "CD45+ cells inside") # secondary
 ```
 
-The primary contrast on its own. The subtitle carries both p-values and the group size —
-at this n a single patient moving between groups can change the result, which is why the
-count is on the figure rather than in a caption.
+The primary contrast on its own, one panel per cut. The subtitle carries each cut's two
+p-values and its group size — at this n a single patient moving between groups can change
+the result, and moving the cut is precisely what moves patients between these two groups,
+so both counts are on the figure rather than in a caption.
 
-```{r immune-mmrd-box, fig.width=6, fig.height=5}
+```{r immune-mmrd-box, fig.width=8, fig.height=5}
 if (!is.null(res_primary)) {
-  d <- res_primary$d
+  d  <- res_primary$d
+  st <- res_primary$stats
   ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    attend_box(d, x = "aneuploidy_class", y = "frac", fill = NULL, points = FALSE) +
+    attend_box(d, x = "aneuploidy_class", y = "frac", by = "as_cut_lab",
+               fill = NULL, points = FALSE) +
     highlight_points(d, "aneuploidy_class", "frac", base_size = 1.2, base_alpha = 0.5, base_const = "black") +
+    # Per panel, so the Wilcoxon on the figure is the one from that cut's own test above.
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
+    facet_wrap(~ as_cut_lab) +
     scale_x_discrete(labels = as_label) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
     labs(title = "PRIMARY: CD45+ immune fraction (all cells inside) — MMR-deficient only",
-         subtitle = paste0("arcsin(sqrt) t p = ", signif(res_primary$t$p.value, 3),
-                           " | Wilcoxon p = ", signif(res_primary$w$p.value, 3),
-                           " (n = ", nrow(d), "; small-n — suggestive only)"),
+         subtitle = paste(sprintf("%s: arcsin(sqrt) t p = %s | Wilcoxon p = %s (n = %d)",
+                                  st$as_cut_lab, signif(st$t_p, 3), signif(st$w_p, 3), st$n),
+                          collapse = "   "),
          x = NULL, y = "CD45+ fraction of all cells inside") +
     attend_theme() + theme(legend.position = "none")
-} else note_skip("Primary within-MMRd immune contrast skipped — see message above.")
+} else note_skip("Primary within-MMRd immune contrast skipped at every cut — see above.")
 ```
 
 #### The one model that needs MMR-proficient patients
@@ -824,7 +934,10 @@ asks whether the aneuploidy effect *differs between* MMRd and MMRp, which cannot
 estimated inside one stratum. The model is
 arcsin(sqrt(CD45+/all cells inside)) ~ aneuploidy_class * mmr_group, fitted on both
 groups from imm_all. The interaction row is the one of interest: a large coefficient
-there is what justifies restricting everything else to MMRd. No correction is applied.
+there is what justifies restricting everything else to MMRd. The model has aneuploidy_class
+as a term, so it is **fitted once per cut** and the table gains a cut column — a single fit
+over the stacked frame would use every patient twice under two contradictory labels. No
+correction is applied, and nothing is pooled across the two fits.
 
 ```{r immune-interaction}
 imm_int <- imm_all |>
@@ -833,14 +946,29 @@ imm_int <- imm_all |>
   dplyr::filter(!is.na(mmr_group), !is.na(aneuploidy_class)) |>
   dplyr::mutate(y = arcsin_sqrt(frac))
 
-if (nrow(imm_int) > 4 && dplyr::n_distinct(imm_int$aneuploidy_class) == 2 &&
-    dplyr::n_distinct(imm_int$mmr_group) == 2) {
-  fit <- lm(y ~ aneuploidy_class * mmr_group, data = imm_int)
-  coef_tbl <- if (requireNamespace("broom", quietly = TRUE)) broom::tidy(fit) else
-    as.data.frame(summary(fit)$coefficients)
-  print(knitr::kable(coef_tbl, digits = 3,
-        caption = "arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group — BOTH MMR groups, no correction"))
-} else note_skip("Not enough patients across both MMR groups for the interaction model.")
+fit_one_cut <- function(d) {
+  if (!(nrow(d) > 4 && dplyr::n_distinct(d$aneuploidy_class) == 2 &&
+        dplyr::n_distinct(d$mmr_group) == 2)) {
+    note_skip("AS cut ", d$as_cut[1], ": not enough patients across both MMR groups and ",
+              "both aneuploidy classes for the interaction model.")
+    return(NULL)
+  }
+  fit <- lm(y ~ aneuploidy_class * mmr_group, data = d)
+  tb  <- if (requireNamespace("broom", quietly = TRUE)) broom::tidy(fit) else {
+    m <- as.data.frame(summary(fit)$coefficients); m$term <- rownames(m); m
+  }
+  cbind(`AS cut` = as.character(d$as_cut_lab[1]), tb)
+}
+
+coef_tbl <- if (nrow(imm_int) > 0)
+  do.call(rbind, lapply(split(imm_int, droplevels(imm_int$as_cut_lab)), fit_one_cut)) else NULL
+
+if (!is.null(coef_tbl)) {
+  print(knitr::kable(coef_tbl, digits = 3, row.names = FALSE,
+        caption = paste("arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group",
+                        "— BOTH MMR groups, fitted separately at each aneuploidy cut,",
+                        "no correction")))
+} else note_skip("The interaction model could not be fitted at either aneuploidy cut.")
 ```
 
 ### Aneuploidy against the continuous covariates
@@ -850,7 +978,10 @@ point per patient, coloured by aneuploidy class, with Spearman's rho per panel. 
 rather than Pearson because these scores are bounded and skewed.
 
 The two TMB panels are the same patients under the two definitions, so a visible
-difference between them is the germline correction moving values, not new data.
+difference between them is the germline correction moving values, not new data. This figure
+is **not** faceted by cut: x is the raw score and rho is computed on it, so both cuts give
+the identical panel. They appear as the two dashed vertical lines instead, which is what
+lets a reader judge whether either falls anywhere the points suggest a break.
 
 ```{r aneu-scatter, fig.width=12, fig.height=7}
 scat <- pt |>
@@ -865,6 +996,9 @@ if (nrow(scat) > 2) {
                 round(suppressWarnings(cor(aneuploidy_score, value, method = "spearman",
                                            use = "complete.obs")), 2)), .groups = "drop")
   ggplot(scat, aes(aneuploidy_score, value, colour = aneuploidy_class)) +
+    # Both cuts, on a figure that is otherwise cut-independent: the points, the fit and rho
+    # are the same at either, and the point colour is the primary cut.
+    geom_vline(xintercept = cuts, linetype = 2, colour = "grey40") +
     highlight_points(scat, "aneuploidy_score", "value", base_colour = "aneuploidy_class",
                      base_palette = attend_aneu_cols,
                      base_name = attend_as_legend, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
@@ -873,33 +1007,40 @@ if (nrow(scat) > 2) {
               inherit.aes = FALSE, hjust = 1.05, vjust = 1.5, size = 3) +
     facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
     labs(title = "Aneuploidy score vs continuous covariates (MMR-deficient only)",
+         subtitle = paste("Dashed lines: the two AS cuts,", paste(cuts, collapse = " and ")),
          x = "aneuploidy score", y = "covariate value", colour = NULL) +
     attend_theme() + theme(legend.position = "top")
 } else note_skip("Not enough MMR-deficient patients with aneuploidy score + a covariate.")
 ```
 
 The same covariates against the **binarised** aneuploidy class rather than the continuous
-score — the categorical counterpart to the scatter above, with a per-covariate Wilcoxon.
-Comparing the two is a check on the `r attend_thresholds$aneuploidy` cutpoint: a
-correlation visible in the scatter but absent here means the cutpoint is discarding it.
+score — the categorical counterpart to the scatter above, with a Wilcoxon per covariate and
+per cut. Rows are the covariates, columns the two cuts (`r paste(cuts, collapse = " and ")`),
+drawn from pt_cuts so each patient carries the class its column's cut gives them. Comparing
+the two columns is what the scatter above cannot show: a correlation visible there but absent
+in both columns is being discarded by binarising at all, while one that appears in a single
+column is being produced by that cutpoint.
 
-```{r aneu-class-box, fig.width=12, fig.height=7}
-cb <- pt |>
+```{r aneu-class-box, fig.width=9, fig.height=10}
+cb <- pt_cuts |>
   pivot_longer(all_of(covar_cols04), names_to = "covariate", values_to = "value") |>
   filter(!is.na(aneuploidy_class), !is.na(value)) |>
   mutate(covariate = factor(covariate, levels = covar_cols04))
 
 if (nrow(cb) > 2) {
   ggplot(cb, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
-    attend_box(cb, x = "aneuploidy_class", y = "value", by = "covariate", fill = NULL, points = FALSE) +
+    attend_box(cb, x = "aneuploidy_class", y = "value", by = c("covariate", "as_cut_lab"),
+               fill = NULL, points = FALSE) +
     highlight_points(cb, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-    facet_wrap(~ covariate, scales = "free_y", ncol = 3) +
+    # Cut on the COLUMNS so "free_y" stays free per covariate: a covariate must keep one
+    # axis across the two cuts, or the columns cannot be read against each other.
+    facet_grid(covariate ~ as_cut_lab, scales = "free_y") +
     scale_x_discrete(labels = as_label) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
-    labs(title = "Continuous covariates by aneuploidy class (MMR-deficient only)",
+    labs(title = "Continuous covariates by aneuploidy class (MMR-deficient only, both AS cuts)",
          x = NULL, y = "covariate value") +
     attend_theme() + theme(legend.position = "none")
 } else note_skip("Not enough MMR-deficient patients with aneuploidy class + a covariate.")
@@ -911,7 +1052,10 @@ Within MMRd, aneuploidy score in TP53-abnormal versus TP53-normal tumours. TP53 
 TP53_pathogenic from the master, derived from the MAF in report 01. TP53 loss is the
 canonical driver of chromosomal instability, so this is the expected-positive control for
 the aneuploidy score itself: if aneuploidy does not separate on TP53 here, the score is
-suspect before any of the immune results are interpreted.
+suspect before any of the immune results are interpreted. The control is on the raw score
+and TP53 status does not depend on the cut, so this is one figure with both cuts drawn
+across it as dashed lines — where they fall relative to the two boxes is how much of this
+separation either cut can capture.
 
 ```{r mmrd-tp53, fig.width=5, fig.height=5}
 tp <- pt |> filter(!is.na(TP53), !is.na(aneuploidy_score))
@@ -922,10 +1066,12 @@ if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
     highlight_points(tp, "TP53", "aneuploidy_score", base_size = 1.5, base_alpha = 0.5,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format") +
+    geom_hline(yintercept = cuts, linetype = 2, colour = "grey40") +
     scale_x_discrete(labels = as_label) +
     scale_fill_manual(values = attend_tp53_cols, labels = as_label,
                       name = attend_tp53_legend) +
     labs(title = "Aneuploidy by TP53 status (MMR-deficient only)",
+         subtitle = paste("Dashed lines: the two AS cuts,", paste(cuts, collapse = " and ")),
          x = NULL, y = attend_as_axis) +
     attend_theme() + theme(legend.position = "none")
 } else {
@@ -939,7 +1085,8 @@ if (nrow(tp) > 2 && dplyr::n_distinct(tp$TP53) == 2) {
 The pathologist's per-patient scores compared between aneuploidy high and low, within
 MMRd. These come from the imaging sheet keyed by image → pid, averaged over a patient's
 images for the continuous measures and taking the first non-missing value for the
-categorical calls.
+categorical calls. Both figures below are keyed on the aneuploidy class, so the frame is
+built once per cut here and each patient appears twice — once under each classification.
 
 ```{r imaging-covars}
 first_nonNA <- function(x) { x <- x[!is.na(x)]; if (length(x)) x[1] else NA }
@@ -955,17 +1102,20 @@ imaging_pt <- load_imaging_data() |>
     Immune_infiltrate_PDL1 = first_nonNA(Immune_infiltrate_PDL1),
     .groups = "drop"
   ) |>
-  left_join(master |> select(pid, aneuploidy_class), by = "pid") |>
-  filter(!is.na(aneuploidy_class), pid %in% mmrd_pids)   # <- the MMRd restriction
+  filter(pid %in% mmrd_pids) |>   # <- the MMRd restriction
+  with_cuts()                     # <- one row per patient per aneuploidy cut
 
 cat("MMR-deficient patients with imaging covariates:", n_distinct(imaging_pt$pid), "\n")
+cat("  ... drawn once per aneuploidy cut:", paste(cuts, collapse = " and "), "\n")
 ```
 
 Continuous pathologist scores (immune infiltrate and PD-1 infiltrate, as percentages) by
-aneuploidy class, Wilcoxon per panel. These are the pathologist's independent read of the
-same immune question the FlowPath contrast above asked.
+aneuploidy class, one row per score and one column per cut, with its own Wilcoxon in each
+panel. These are the pathologist's independent read of the same immune question the FlowPath
+contrast above asked; the pathologist's numbers do not move with the cut, so the only thing
+that differs between the two columns is which patients are in which box.
 
-```{r imaging-covars-cont, fig.width=8, fig.height=4}
+```{r imaging-covars-cont, fig.width=8, fig.height=7}
 icc <- imaging_pt |>
   pivot_longer(c(Immune_infiltrate, Immune_infiltrate_PD1),
                names_to = "covariate", values_to = "value") |>
@@ -973,29 +1123,32 @@ icc <- imaging_pt |>
 
 if (nrow(icc) > 2) {
   ggplot(icc, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
-    attend_box(icc, x = "aneuploidy_class", y = "value", by = "covariate", fill = NULL, points = FALSE) +
+    attend_box(icc, x = "aneuploidy_class", y = "value", by = c("covariate", "as_cut_lab"),
+               fill = NULL, points = FALSE) +
     highlight_points(icc, "aneuploidy_class", "value", base_size = 0.6, base_alpha = 0.4,
                      base_const = "black") +
     stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-    facet_wrap(~ covariate, scales = "free_y") +
+    # Cut on the columns, so "free_y" stays free per pathologist score rather than per cut.
+    facet_grid(covariate ~ as_cut_lab, scales = "free_y") +
     scale_x_discrete(labels = as_label) +
     scale_fill_manual(values = attend_aneu_cols, labels = as_label,
                       name = attend_as_legend) +
-    labs(title = "Pathologist immune scores by aneuploidy class (MMR-deficient only)",
+    labs(title = "Pathologist immune scores by aneuploidy class (MMR-deficient only, both AS cuts)",
          x = NULL, y = "pathologist %") +
     attend_theme() + theme(legend.position = "none")
 }
 ```
 
 Categorical calls as stacked proportions — how each call distributes within aneuploidy
-high vs low. Bars are proportions, so the **group sizes are not visible in this figure**;
-read them from the count printed above. MMR_Status is omitted because it is constant
-here by construction.
+high vs low, one row per call and one column per cut. Bars are proportions, so the **group
+sizes are not visible in this figure**; read them from the count printed above, and read
+them per column, because moving the cut is exactly what changes how many patients each bar
+is drawn from. MMR_Status is omitted because it is constant here by construction.
 
-```{r imaging-covars-cat, fig.width=11, fig.height=4}
+```{r imaging-covars-cat, fig.width=9, fig.height=8}
 icat <- imaging_pt |>
-  select(aneuploidy_class, ARID1A, Tumor_cells_PDL1, Immune_infiltrate_PDL1) |>
-  pivot_longer(-aneuploidy_class, names_to = "covariate", values_to = "level") |>
+  select(as_cut_lab, aneuploidy_class, ARID1A, Tumor_cells_PDL1, Immune_infiltrate_PDL1) |>
+  pivot_longer(-c(as_cut_lab, aneuploidy_class), names_to = "covariate", values_to = "level") |>
   filter(!is.na(level), level != "")
 
 if (nrow(icat) > 0) {
@@ -1007,8 +1160,8 @@ if (nrow(icat) > 0) {
     # point, so the reserved blue at attend_pal()[1] cannot hide one here (rule [C], the
     # same exemption the KM and ECDF palettes take).
     scale_fill_manual(values = attend_pal(dplyr::n_distinct(icat$level))) +
-    facet_wrap(~ covariate, scales = "free_x", nrow = 1) +
-    labs(title = "Pathologist categorical calls by aneuploidy class (MMR-deficient only)",
+    facet_grid(covariate ~ as_cut_lab) +
+    labs(title = "Pathologist categorical calls by aneuploidy class (MMR-deficient only, both AS cuts)",
          x = NULL, y = "proportion of patients", fill = NULL) +
     attend_theme() +
     theme(axis.text.x = element_text(angle = 20, hjust = 1))

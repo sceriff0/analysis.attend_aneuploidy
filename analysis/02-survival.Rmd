@@ -33,6 +33,12 @@ source(here("code", "load_phenotypes.R"))    # load_ihc_data()
 source(here("code", "load_clinical.R"))      # load_imaging_data()
 
 master <- get_master() |> add_molecular_classes()
+
+# The same patients once per aneuploidy cut, with aneuploidy_class re-derived at each. Every
+# aneuploidy-keyed figure below is drawn at both rather than at the configured primary one;
+# see 00-methods for why, and add_aneuploidy_cuts() for why it is a helper, not two frames.
+master_cuts <- add_aneuploidy_cuts(master)
+cuts        <- aneu_cuts()
 ```
 
 > **Question.** Does the treatment comparison behave differently in different molecular subgroups?
@@ -49,7 +55,8 @@ does not modify the treatment effect; a gap that opens in one panel and closes i
 might, and the interaction test after the headline figure puts a number on it.
 
 Continuous scores are binarised by add_molecular_classes() at the configured thresholds:
-aneuploidy at `r attend_thresholds$aneuploidy`, TMB at `r attend_thresholds$tmb`, HRD at
+aneuploidy at `r paste(aneu_cuts(), collapse = " and ")` — **both cuts are drawn, every
+time**, see [00-methods](00-methods.html) — TMB at `r attend_thresholds$tmb`, HRD at
 `r attend_thresholds$hrd`. Every chunk is guarded by have_cols(), so the report knits to a
 legible skeleton before those column names are set.
 
@@ -61,10 +68,12 @@ distributes across the panels used later, which is the fastest way to spot a pan
 will be too small to interpret.
 
 ```{r data}
-# quick visibility on the binarised classes
-master |>
-  count(aneuploidy_class, MMR_class, TMB_class, HRD_class, MSI_class) |>
-  arrange(desc(n)) |> head(20)
+# quick visibility on the binarised classes, at both aneuploidy cuts: the same patients
+# appear twice, so a cell that empties between the two cuts is a panel that will be
+# uninterpretable in one half of every figure below.
+master_cuts |>
+  count(as_cut_lab, aneuploidy_class, MMR_class, TMB_class, HRD_class, MSI_class) |>
+  arrange(as_cut_lab, desc(n)) |> head(24)
 ```
 
 ### Survival summary table
@@ -83,25 +92,35 @@ if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols
 ## Headline figure — aneuploidy x MMR status
 
 The main result. Curves are the two treatment arms; **columns** are MMR status
-(proficient / deficient, from MMR_class) and **rows** are aneuploidy high vs low
-(split at `r attend_thresholds$aneuploidy` on the ASCETS aneuploidy score). Each panel's
-log-rank p compares the two arms within that panel alone — it is *not* a test of
-aneuploidy or MMR.
+(proficient / deficient, from MMR_class) and **rows** are aneuploidy high vs low. Each
+panel's log-rank p compares the two arms within that panel alone — it is *not* a test of
+aneuploidy or MMR. **The grid is drawn once per aneuploidy cut**
+(`r paste(aneu_cuts(), collapse = " and ")`), as a separate figure rather than a third facet
+because survminer panels on at most two variables; the patients are the same in both, only
+the row a patient sits in moves.
 
 The table underneath gives each panel's N and event count, with a small_n flag
 (n < 10 or fewer than 5 events). A panel carrying that flag can produce a dramatic-looking
 curve separation from a handful of patients; the flag is there so that is visible rather
 than inferred.
 
-```{r km-reference}
+```{r km-reference, results='asis'}
 if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event,
               attend_cols$km_group, "aneuploidy_class", "MMR_class")) {
-  print(km_facet(master, group = attend_cols$km_group,
-           facets = c("aneuploidy_class", "MMR_class"),
-           title = "Survival by group — faceted by aneuploidy × MMR status"))
-  cnt <- km_panel_counts(master, facets = c("aneuploidy_class", "MMR_class"))
-  if (nrow(cnt) > 0)
-    knitr::kable(cnt, caption = "Per-panel N / events across both arms (small_n = n<10 or events<5 — interpret with caution).")
+  for (k in cuts) {
+    mk <- master_cuts |> filter(as_cut == k)
+    cat("\n\n#### AS cut ", k, "\n\n", sep = "")
+    p <- km_facet(mk, group = attend_cols$km_group,
+                  facets = c("aneuploidy_class", "MMR_class"),
+                  title = paste0("Survival by group — aneuploidy × MMR status (AS cut ", k, ")"))
+    if (!is.null(p)) print(p)
+    cnt <- km_panel_counts(mk, facets = c("aneuploidy_class", "MMR_class"))
+    if (nrow(cnt) > 0)
+      # print(), not a bare kable(): inside a loop the value is not auto-printed, and this
+      # chunk is results='asis' so the markdown table renders where it is emitted.
+      print(knitr::kable(cnt, caption = paste0(
+        "AS cut ", k, " — per-panel N / events across both arms (small_n = n<10 or events<5).")))
+  }
 }
 ```
 
@@ -115,63 +134,77 @@ expected to be underpowered; a non-significant or NA result there is reported
 honestly (flagged, never suppressed) and should be read as **suggestive**, not
 confirmatory.
 
-```{r cox-mmrd-aneuhigh}
-mmrd_aneuhigh <- master |>
-  dplyr::filter(MMR_class == attend_levels$mmr_deficient,
-                aneuploidy_class == "aneuploidy-high")
-eff <- logrank_cox_effect(mmrd_aneuhigh, group = attend_cols$km_group)
-if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
-              "aneuploidy_class", "MMR_class") && isTRUE(eff$n_groups == 2)) {
-  small_flag <- eff$n < 20 || eff$n_events < 10
-  cat(sprintf("\n\n**MMRd + aneuploidy-high subgroup: n = %d, events = %d%s**\n\n",
-              eff$n, eff$n_events,
-              if (small_flag) " — SMALL SAMPLE, treat as suggestive only" else ""))
-  ct <- tryCatch(cox_table(mmrd_aneuhigh, covariates = attend_cols$km_group),
-                 error = function(e) { note_skip("cox_table skipped: ", conditionMessage(e)); NULL })
-  if (!is.null(ct))
-    knitr::kable(ct$tidy, digits = 3,
-                 caption = "MMRd + aneuploidy-high — Cox PH: PFS ~ treatment arm (HR, 95% CI). n/events via logrank_cox_effect().")
-} else note_skip("MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment arms present in this cell.")
+```{r cox-mmrd-aneuhigh, results='asis'}
+for (k in cuts) {
+  # The subgroup IS the cut: which patients are "aneuploidy-high" is exactly what moves, so
+  # this model is refitted per cut rather than fitted once and relabelled.
+  mmrd_aneuhigh <- master_cuts |>
+    dplyr::filter(as_cut == k,
+                  MMR_class == attend_levels$mmr_deficient,
+                  aneuploidy_class == "aneuploidy-high")
+  eff <- logrank_cox_effect(mmrd_aneuhigh, group = attend_cols$km_group)
+  if (have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
+                "aneuploidy_class", "MMR_class") && isTRUE(eff$n_groups == 2)) {
+    small_flag <- eff$n < 20 || eff$n_events < 10
+    cat(sprintf("\n\n**AS cut %s — MMRd + aneuploidy-high subgroup: n = %d, events = %d%s**\n\n",
+                format(k), eff$n, eff$n_events,
+                if (small_flag) " — SMALL SAMPLE, treat as suggestive only" else ""))
+    ct <- tryCatch(cox_table(mmrd_aneuhigh, covariates = attend_cols$km_group),
+                   error = function(e) { note_skip("cox_table skipped: ", conditionMessage(e)); NULL })
+    if (!is.null(ct))
+      print(knitr::kable(ct$tidy, digits = 3, caption = paste0(
+        "AS cut ", k, " — MMRd + aneuploidy-high, Cox PH: PFS ~ treatment arm (HR, 95% CI). ",
+        "n/events via logrank_cox_effect().")))
+  } else {
+    note_skip("AS cut ", k, ": MMRd × aneuploidy-high Cox subgroup skipped — <2 treatment ",
+              "arms present in this cell.")
+  }
+}
 ```
 
 A three-way Cox model on the master, treatment arm x aneuploidy class x MMR status, so
 the subgroup Cox above can be read against a single formal test of whether the arms differ
-by subgroup rather than against a series of per-panel log-ranks.
+by subgroup rather than against a series of per-panel log-ranks. Refitted once per
+aneuploidy cut: the aneu term is the cut, so a single fit could only describe one of them.
 
 ```{r interaction-3way}
-d_int <- master |>
-  dplyr::mutate(dplyr::across(dplyr::all_of(attend_cols$surv_event), recode_event)) |>
-  dplyr::filter(dplyr::if_all(dplyr::all_of(c(attend_cols$surv_time, attend_cols$surv_event,
-                              attend_cols$km_group, "aneuploidy_class", "MMR_class")), ~ !is.na(.))) |>
-  dplyr::mutate(arm  = droplevels(as.factor(.data[[attend_cols$km_group]])),
-                aneu = droplevels(as.factor(aneuploidy_class)),
-                mmr  = droplevels(as.factor(MMR_class)))
-n_int <- nrow(d_int); events_int <- sum(d_int[[attend_cols$surv_event]] == 1, na.rm = TRUE)
-levels_ok <- have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
-                       "aneuploidy_class", "MMR_class") &&
-             dplyr::n_distinct(d_int$arm) == 2 && dplyr::n_distinct(d_int$aneu) == 2 &&
-             dplyr::n_distinct(d_int$mmr) == 2
-if (levels_ok && n_int >= 20 && events_int >= 10) {
-  ft <- attend_cols$surv_time; fe <- attend_cols$surv_event
-  full <- tryCatch(survival::coxph(stats::as.formula(sprintf(
-            "survival::Surv(`%s`, `%s`) ~ arm * aneu * mmr", ft, fe)), data = d_int),
-          error = function(e) NULL)
-  null <- tryCatch(survival::coxph(stats::as.formula(sprintf(
-            "survival::Surv(`%s`, `%s`) ~ arm + aneu + mmr", ft, fe)), data = d_int),
-          error = function(e) NULL)
-  if (!is.null(full) && !is.null(null)) {
-    # count only ESTIMATED (non-NA) coefficients: coxph keeps an aliased empty-cell
-    # term as an NA entry, so length() would inflate df and mis-calibrate the LRT.
-    ddf <- sum(!is.na(stats::coef(full))) - sum(!is.na(stats::coef(null)))
-    chi <- 2 * (as.numeric(stats::logLik(full)) - as.numeric(stats::logLik(null)))
-    p   <- if (ddf > 0) stats::pchisq(chi, df = ddf, lower.tail = FALSE) else NA_real_
-    under <- n_int < 60 || events_int < 30
-    cat(sprintf("\n\n**arm × aneuploidy × MMR interaction LRT**: n = %d, events = %d, df = %s, chi-sq = %.2f, p = %s%s\n\n",
-        n_int, events_int, ddf, chi,
-        if (is.na(p)) "NA (rank-deficient — an empty cell)" else formatC(p, digits = 3, format = "g"),
-        if (under) " — **UNDERPOWERED: interpret as suggestive, not confirmatory**" else ""))
-  } else note_skip("3-way interaction Cox models failed to fit (rank-deficient/empty cell).")
-} else note_skip(sprintf("3-way interaction skipped — need arm/aneu/MMR each 2 levels and n>=20/events>=10 (got n=%d, events=%d).", n_int, events_int))
+for (k in cuts) {
+  d_int <- master_cuts |>
+    dplyr::filter(as_cut == k) |>
+    dplyr::mutate(dplyr::across(dplyr::all_of(attend_cols$surv_event), recode_event)) |>
+    dplyr::filter(dplyr::if_all(dplyr::all_of(c(attend_cols$surv_time, attend_cols$surv_event,
+                                attend_cols$km_group, "aneuploidy_class", "MMR_class")), ~ !is.na(.))) |>
+    dplyr::mutate(arm  = droplevels(as.factor(.data[[attend_cols$km_group]])),
+                  aneu = droplevels(as.factor(aneuploidy_class)),
+                  mmr  = droplevels(as.factor(MMR_class)))
+  n_int <- nrow(d_int); events_int <- sum(d_int[[attend_cols$surv_event]] == 1, na.rm = TRUE)
+  levels_ok <- have_cols(master, attend_cols$surv_time, attend_cols$surv_event, attend_cols$km_group,
+                         "aneuploidy_class", "MMR_class") &&
+               dplyr::n_distinct(d_int$arm) == 2 && dplyr::n_distinct(d_int$aneu) == 2 &&
+               dplyr::n_distinct(d_int$mmr) == 2
+  if (levels_ok && n_int >= 20 && events_int >= 10) {
+    ft <- attend_cols$surv_time; fe <- attend_cols$surv_event
+    full <- tryCatch(survival::coxph(stats::as.formula(sprintf(
+              "survival::Surv(`%s`, `%s`) ~ arm * aneu * mmr", ft, fe)), data = d_int),
+            error = function(e) NULL)
+    null <- tryCatch(survival::coxph(stats::as.formula(sprintf(
+              "survival::Surv(`%s`, `%s`) ~ arm + aneu + mmr", ft, fe)), data = d_int),
+            error = function(e) NULL)
+    if (!is.null(full) && !is.null(null)) {
+      # count only ESTIMATED (non-NA) coefficients: coxph keeps an aliased empty-cell
+      # term as an NA entry, so length() would inflate df and mis-calibrate the LRT.
+      ddf <- sum(!is.na(stats::coef(full))) - sum(!is.na(stats::coef(null)))
+      chi <- 2 * (as.numeric(stats::logLik(full)) - as.numeric(stats::logLik(null)))
+      p   <- if (ddf > 0) stats::pchisq(chi, df = ddf, lower.tail = FALSE) else NA_real_
+      under <- n_int < 60 || events_int < 30
+      cat(sprintf("\n\n**AS cut %s — arm × aneuploidy × MMR interaction LRT**: n = %d, events = %d, df = %s, chi-sq = %.2f, p = %s%s\n\n",
+          format(k), n_int, events_int, ddf, chi,
+          if (is.na(p)) "NA (rank-deficient — an empty cell)" else formatC(p, digits = 3, format = "g"),
+          if (under) " — **UNDERPOWERED: interpret as suggestive, not confirmatory**" else ""))
+    } else note_skip("AS cut ", k, ": 3-way interaction Cox models failed to fit ",
+                     "(rank-deficient/empty cell).")
+  } else note_skip(sprintf("AS cut %s: 3-way interaction skipped — need arm/aneu/MMR each 2 levels and n>=20/events>=10 (got n=%d, events=%d).", format(k), n_int, events_int))
+}
 ```
 
 ## Split by TMB (cutoff `r attend_thresholds$tmb`) — both TMB definitions
@@ -287,7 +320,9 @@ Aneuploidy class crossed with immune content. This panel keeps the **MMR-deficie
 restriction it carried in its previous home: it was computed on the MMRd cell-type table,
 so widening it to every imaged patient would change the result rather than relocate it.
 Immune content is the same median split as above, recomputed inside the MMRd subset so the
-median is that subset's own.
+median is that subset's own — and computed BEFORE the cut join, so the median is taken over
+patients rather than over patient-rows duplicated across the two cuts. Columns are the
+aneuploidy class, rows the two cuts.
 
 ```{r survival-aneu-immune}
 mmrd_imaged <- if (have_ihc && attend_cols$mmr_status %in% names(ihc_surv))
@@ -297,9 +332,15 @@ if (nrow(mmrd_imaged) > 0) {
   imm <- mmrd_imaged |>
     mutate(immune_class = if_else(cd45_over_inside >= median(cd45_over_inside, na.rm = TRUE),
                                   "immune-high", "immune-low"))
-  if (have_cols(imm, attend_cols$surv_time, attend_cols$surv_event,
+  # The class at BOTH cuts, joined on after the median split above. imm itself keeps one
+  # row per patient; only this frame is long, and only it is faceted by cut.
+  imm_cuts <- imm |>
+    select(-any_of("aneuploidy_class")) |>
+    inner_join(master_cuts |> select(pid, as_cut_lab, aneuploidy_class), by = "pid")
+  if (have_cols(imm_cuts, attend_cols$surv_time, attend_cols$surv_event,
                 "immune_class", "aneuploidy_class")) {
-    km_facet(imm, group = "immune_class", facets = "aneuploidy_class")
+    km_facet(imm_cuts, group = "immune_class",
+             facets = c("aneuploidy_class", "as_cut_lab"))
   } else note_skip("survival columns not set in attend_cols — skipping KM.")
 } else note_skip("No MMR-deficient imaged patients — aneuploidy x immune KM skipped.")
 ```

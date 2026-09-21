@@ -707,17 +707,24 @@ The direct cross-tabulation of the two groupings — the one in
 [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html) against the one used here — with a Fisher
 exact test on the 2×2. Everything in this report is drawn on the same cells report 04 draws,
 so if these two splits largely coincide then the two reports are describing one contrast
-under two names rather than two independent ones. The test is on patients, not images.
+under two names rather than two independent ones. On patients, not images, and at each
+aneuploidy cut (`r paste(aneu_cuts(), collapse = " and ")`) — whether the two groupings
+coincide is itself a function of where the cut sits.
 
 ```{r response-vs-aneuploidy}
-xt <- pt_all |> filter(!is.na(response_class), !is.na(aneuploidy_class)) |> droplevels()
-
-if (nrow(xt) > 0 && n_distinct(xt$response_class) == 2 && n_distinct(xt$aneuploidy_class) == 2) {
-  tab <- table(response = xt$response_class, aneuploidy = xt$aneuploidy_class)
-  print(knitr::kable(as.data.frame.matrix(tab),
-        caption = paste0("Response class vs aneuploidy class, all patients (n = ", nrow(xt), ")")))
-  cat("Fisher exact p =", signif(fisher.test(tab)$p.value, 3), "\n")
-} else note_skip("Not enough patients with both a response class and an aneuploidy class.")
+# One frame, both cuts: add_aneuploidy_cuts() re-derives the class at each, so a patient
+# appears twice and as_cut_lab keys the two table blocks and the two Fisher tests.
+xt <- pt_all |> select(-aneuploidy_class) |>
+  inner_join(add_aneuploidy_cuts(master) |> select(pid, as_cut_lab, aneuploidy_class),
+             by = "pid", relationship = "many-to-many") |>
+  filter(!is.na(response_class), !is.na(aneuploidy_class)) |> droplevels()
+if (nrow(xt) > 0 && n_distinct(xt$response_class) == 2) {
+  print(knitr::kable(xt |> count(as_cut_lab, response_class, aneu = as_label(aneuploidy_class)) |>
+    pivot_wider(names_from = aneu, values_from = n, values_fill = 0),
+    caption = "Response class vs aneuploidy class, all patients, at both AS cuts"))
+  print(xt |> group_by(as_cut_lab) |> summarise(
+    fisher_p = signif(fisher.test(table(response_class, aneuploidy_class))$p.value, 3)))
+} else note_skip("Too few patients with both a response class and an aneuploidy class.")
 ```
 
 ## Response against the pathologist's imaging calls

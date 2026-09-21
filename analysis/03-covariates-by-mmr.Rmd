@@ -29,7 +29,7 @@ master <- get_master()
 > **Question.** Do the continuous molecular covariates differ in distribution between MMR-deficient and MMR-proficient tumours?
 > **Cohort.** All `r nrow(master)` patients on the master; each panel drops its own missing values.
 > **Reads.** attend_master_joined only.
-> **Out of scope.** Anything conditioned on aneuploidy class -> reports [04](04-aneuploidy-mmrd.html) to [06](06-tmb.html). Survival -> [02-survival](02-survival.html).
+> **Out of scope.** Anything conditioned on aneuploidy class -> reports [04](04-aneuploidy-mmrd.html) to [06](06-tmb.html), and immune infiltrate and PD-L1 against aneuploidy -> [12](12-aneuploidy-immune.html). Survival -> [02-survival](02-survival.html).
 
 Whole distributions, not group averages. The expected differences here are tail phenomena:
 MMR-deficient tumours carry higher TMB and MSI through a hypermutated *subset* rather than
@@ -76,7 +76,12 @@ cat("covariates available:", paste(names(covar_map), collapse = ", "), "\n")
 One panel per covariate. Each curve is a group's cumulative distribution; the x-axis is
 the covariate's own scale (panels are free-scaled, so they are not comparable to each
 other). Patients missing a value are dropped from that panel only, so panel denominators
-differ — the KS table below reports each panel's group sizes.
+differ — the KS table below reports each panel's group sizes. The dashed vertical lines, on
+the aneuploidy panel only, are the **two** AS High / AS Low cutoffs this site now reports
+side by side, `r paste(aneu_cuts(), collapse = " and ")` (aneu_cuts(), from
+attend_thresholds$aneuploidy and $aneuploidy_alt); where a curve crosses one reads off the
+fraction of that MMR group classed AS Low at that cut, so the vertical gap between the two
+lines is the patients whose class depends on which threshold is used.
 
 ```{r ecdf}
 if (length(covar_map) > 0 && mmr_col %in% names(master)) {
@@ -92,8 +97,14 @@ if (length(covar_map) > 0 && mmr_col %in% names(master)) {
     mutate(covariate = names(covar_map)[match(covariate, covar_map)]) |>
     filter(!is.na(MMR), !is.na(value))
 
+  # The cutoffs belong to the aneuploidy panel alone, so they are drawn from a frame keyed
+  # on that facet; a bare geom_vline() would put 0.1 and 0.2 on the TMB and HRD axes too.
+  aneu_lab <- names(covar_map)[covar_map == attend_cols$aneuploidy]
+  thr_line <- tidyr::crossing(covariate = aneu_lab, x = aneu_cuts())
+
   ggplot(long, aes(value, colour = MMR)) +
     stat_ecdf(linewidth = 0.9) +
+    geom_vline(data = thr_line, aes(xintercept = x), linetype = 2, colour = "grey40") +
     facet_wrap(~ covariate, scales = "free_x") +
     # attend_ecdf_cols, NOT attend_mmr_cols: on overlaid cumulative curves rule [A]'s
     # reference grey reads as a gridline rather than as a series. Red = deficient,
@@ -154,9 +165,9 @@ The ECDF above shows the whole aneuploidy distribution; this is the same compari
 two-group contrast with a test attached, because aneuploidy is this pipeline's subject and
 the ECDF alone gives no effect size or p-value. Aneuploidy score is
 aneu__aneuploidy_score (ASCETS arm-level SCNA burden from data/ascets/, LOWCOV arms
-excluded from each sample's denominator); the dashed line is the
-`r attend_thresholds$aneuploidy` class cutoff, drawn so the boxes can be read against the
-split the later reports use. Wilcoxon rank-sum on the two groups, uncorrected — the
+excluded from each sample's denominator); the dashed lines are the two class cutoffs
+(`r paste(aneu_cuts(), collapse = " and ")`), drawn so the boxes can be read against both
+splits the later reports now show side by side. Wilcoxon rank-sum on the two groups, uncorrected — the
 aneuploidy score is plotted on its own **raw 0-1 scale** wherever it is the outcome, so the
 axis reads as a fraction of arms. The arcsine transform is confined to the cell-type
 composition panels in [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html), where the fractions
@@ -188,7 +199,7 @@ if (aneu_col %in% names(master) && mmr_col %in% names(master)) {
     attend_box(am, x = "MMR", y = "aneuploidy", fill = NULL, points = FALSE) +
     highlight_points(am, "MMR", "aneuploidy", base_size = 1.2, base_alpha = 0.55,
                      base_const = "black") +
-    geom_hline(yintercept = attend_thresholds$aneuploidy, linetype = 2, colour = "grey40") +
+    geom_hline(yintercept = aneu_cuts(), linetype = 2, colour = "grey40") +
     scale_x_discrete(labels = as_label) +
     scale_fill_manual(values = attend_mmr_cols, labels = as_label,
                       name = attend_mmr_legend) +
