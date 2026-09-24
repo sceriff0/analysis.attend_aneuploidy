@@ -1,0 +1,313 @@
+---
+title: "ATTEND — 13. Recurrent copy number and immune-evasion gene function"
+author: "sceriff0"
+date: "2026-09-24"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here, fs, data.table. No new package — the catalogue is a tracked TSV
+# and the test is base-R resampling.
+library(tidyverse)
+library(here)
+# Headless-safe raster device: the cluster's compute nodes have no X11, so the default
+# png() dies with "unable to open connection to X11 display" and every figure with it.
+if (capabilities("cairo")) options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 6)
+
+source(here("code", "attend_harmonise.R"))   # make_id_cfg(), build_barcode_pid()
+source(here("code", "attend_classes.R"))     # attend_crispr, attend_cnv, add_scna_group()
+source(here("code", "attend_scna.R"))        # run_peak_blocks(), crispr_peak_overlap()
+source(here("code", "attend_plots.R"))       # note_skip(), attend_theme(), attend_pal()
+source(here("code", "attend_io.R"))          # read_intermediate()
+source(here("code", "build_master.R"))       # get_master() — builds on demand
+source(here("code", "load_crispr.R"))        # load_crispr_screens(), crispr_counts()
+source(here("code", "load_wes_results.R"))   # find_gistic_files(), load_gistic_continuous_at()
+
+master <- tryCatch(get_master() |> add_molecular_classes() |> add_scna_group(),
+                   error = function(e) NULL)
+have_master <- !is.null(master) && nrow(master) > 0
+
+crispr    <- load_crispr_screens()
+have_cat  <- nrow(crispr) > 0
+
+gx_dir   <- here("data", attend_cnv$gistic$dir)
+run_dirs <- c(list(all = file.path(gx_dir, attend_cnv$gistic$pooled_dir)),
+              setNames(as.list(file.path(gx_dir, scna_group_token(attend_scna$group_levels))),
+                       scna_group_token(attend_scna$group_levels)))
+have_gistic <- dir.exists(run_dirs[["mmrd_high"]])
+
+# The genes GISTIC actually measured, in GENOMIC order. Both facts matter: the order is what
+# the block-shift null slides peaks along, and the membership is half of the universe. GISTIC
+# writes all_data_by_genes.txt in genomic order, and feature_pos preserves that row order.
+gene_order <- local({
+  g <- tryCatch(load_gistic_continuous_at(run_dirs[["mmrd_high"]], attend_cnv),
+                error = function(e) NULL)
+  fp <- if (is.null(g)) NULL else attr(g, "feature_pos")
+  if (is.null(fp)) character(0) else as.character(fp$feature)
+})
+have_order <- length(gene_order) > 0
+```
+
+> **Question.** Are the loci GISTIC calls recurrent inside a stratum enriched for genes that CRISPR screens show control tumour-cell killing by T cells — losses of resisters, gains of sensitizers?
+> **Cohort.** MMRd aneuploidy-high first, the target of [10-recurrent-cna](10-recurrent-cna.html)'s Question 1, then all four MMR × aneuploidy strata side by side. Peaks come from each stratum's own GISTIC run at the primary aneuploidy cut.
+> **Reads.** data/crispr_t_cell_screens_wu2025.tsv (code/fetch_crispr_screens.R, from Wu et al. Table S3), the amp_genes/del_genes/all_data_by_genes files of each run in data/gistic/ (runbooks/gistic.md), and attend_master_joined.
+> **Out of scope.** Whether a locus recurs at all, and whether the same loci recur in MMRp → [10-recurrent-cna](10-recurrent-cna.html). Immune infiltrate and PD-L1 as measured phenotypes → [12-aneuploidy-immune](12-aneuploidy-immune.html). The aneuploidy classes and the two cuts → [00-methods](00-methods.html).
+
+## What this report does and does not claim
+
+Wu et al. (*Immunity* 58:2864–2877, 2025) intersect recurrently altered genes with a pooled
+CRISPR catalogue of T-cell-killing **resisters** and **sensitizers**, direction-matched. That
+filter is what this report borrows. Three differences from their analysis are load-bearing and
+are stated here rather than left for a reader to infer.
+
+**Their recurrence is a within-patient subtraction; this one is not.** Wu et al. compare each
+patient's progression tumour against that patient's own pre-treatment baseline and call a gene
+recurrent when it changed in at least three patients. ATTEND has one tumour per patient and
+`collapse_pid()` averages to one row per patient, so there is no baseline to subtract. Nothing
+in this report is evidence about what a tumour acquired under treatment, and the phrase they
+use for that axis is deliberately absent below.
+
+**The two recurrence definitions are different constructs.** Theirs is a count with no
+background model, which on their cohort returns about a quarter of the exome. This report's is
+GISTIC's background-corrected q, `r attend_cnv$gistic$fdr_cutoff`, on the stratum's own run.
+A count and a peak statistic are not comparable, and no number here is compared to one of theirs.
+
+**The catalogue is melanoma- and ICI-derived.** It was assembled from screens of tumour-cell
+killing by T cells, pooled across mouse and human models. Applying it to endometrial carcinoma
+is an assumption this report makes, not a result it establishes.
+
+## The catalogue
+
+`load_crispr_screens()` reads the tracked TSV and applies the evidence cutoff as an argument,
+`attend_crispr$min_measurements` = `r attend_crispr$min_measurements` — Wu et al.'s own
+"concordant evidence in ≥ two independent measurements", which reproduces their reported 519
+resisters and 877 sensitizers exactly. The unfiltered blocks stay in the file so the cutoff is
+a choice that can be varied, not a property of the data. Symbols that qualify as **both** a
+resister and a sensitizer carry no direction, so they are dropped and counted here rather than
+resolved by whichever row a join kept.
+
+```{r catalogue}
+if (!have_cat) {
+  note_skip("no ", attend_crispr$file, " under data/ — run `Rscript code/fetch_crispr_screens.R`.")
+} else {
+  print(knitr::kable(crispr_counts(crispr), row.names = FALSE,
+                     caption = paste0("The CRISPR T-cell-killing catalogue at the configured ",
+                                      "evidence cutoff (Wu et al., Table S3)")))
+}
+```
+
+The direction map is the method in one line, and it is not symmetric: a **resister** matters
+when it is **lost**, a **sensitizer** when it is **gained**. Both moves push a tumour towards
+immune escape, and swapping either entry would invert every statement below while leaving all
+the counts unchanged — which is why it is configuration (`attend_crispr$direction_of`) and not
+an argument at a call site.
+
+```{r direction-map}
+print(knitr::kable(
+  data.frame(role = names(attend_crispr$direction_of),
+             `alteration that promotes escape` = unname(attend_crispr$direction_of),
+             check.names = FALSE),
+  row.names = FALSE, caption = "attend_crispr$direction_of — the whole method"))
+```
+
+## Part 1 — MMRd aneuploidy-high
+
+### What was measured, and what could not be
+
+The partition below is the denominator, printed before any test. Two of its lines exist
+because an absence must not read as a negative result. A peak gene that the 23 pooled screens
+never covered is **unscreened**, not "not a resister": the screens do not tile the genome, so
+scoring an unscreened gene as a measured negative would inflate every p-value on the page.
+`attend_crispr$universe` is therefore `r attend_crispr$universe` — the genes this GISTIC run
+assayed **intersected with** the genes the catalogue screened. Genes sitting in both an
+amplification and a deletion peak carry no direction either, and are dropped on the same rule
+`gistic_feature_direction()` already applies.
+
+```{r p1-partition}
+ov1 <- NULL
+if (!have_gistic) {
+  note_skip("no MMRd-high GISTIC run under ", run_dirs[["mmrd_high"]],
+            " — run `MODE=groups Rscript code/prep_gistic_group_segs.R`, then ",
+            "`MODE=groups bash code/run_gistic.sh`.")
+} else if (!have_cat) {
+  note_skip("the catalogue is absent, so no overlap can be computed — see above.")
+} else {
+  ov1 <- crispr_peak_overlap(run_dirs[["mmrd_high"]], crispr = crispr,
+                             assayed = if (have_order) gene_order else NULL)
+  if (is.null(ov1$partition)) {
+    note_skip("the MMRd-high run has no amp_genes/del_genes peak lists to read.")
+  } else {
+    print(knitr::kable(ov1$partition, row.names = FALSE,
+                       caption = "MMRd aneuploidy-high: what entered the overlap, and what was excluded"))
+  }
+}
+```
+
+### The direction-matched hits
+
+Every row is a gene that sits inside a significant peak of the MMRd-high run **and** is a
+catalogue member **in the matching direction** — a resister inside a deletion peak, or a
+sensitizer inside an amplification peak. `n_measurements` is the screen support behind the
+functional call, from the catalogue, and carries no information about this cohort.
+`wu_overlap` is Wu et al.'s **own** result on their melanoma patients, carried for provenance:
+it says the gene was in their recurrent set, and says nothing whatever about ATTEND. It must
+never be joined on.
+
+```{r p1-hits}
+if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip("no direction-matched hits to list — see the partition above for why.")
+} else {
+  h <- ov1$hits[order(ov1$hits$role, -ov1$hits$n_measurements, ov1$hits$gene), ]
+  cat("**", nrow(h), " direction-matched gene(s)**: ",
+      sum(h$role == "resister"), " resister(s) inside deletion peaks, ",
+      sum(h$role == "sensitizer"), " sensitizer(s) inside amplification peaks.\n\n", sep = "")
+  print(knitr::kable(utils::head(h, 40), row.names = FALSE, digits = 3,
+                     caption = "MMRd aneuploidy-high: peak genes with a matching functional call"))
+}
+```
+
+### Is that more overlap than chance?
+
+A count of hits is not a result until it is read against what chance produces, and the null
+here has to respect two kinds of clustering at once. GISTIC peaks are contiguous blocks — an
+amplicon spanning 300 genes is one event, not 300 independent successes — and the catalogue is
+**also** positionally clustered, because immune genes sit in families: *TAP1*, *TAP2*, *PSMB8*
+and *TAPBP* across the MHC region, the *IFNA* cluster on 9p21 immediately beside *CDKN2A*, a
+classic deletion peak. So the peaks are slid to random positions along the genomically ordered
+universe while the catalogue is held exactly where it is. Measured on simulated null data with
+both kinds of clustering, a hypergeometric test runs at roughly five times its nominal type-I
+rate and so does a test that holds the peaks and reshuffles the gene labels; the block shift is
+calibrated. The three measured type-I rates, and why each alternative fails, are in
+[00-methods](00-methods.html#why-the-peaks-move-and-the-catalogue-stays-put); the calibration
+that pins them is `code/tests/test_crispr_overlap.R`. This is **Family B**, corrected with
+`r attend_scna$fdr_method`: the catalogue is external and fixed in advance, but the peaks come
+from ATTEND's own group labels, so no result here can be promoted to a confirmatory one.
+
+```{r p1-test}
+t1 <- NULL
+if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip("no overlap to test.")
+} else if (!have_order) {
+  note_skip("the MMRd-high run has no all_data_by_genes.txt, so genes cannot be put in ",
+            "genomic order and the block-shift null is not defined. No p-value is reported ",
+            "rather than one computed on an arbitrary ordering.")
+} else {
+  blocks1 <- run_peak_blocks(run_dirs[["mmrd_high"]])
+  t1 <- crispr_overlap_test(ov1, blocks1, gene_order = gene_order, crispr = crispr)
+  if (is.null(t1)) {
+    note_skip("too few genes survive the universe restriction for a resampling test.")
+  } else {
+    print(knitr::kable(t1, row.names = FALSE, digits = c(0, 0, 2, 4, 4, 0),
+                       caption = paste0("MMRd aneuploidy-high: block-shift permutation, B = ",
+                                        t1$B[1], ", Family B (", attend_scna$fdr_method, ")")))
+  }
+}
+```
+
+The observed and expected counts are the two numbers to read together: `expected` is the mean
+of the null, so a hit count close to it is the answer "no more than the genome's layout already
+predicts", whatever the catalogue membership looks like gene by gene. The combined row adds the
+two directional rows and is a summary, not a third question, so it carries no adjusted p.
+
+### How much of this rests on one patient
+
+Report 10 reports, for each recurrent locus, the fraction of leave-one-out MMRd-high GISTIC
+re-runs that retain it. That column qualifies this one too: the peak set is the input here, so
+a functional enrichment computed on peaks that turn over when a single tumour is dropped
+inherits exactly that instability. The table below re-reads the leave-one-out runs and reports
+how many of them retain each gene's peak, so the enrichment above can be read against the
+stability of the thing it was computed on rather than separately from it.
+
+```{r p1-stability}
+if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip("no hits whose stability could be reported.")
+} else {
+  loo_dirs <- { d <- file.path(gx_dir, "loo")
+                if (dir.exists(d)) list.dirs(d, full.names = TRUE, recursive = FALSE)
+                else character(0) }
+  if (!length(loo_dirs)) {
+    note_skip("no leave-one-out runs under ", file.path(gx_dir, "loo"),
+              " — run `MODE=loo Rscript code/prep_gistic_group_segs.R`, then ",
+              "`MODE=loo bash code/run_gistic.sh`. Without them the hits above have no ",
+              "stability column, and at this n that is the column that decides whether a ",
+              "hit is a finding.")
+  } else {
+    keep <- vapply(loo_dirs, function(d) {
+      pg <- tryCatch(run_peak_genes(d), error = function(e) character(0))
+      if (!length(pg)) return(rep(NA_real_, nrow(ov1$hits)))
+      as.numeric(ov1$hits$gene %in% names(pg)[pg == ov1$hits$peak_dir])
+    }, numeric(nrow(ov1$hits)))
+    st <- data.frame(gene = ov1$hits$gene, role = ov1$hits$role,
+                     peak_dir = ov1$hits$peak_dir,
+                     loo_retained_frac = rowMeans(matrix(keep, nrow = nrow(ov1$hits)),
+                                                  na.rm = TRUE),
+                     stringsAsFactors = FALSE)
+    st <- st[order(-st$loo_retained_frac, st$gene), ]
+    cat("Leave-one-out re-runs read: ", length(loo_dirs), ".\n\n", sep = "")
+    print(knitr::kable(utils::head(st, 40), row.names = FALSE, digits = 3,
+                       caption = paste0("Each hit's peak, across the leave-one-out MMRd-high ",
+                                        "re-runs that retain it")))
+  }
+}
+```
+
+## Part 2 — the same question in all four strata
+
+The four MMR × aneuploidy strata answered side by side, each on its **own** GISTIC run, so a
+stratum with more peaks is not being compared against another stratum's peak list. The
+universe is rebuilt per run for the same reason: a run that assayed fewer genes has a smaller
+denominator, and sharing one denominator across runs would move hits between strata without
+any of them changing. Strata whose GISTIC run is missing are listed as such rather than
+dropped silently, because an absent row and a null row are different statements.
+
+```{r p2-strata}
+if (!have_cat) {
+  note_skip("the catalogue is absent, so no stratum can be scored.")
+} else {
+  rows <- lapply(scna_group_token(attend_scna$group_levels), function(tok) {
+    d <- run_dirs[[tok]]
+    if (!dir.exists(d))
+      return(data.frame(stratum = tok, status = "no GISTIC run", peak_genes = NA_integer_,
+                        universe = NA_integer_, hits = NA_integer_, p_del = NA_real_,
+                        p_amp = NA_real_, stringsAsFactors = FALSE))
+    go <- local({
+      g <- tryCatch(load_gistic_continuous_at(d, attend_cnv), error = function(e) NULL)
+      fp <- if (is.null(g)) NULL else attr(g, "feature_pos")
+      if (is.null(fp)) character(0) else as.character(fp$feature)
+    })
+    ov <- crispr_peak_overlap(d, crispr = crispr, assayed = if (length(go)) go else NULL)
+    if (is.null(ov$partition))
+      return(data.frame(stratum = tok, status = "no peak lists", peak_genes = NA_integer_,
+                        universe = NA_integer_, hits = NA_integer_, p_del = NA_real_,
+                        p_amp = NA_real_, stringsAsFactors = FALSE))
+    tt <- if (length(go)) crispr_overlap_test(ov, run_peak_blocks(d), gene_order = go,
+                                              crispr = crispr) else NULL
+    data.frame(stratum = tok,
+               status = if (is.null(tt)) "no genomic order — untested" else "tested",
+               peak_genes = length(ov$peak_dir), universe = length(ov$universe),
+               hits = if (is.null(ov$hits)) 0L else nrow(ov$hits),
+               p_del = if (is.null(tt)) NA_real_ else tt$p[1],
+               p_amp = if (is.null(tt)) NA_real_ else tt$p[2],
+               stringsAsFactors = FALSE)
+  })
+  tab <- do.call(rbind, rows)
+  print(knitr::kable(tab, row.names = FALSE, digits = 4,
+                     caption = paste0("All four MMR x aneuploidy strata, each on its own ",
+                                      "GISTIC run and its own universe")))
+}
+```
+
+Each stratum's two p-values were corrected within that stratum, not across the four: the strata
+are four separate questions asked of four different patient sets, and pooling them into one
+family would penalise each for the others having been asked. Reading down a column is
+descriptive comparison, not a test of difference between strata — that question is
+[10-recurrent-cna](10-recurrent-cna.html)'s Question 2, which asks it of the loci themselves.
+
+```{r session-info}
+sessionInfo()
+```

@@ -686,3 +686,227 @@ concordance_null <- function(mat, grp, target = "MMRd-high", ref = "MMRp-high",
        ref_rho = if (length(i3)) rho(f(i1), f(i3)) else NA_real_,
        B = B)
 }
+
+# ============================================================================
+# The Wu et al. (Immunity 2025) functional filter, ported
+# ============================================================================
+# Wu et al. intersect recurrently altered genes with a CRISPR catalogue of T-cell-killing
+# RESISTER and SENSITIZER genes, direction-matched: deleted x resister, amplified x
+# sensitizer. That intersection is what turns a several-thousand-gene recurrence list into
+# a statement about immune evasion.
+#
+# ⚠️ ATTEND ASKS A NARROWER QUESTION THAN THEY DO, and the page says so. Their recurrence is
+# a within-patient subtraction (baseline -> progression, ">= three patients"); ATTEND is
+# cross-sectional, so "what a tumour acquired under treatment" is not computable here. What
+# ports is the filter: are the loci GISTIC calls recurrent in a stratum enriched for
+# immune-evasion genes, in the expected direction? Config: attend_crispr.
+# Design: specs/2026-09-24-wu2025-crispr-functional-filter.md.
+
+#' Peak genes of ONE GISTIC run, with the direction of the peak they sit in.
+#'
+#' gistic_feature_direction() does this for the POOLED run only (it resolves its folder
+#' from cnv$gistic$dir). Report 13 needs it per stratum, so the run folder is explicit.
+#' Genes in BOTH an amp and a del peak are dropped rather than assigned a direction — the
+#' same rule the catalogue's both-list genes get, for the same reason.
+#'
+#' @return named character vector gene -> "amp"/"del"; empty when the run has no peak lists.
+run_peak_genes <- function(run_dir, cnv = attend_cnv) {
+  f <- tryCatch(find_gistic_files(cnv, dir = run_dir), error = function(e) NULL)
+  if (is.null(f)) return(stats::setNames(character(0), character(0)))
+  a <- tryCatch(.gistic_peak_genes(f$amp_genes), error = function(e) character(0))
+  d <- tryCatch(.gistic_peak_genes(f$del_genes), error = function(e) character(0))
+  both <- intersect(a, d)
+  a <- setdiff(a, both); d <- setdiff(d, both)
+  out <- stats::setNames(c(rep("amp", length(a)), rep("del", length(d))), c(a, d))
+  attr(out, "ambiguous") <- both
+  out
+}
+
+#' Direction-matched overlap of one run's peak genes with the CRISPR catalogue.
+#'
+#' THE DENOMINATOR IS THE SCREENED SET, NOT EVERY PEAK GENE. A gene absent from the 23
+#' pooled screens is UNSCREENED, not a measured negative: the screens do not cover the
+#' genome uniformly. Scoring an unscreened gene as "not a resister" is the same failure
+#' pathogenic_by_patient(), mutation_status_long() and pole_ultramutated() were each fixed
+#' for, and it would inflate every test below. `universe` therefore defaults to the
+#' intersection of the genes GISTIC assayed in this run with the genes the catalogue
+#' screened; "assayed" is available only so the cost of that choice can be tabulated.
+#'
+#' @param assayed character vector of every gene the run measured (rownames/colnames of its
+#'   own matrix). When NULL, the peak genes themselves are used and the report says so.
+#' @return list(hits, partition, peak_dir, universe)
+crispr_peak_overlap <- function(run_dir, crispr = load_crispr_screens(), assayed = NULL,
+                                cfg = attend_crispr, cnv = attend_cnv) {
+  pd <- run_peak_genes(run_dir, cnv = cnv)
+  if (!length(pd) || !nrow(crispr))
+    return(list(hits = NULL, partition = NULL, peak_dir = pd, universe = character(0)))
+
+  screened <- unique(crispr$gene)
+  assayed  <- if (is.null(assayed)) names(pd) else unique(as.character(assayed))
+  universe <- switch(cfg$universe,
+                     screened = intersect(assayed, screened),
+                     assayed  = assayed,
+                     stop("attend_crispr$universe must be 'screened' or 'assayed'"))
+
+  # Only peak genes inside the universe can ever be scored, so the numerator and the
+  # denominator are restricted together rather than separately.
+  pk <- pd[names(pd) %in% universe]
+
+  role_dir <- cfg$direction_of                       # resister -> del, sensitizer -> amp
+  hits <- do.call(rbind, lapply(names(role_dir), function(role) {
+    want <- unname(role_dir[[role]])
+    g    <- intersect(names(pk)[pk == want], crispr$gene[crispr$role == role])
+    if (!length(g)) return(NULL)
+    m <- crispr[match(g, crispr$gene), , drop = FALSE]
+    data.frame(gene = g, role = role, peak_dir = want,
+               n_measurements = m$n_measurements, wu_overlap = m$wu_overlap,
+               stringsAsFactors = FALSE)
+  }))
+
+  partition <- data.frame(
+    quantity = c("peak genes in this run",
+                 "  dropped: gene in both an amp and a del peak",
+                 "genes the run assayed",
+                 "universe (assayed AND screened)",
+                 "  peak genes inside the universe",
+                 "  peak genes UNSCREENED (excluded, not scored negative)",
+                 "direction-matched hits"),
+    n = c(length(pd), length(attr(pd, "ambiguous")), length(assayed), length(universe),
+          length(pk), sum(!names(pd) %in% screened), if (is.null(hits)) 0L else nrow(hits)),
+    stringsAsFactors = FALSE)
+
+  list(hits = hits, partition = partition, peak_dir = pk, universe = universe)
+}
+
+#' Peak BLOCKS of one GISTIC run: which genes belong to which peak, and its direction.
+#'
+#' run_peak_genes() flattens this to gene -> direction, which is all the overlap itself
+#' needs. The TEST needs the blocks, because the null has to move whole peaks (see
+#' crispr_overlap_test()). Genes in both an amp and a del peak are dropped, as there.
+#'
+#' @return data.frame(peak, direction, gene), one row per gene per peak.
+run_peak_blocks <- function(run_dir, cnv = attend_cnv) {
+  f <- tryCatch(find_gistic_files(cnv, dir = run_dir), error = function(e) NULL)
+  empty <- data.frame(peak = character(0), direction = character(0), gene = character(0),
+                      stringsAsFactors = FALSE)
+  if (is.null(f)) return(empty)
+
+  # amp_genes/del_genes are one COLUMN per significant peak, with the member gene symbols
+  # stacked below ~4 annotation rows (cytoband, q value, residual q, wide peak boundaries).
+  per_file <- function(path, direction) {
+    if (is.null(path) || !file.exists(path)) return(empty)
+    dt <- tryCatch(as.data.frame(fread(path, header = TRUE, sep = "\t",
+                                       na.strings = c("", "NA"))), error = function(e) NULL)
+    if (is.null(dt) || ncol(dt) < 2) return(empty)
+    hdr <- c("cytoband", "q value", "q-value", "residual q value",
+             "wide peak boundaries", "genes in wide peak")
+    do.call(rbind, lapply(seq.int(2L, ncol(dt)), function(j) {
+      v <- trimws(as.character(dt[[j]]))
+      v <- v[!is.na(v) & v != "" & !tolower(v) %in% hdr]
+      v <- v[!grepl("^(chr)?[0-9XY]+[:p q0-9.\\-]", v) & !grepl("^[0-9.eE+-]+$", v)]
+      v <- unique(sub("\\[.*$", "", v))
+      if (!length(v)) return(NULL)
+      data.frame(peak = paste0(direction, ":", names(dt)[j]), direction = direction,
+                 gene = v, stringsAsFactors = FALSE)
+    }))
+  }
+
+  out <- rbind(per_file(f$amp_genes, "amp"), per_file(f$del_genes, "del"))
+  if (is.null(out) || !nrow(out)) return(empty)
+  amb <- intersect(out$gene[out$direction == "amp"], out$gene[out$direction == "del"])
+  out <- out[!out$gene %in% amb, , drop = FALSE]
+  attr(out, "ambiguous") <- amb
+  out
+}
+
+#' Is the direction-matched overlap larger than chance, with BOTH structures preserved?
+#'
+#' ⚠️ THE PEAKS MOVE AND THE CATALOGUE STAYS PUT. Two things cluster along the genome and
+#' both have to be respected. GISTIC peaks are contiguous blocks — one amplicon spanning
+#' 300 genes is ONE event, not 300 independent successes. The CRISPR catalogue is ALSO
+#' positionally clustered, because immune genes sit in families: TAP1/TAP2/PSMB8/TAPBP in
+#' the MHC region, the IFNA cluster on 9p21 immediately beside CDKN2A, a classic deletion
+#' peak. A test that ignores either clustering is anticonservative.
+#'
+#' MEASURED, on a simulation with 40 contiguous 25-gene peaks and 40 clustered 10-gene
+#' catalogue families, under a TRUE null (no association):
+#'
+#'   hypergeometric            type-I 0.270 at nominal 0.05
+#'   label permutation         type-I 0.265   (peaks fixed, labels reshuffled)
+#'   block-shift permutation   type-I 0.035   <- this one
+#'
+#' The hypergeometric fails because it treats peak genes as independent draws. Reshuffling
+#' the LABELS fails for the same reason from the other side: it destroys the catalogue's
+#' positional clustering, so the null overlap has far less variance than the real one. Only
+#' moving whole peak blocks along a genomically ordered universe, with the catalogue held
+#' where it actually is, preserves both. Pinned by test_crispr_overlap.R.
+#'
+#' Family B (discovery), BH. The catalogue is fixed a priori and externally, which is
+#' Family A shape, but the PEAKS come from ATTEND's own group labels, so nothing here can
+#' be promoted to confirmatory — the same reasoning as perm_test_selected_panel().
+#'
+#' @param ov crispr_peak_overlap() output.
+#' @param blocks run_peak_blocks() for the same run.
+#' @param gene_order the run's genes in GENOMIC order (GISTIC writes all_data_by_genes.txt
+#'   in genomic order). Without it the shift is meaningless and the test returns NULL
+#'   rather than a number that looks like a result.
+crispr_overlap_test <- function(ov, blocks, gene_order, crispr = load_crispr_screens(),
+                                B = attend_crispr$perm_B, cfg = attend_crispr, seed = 1) {
+  if (is.null(ov$partition) || !nrow(crispr) || is.null(blocks) || !nrow(blocks)) return(NULL)
+  U <- intersect(as.character(gene_order), ov$universe)     # ordered AND screened/assayed
+  if (length(U) < 50) return(NULL)
+  set.seed(seed)
+
+  pos <- stats::setNames(seq_along(U), U)
+  cat_of <- function(role) which(U %in% crispr$gene[crispr$role == role])
+  tgt <- list(del = cat_of("resister"), amp = cat_of("sensitizer"))
+
+  # Each peak becomes a contiguous RUN of the ordered universe. Size is what the null
+  # preserves; identity is what it randomises.
+  blk <- split(blocks, blocks$peak)
+  sizes <- lapply(blk, function(b) {
+    idx <- sort(pos[b$gene[b$gene %in% U]])
+    if (!length(idx)) return(NULL)
+    list(dir = b$direction[1], n = length(idx), idx = idx)
+  })
+  sizes <- Filter(Negate(is.null), sizes)
+  if (!length(sizes)) return(NULL)
+
+  obs <- vapply(c("del", "amp"), function(d) {
+    ii <- unique(unlist(lapply(Filter(function(s) s$dir == d, sizes), function(s) s$idx)))
+    length(intersect(ii, tgt[[d]]))
+  }, integer(1))
+
+  N <- length(U)
+  null <- replicate(B, {
+    vapply(c("del", "amp"), function(d) {
+      ss <- Filter(function(s) s$dir == d, sizes)
+      ii <- unique(unlist(lapply(ss, function(s) {
+        st <- sample.int(max(1L, N - s$n + 1L), 1L)   # slide the whole block
+        st:(st + s$n - 1L)
+      })))
+      length(intersect(ii, tgt[[d]]))
+    }, integer(1))
+  })
+
+  # +1 on both sides: a permutation p is never 0, and reporting one would claim more
+  # resolution than B resamples have.
+  p_of <- function(o, nv) (1 + sum(nv >= o)) / (B + 1)
+  p_r <- p_of(obs[["del"]], null["del", ])
+  p_s <- p_of(obs[["amp"]], null["amp", ])
+  p_b <- p_of(sum(obs), null["del", ] + null["amp", ])
+
+  out <- data.frame(
+    contrast = c("deleted peak genes x resisters",
+                 "amplified peak genes x sensitizers",
+                 "both directions combined"),
+    observed = c(obs[["del"]], obs[["amp"]], sum(obs)),
+    expected = c(mean(null["del", ]), mean(null["amp", ]), mean(null["del", ] + null["amp", ])),
+    p = c(p_r, p_s, p_b), stringsAsFactors = FALSE)
+  # The combined row is the two directional rows added, not a third question, so it is not
+  # counted in the correction — adjusting over all three would penalise the directional
+  # tests for their own summary.
+  out$p_adj <- c(family_adjust(c(p_r, p_s), family = "B", n = 2L), NA_real_)
+  out$B <- B
+  out
+}

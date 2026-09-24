@@ -705,6 +705,71 @@ Column names and thresholds are read from attend_cols and attend_thresholds
 (code/attend_classes.R); chunks guarded by have_cols() skip themselves when a name is
 still a placeholder.
 
+## Recurrent copy number and immune-evasion gene function
+
+[13-crispr-functional-cna](13-crispr-functional-cna.html) borrows one step from Wu et al.
+(*Immunity* 58:2864-2877, 2025): the direction-matched intersection of recurrently altered
+genes with a pooled CRISPR catalogue of T-cell-killing **resister** and **sensitizer** genes.
+A resister counts when it is **lost**, a sensitizer when it is **gained** — both moves push a
+tumour towards immune escape, and the two are not interchangeable. The map is
+`attend_crispr$direction_of`, in configuration rather than at a call site, because inverting
+either entry would reverse every conclusion while leaving all the counts identical.
+
+### What is borrowed, and what is not
+
+Wu et al. define recurrence as a per-patient count over **patient-matched baseline to
+progression pairs** — a within-patient subtraction. ATTEND is cross-sectional and
+`collapse_pid()` averages to one row per patient, so that axis does not exist here and no
+ATTEND quantity is described with it. What ports is the functional filter alone, applied to
+this pipeline's own recurrence definition, GISTIC's background-corrected q on the stratum's
+own run. The two definitions are different constructs: a bare count with no background model
+returns about a quarter of the exome on their cohort, so no number in this pipeline is
+compared against one of theirs. The catalogue itself is melanoma- and ICI-derived and pooled
+across mouse and human screens; applying it to endometrial carcinoma is an assumption, not a
+result.
+
+### Why the universe is the screened set
+
+`attend_crispr$universe` is the genes a GISTIC run assayed **intersected with** the genes the
+catalogue screened. The 23 pooled screens do not tile the genome, so a peak gene absent from
+the catalogue is **unscreened**, not a measured negative. Counting it in the denominator as
+"not a resister" would convert missing data into evidence and inflate every p-value — the same
+failure `pathogenic_by_patient()`, `mutation_status_long()` and `pole_ultramutated()` were
+each fixed for. The excluded count is printed beside the result rather than left implicit.
+Symbols that qualify as both a resister and a sensitizer carry no direction and are dropped on
+the same rule `gistic_feature_direction()` applies to a gene in both an amp and a del peak.
+
+### Why the peaks move and the catalogue stays put
+
+Two things cluster along the genome and a valid null has to respect both. GISTIC peaks are
+contiguous blocks — one amplicon spanning 300 genes is a single event, not 300 independent
+successes. The catalogue is **also** positionally clustered, because immune genes sit in
+families: *TAP1*, *TAP2*, *PSMB8* and *TAPBP* across the MHC region, and the *IFNA* cluster on
+9p21 immediately beside *CDKN2A*, a classic deletion peak. `crispr_overlap_test()` therefore
+slides whole peak blocks to random positions along the genomically ordered universe and holds
+the catalogue exactly where it is.
+
+Measured on simulated null data carrying both kinds of clustering, with no association
+planted:
+
+| Null | type-I rate at nominal 0.05 |
+|---|---|
+| Hypergeometric | 0.27 |
+| Label permutation (peaks fixed, labels reshuffled) | 0.27 |
+| Block shift (peaks moved, catalogue fixed) | 0.04 |
+
+The hypergeometric fails because it treats peak genes as independent draws. Reshuffling the
+labels fails for the mirror reason: it destroys the catalogue's positional clustering, so the
+null overlap varies far less than the real one. Only the block shift preserves both. Pinned by
+`code/tests/test_crispr_overlap.R`, which is a **calibration** test rather than a unit test —
+all three versions return a number in [0, 1] and no single dataset separates them.
+
+This is **Family B**, corrected with BH. The catalogue is external and fixed in advance, which
+is Family A shape, but the peaks are chosen using ATTEND's own group labels, so no result can
+be promoted to confirmatory — the same reasoning as `perm_test_selected_panel()`. Each
+stratum's tests are corrected within that stratum: the strata are separate questions asked of
+different patient sets.
+
 ```{r session-info}
 sessionInfo()
 ```

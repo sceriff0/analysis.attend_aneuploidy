@@ -2500,6 +2500,65 @@ attend_scna <- list(
   select_perm_B      = 2000
 )
 
+# ============================================================================
+# attend_crispr — the Wu et al. (Immunity 2025) functional filter
+# ============================================================================
+# Wu et al. pooled 23 published CRISPR-Cas9 screens of tumour-cell killing by T cells and
+# classified every hit as a RESISTER (knockout promoted resistance) or a SENSITIZER
+# (knockout promoted sensitivity). Their result is the DIRECTION-MATCHED intersection of
+# that catalogue with recurrently altered genes: recurrently DELETED genes against
+# resisters, recurrently AMPLIFIED genes against sensitizers. Losing a resister and gaining
+# a sensitizer both move a tumour towards immune escape; the two are not interchangeable
+# and must never be pooled.
+#
+# ⚠️ WHAT THIS IS NOT. Wu et al. define "recurrent" as a bare per-patient count — ">= three
+# patients", STAR Methods printed e5 — computed on patient-matched baseline -> progression
+# pairs, i.e. a WITHIN-patient subtraction they call DP-specific. ATTEND is cross-sectional
+# and collapse_pid() averages to one row per patient, so there is no baseline to subtract:
+# the DP-specific axis is not reproducible here and the phrase must not be used for any
+# ATTEND quantity. What ports is the functional filter alone, applied to ATTEND's own
+# recurrence definition (GISTIC q). The two "recurrences" are different constructs — Wu's
+# cut returns ~5,035 genes, a quarter of the exome, with no significance control — and the
+# asymmetry is stated in 00-methods.Rmd and in report 13's derivation notes.
+# Design: specs/2026-09-24-wu2025-crispr-functional-filter.md.
+attend_crispr <- list(
+  file = "crispr_t_cell_screens_wu2025.tsv",   # data/, written by code/fetch_crispr_screens.R
+
+  # Wu et al.'s own cutoff: "concordant evidence in >= two independent measurements"
+  # (STAR Methods, "Cataloging resister and sensitizer genes from CRISPR-Cas9 screens").
+  # Verified to reproduce their reported 519 resisters / 877 sensitizers EXACTLY. Kept as a
+  # DECLARED argument rather than baked into the tracked TSV, so the choice is visible in
+  # config instead of hidden in a data file nobody re-reads.
+  min_measurements = 2L,
+
+  # THE method, in one line. A resister matters when it is LOST, a sensitizer when it is
+  # GAINED. Inverting either entry silently inverts every claim the report makes, which is
+  # why it is a named map and not an argument at a call site.
+  direction_of = c(resister = "del", sensitizer = "amp"),
+
+  # 105 gene symbols carry >= 2 concordant measurements as BOTH resister and sensitizer.
+  # Wu et al. do not address them anywhere. A gene that is both cannot support a
+  # directional claim, which is the only kind this analysis makes, so it is dropped and
+  # COUNTED — the same rule gistic_feature_direction() already applies to a gene sitting in
+  # both the amp and del peak lists.
+  drop_both_list = TRUE,
+
+  # The universe for the enrichment test, and the load-bearing choice in it. "screened"
+  # means: genes GISTIC actually assayed in that run, INTERSECTED with genes that appear
+  # anywhere in the catalogue. A gene absent from 23 pooled screens is UNSCREENED, not a
+  # measured negative — the same failure pathogenic_by_patient(), mutation_status_long()
+  # and pole_ultramutated() were each fixed for. Counting unscreened genes in the
+  # denominator inflates significance by pretending an absent measurement is a negative one.
+  # "assayed" is offered only so the cost of that choice can be tabulated, never as default.
+  universe = "screened",
+
+  # Label permutation over peak-gene membership. A hypergeometric test would assume genes
+  # are independent draws; genes inside ONE GISTIC wide peak are perfectly correlated — a
+  # single amplicon spanning 300 genes would count as 300 independent successes. The
+  # permutation preserves the observed peak sizes and resamples which genes they cover.
+  perm_B = 10000
+)
+
 #' Cross MMR status with aneuploidy class into the report-15 grouping factor.
 #'
 #' Composes existing derived columns rather than re-deriving either one: MMR status
