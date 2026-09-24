@@ -114,3 +114,15 @@ cat("wrote ", out, "\n",
 if (r2 != 519L || s2 != 877L)
   stop("Table S3 conversion does not reproduce the paper's 519/877 — check the column ",
        "offsets against the workbook before using this file.")
+
+# ⚠️ 519/877 ALONE CANNOT CATCH A DIRECTION SWAP. Those two counts depend only on the
+# `Number of measurements` offsets (K and R). The overlap flags live in the ADJACENT columns
+# M and T, and they are different variables: M is "Overlap status with recurrent,
+# DP-specific, DELETED genes" (resisters), T is "...AMPLIFIED genes" (sensitizers). Swap M
+# and T and 519/877 still pass while the direction of every downstream claim inverts —
+# exactly the shape of the .peak_altered() sign bug, which the fixtures also failed to catch.
+# 108 and 90 are stated in the paper (Figures 1D and 1E), so they pin the orientation too.
+if (ov("resister") != 108L || ov("sensitizer") != 90L)
+  stop("Table S3 conversion reproduces 519/877 but NOT the paper's 108/90 overlap counts ",
+       "(got ", ov("resister"), "/", ov("sensitizer"), ") — columns M and T have most ",
+       "likely been swapped, which silently inverts every directional result downstream.")
