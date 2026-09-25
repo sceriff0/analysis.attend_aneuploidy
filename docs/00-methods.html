@@ -537,15 +537,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree53d4271e8387b09791101f8dfbabae9186885b81targetblank53d4271a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/53d4271e8387b09791101f8dfbabae9186885b81" target="_blank">53d4271</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree53d4271e8387b09791101f8dfbabae9186885b81targetblank53d4271a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -555,7 +555,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>.
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/53d4271e8387b09791101f8dfbabae9186885b81" target="_blank">53d4271</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -590,11 +590,6 @@ Ignored files:
     Ignored:    gistic2.sif
     Ignored:    output/clean_data/
     Ignored:    output/gistic_input/
-
-Untracked files:
-    Untracked:  gistic_7050713.log
-    Untracked:  gistic_7050714.log
-    Untracked:  refgenefiles/
 
 </code></pre>
 <p>
@@ -640,6 +635,41 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.attend_aneuploidy/53d4271e8387b09791101f8dfbabae9186885b81/docs/00-methods.html" target="_blank">53d4271</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-25
+</td>
+<td>
+:wrench: site building
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/395a71cee11825004d0f299df82ee6bbc457bfa0/analysis/00-methods.Rmd" target="_blank">395a71c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-24
+</td>
+<td>
+:sparkles: Report 13 — recurrent copy number against immune-evasion gene
+function
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1617,6 +1647,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/53d4271e8387b09791101f8dfbabae9186885b81/docs/figure/00-methods.Rmd/ancestry-tmb-by-group-1.svg" target="_blank">53d4271</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-25
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/00-methods.Rmd/ancestry-tmb-by-group-1.svg" target="_blank">39279fb</a>
 </td>
 <td>
@@ -1815,6 +1856,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/53d4271e8387b09791101f8dfbabae9186885b81/docs/figure/00-methods.Rmd/nassar-effect-1.svg" target="_blank">53d4271</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-25
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/00-methods.Rmd/nassar-effect-1.svg" target="_blank">39279fb</a>
@@ -2042,6 +2094,105 @@ pathogenic_by_patient() and joined on.</p>
 <p>Column names and thresholds are read from attend_cols and
 attend_thresholds (code/attend_classes.R); chunks guarded by have_cols()
 skip themselves when a name is still a placeholder.</p>
+</div>
+<div id="recurrent-copy-number-and-immune-evasion-gene-function"
+class="section level2">
+<h2>Recurrent copy number and immune-evasion gene function</h2>
+<p><a href="13-crispr-functional-cna.html">13-crispr-functional-cna</a>
+borrows one step from Wu et al. (<em>Immunity</em> 58:2864-2877, 2025):
+the direction-matched intersection of recurrently altered genes with a
+pooled CRISPR catalogue of T-cell-killing <strong>resister</strong> and
+<strong>sensitizer</strong> genes. A resister counts when it is
+<strong>lost</strong>, a sensitizer when it is <strong>gained</strong> —
+both moves push a tumour towards immune escape, and the two are not
+interchangeable. The map is <code>attend_crispr$direction_of</code>, in
+configuration rather than at a call site, because inverting either entry
+would reverse every conclusion while leaving all the counts
+identical.</p>
+<div id="what-is-borrowed-and-what-is-not" class="section level3">
+<h3>What is borrowed, and what is not</h3>
+<p>Wu et al. define recurrence as a per-patient count over
+<strong>patient-matched baseline to progression pairs</strong> — a
+within-patient subtraction. ATTEND is cross-sectional and
+<code>collapse_pid()</code> averages to one row per patient, so that
+axis does not exist here and no ATTEND quantity is described with it.
+What ports is the functional filter alone, applied to this pipeline’s
+own recurrence definition, GISTIC’s background-corrected q on the
+stratum’s own run. The two definitions are different constructs: a bare
+count with no background model returns about a quarter of the exome on
+their cohort, so no number in this pipeline is compared against one of
+theirs. The catalogue itself is melanoma- and ICI-derived and pooled
+across mouse and human screens; applying it to endometrial carcinoma is
+an assumption, not a result.</p>
+</div>
+<div id="why-the-universe-is-the-screened-set" class="section level3">
+<h3>Why the universe is the screened set</h3>
+<p><code>attend_crispr$universe</code> is the genes a GISTIC run assayed
+<strong>intersected with</strong> the genes the catalogue screened. The
+23 pooled screens do not tile the genome, so a peak gene absent from the
+catalogue is <strong>unscreened</strong>, not a measured negative.
+Counting it in the denominator as “not a resister” would convert missing
+data into evidence and inflate every p-value — the same failure
+<code>pathogenic_by_patient()</code>,
+<code>mutation_status_long()</code> and <code>pole_ultramutated()</code>
+were each fixed for. The excluded count is printed beside the result
+rather than left implicit. Symbols that qualify as both a resister and a
+sensitizer carry no direction and are dropped on the same rule
+<code>gistic_feature_direction()</code> applies to a gene in both an amp
+and a del peak.</p>
+</div>
+<div id="why-the-peaks-move-and-the-catalogue-stays-put"
+class="section level3">
+<h3>Why the peaks move and the catalogue stays put</h3>
+<p>Two things cluster along the genome and a valid null has to respect
+both. GISTIC peaks are contiguous blocks — one amplicon spanning 300
+genes is a single event, not 300 independent successes. The catalogue is
+<strong>also</strong> positionally clustered, because immune genes sit
+in families: <em>TAP1</em>, <em>TAP2</em>, <em>PSMB8</em> and
+<em>TAPBP</em> across the MHC region, and the <em>IFNA</em> cluster on
+9p21 immediately beside <em>CDKN2A</em>, a classic deletion peak.
+<code>crispr_overlap_test()</code> therefore slides whole peak blocks to
+random positions along the genomically ordered universe and holds the
+catalogue exactly where it is.</p>
+<p>Measured on simulated null data carrying both kinds of clustering,
+with no association planted:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Null</th>
+<th>type-I rate at nominal 0.05</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Hypergeometric</td>
+<td>0.27</td>
+</tr>
+<tr class="even">
+<td>Label permutation (peaks fixed, labels reshuffled)</td>
+<td>0.27</td>
+</tr>
+<tr class="odd">
+<td>Block shift (peaks moved, catalogue fixed)</td>
+<td>0.04</td>
+</tr>
+</tbody>
+</table>
+<p>The hypergeometric fails because it treats peak genes as independent
+draws. Reshuffling the labels fails for the mirror reason: it destroys
+the catalogue’s positional clustering, so the null overlap varies far
+less than the real one. Only the block shift preserves both. Pinned by
+<code>code/tests/test_crispr_overlap.R</code>, which is a
+<strong>calibration</strong> test rather than a unit test — all three
+versions return a number in [0, 1] and no single dataset separates
+them.</p>
+<p>This is <strong>Family B</strong>, corrected with BH. The catalogue
+is external and fixed in advance, which is Family A shape, but the peaks
+are chosen using ATTEND’s own group labels, so no result can be promoted
+to confirmatory — the same reasoning as
+<code>perm_test_selected_panel()</code>. Each stratum’s tests are
+corrected within that stratum: the strata are separate questions asked
+of different patient sets.</p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>R version 4.3.2 (2023-10-31)
 Platform: x86_64-pc-linux-gnu (64-bit)
@@ -2132,6 +2283,7 @@ loaded via a namespace (and not attached):
 [45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
 [49] dichromat_2.0-0.1  farver_2.1.2       htmltools_0.5.9    labeling_0.4.3    
 [53] rmarkdown_2.31     compiler_4.3.2     S7_0.2.2          </code></pre>
+</div>
 </div>
 </div>
 
