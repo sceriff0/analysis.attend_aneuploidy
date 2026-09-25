@@ -108,6 +108,15 @@ alternatives — live in runbooks/.
   immune infiltrate (IC %) by AS class, pooled and within each MMR group, and against the
   continuous score; and the two banded PD-L1 calls (immune cells, tumour cells) as ordered
   categories — the score across bands as a trend, and AS class × band with Fisher's exact test.
+- **[13 — Recurrent copy number and immune-evasion gene function](13-crispr-functional-cna.html)** · MMRd-high, then all four MMR × aneuploidy strata
+  Are the loci GISTIC calls recurrent in a stratum enriched for genes that CRISPR screens
+  (Wu et al. 2025) show control T-cell killing of tumour cells — direction-matched, losses of
+  resisters and gains of sensitizers? MMRd aneuploidy-high first, then all four strata, each
+  from its own GISTIC run at the primary cut.
+- **[14 — Cell-type composition by aneuploidy, one phenotype at a time](14-celltype-by-aneuploidy.html)** · MMRd only
+  The per-phenotype companion of report 04's composition panels: every cell type in a section
+  of its own, one tab per normalization, raw/Wilcoxon and arcsine/t-test, both aneuploidy cuts
+  as columns on one axis — so a rare cell type is never flattened by a common one.
 
 ### Conventions
 

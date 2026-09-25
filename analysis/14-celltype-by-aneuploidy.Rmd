@@ -1,0 +1,120 @@
+---
+title: "ATTEND — 14. Cell-type composition by aneuploidy, one phenotype at a time"
+author: "sceriff0"
+date: "2026-09-25"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse, here, ggpubr.
+library(tidyverse)
+library(here)
+library(ggpubr)
+# Headless-safe raster device: the cluster's compute nodes have no X11.
+if (capabilities("cairo")) options(bitmapType = "cairo")
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 6)
+
+source(here("code", "build_master.R"))       # get_master() — builds on demand, no build order
+source(here("code", "attend_plots.R"))       # composition_box(), composition_height()
+source(here("code", "attend_ihc.R"))         # ihc_celltype_metrics()
+source(here("code", "load_clinical.R"))      # load_imaging_data()
+source(here("code", "load_phenotypes.R"))    # load_ihc_celltypes()
+
+master      <- get_master() |> add_molecular_classes()
+# One row per patient PER CUT, each carrying the class that cut derives — the same frame
+# report 04 joins against, so a patient sits in the same box on both pages.
+master_cuts <- add_aneuploidy_cuts(master)
+cuts        <- aneu_cuts()
+mmrd_pids   <- add_scna_group(master) |> filter(mmr_group == "MMRd") |> pull(pid)
+n_mmrd      <- length(mmrd_pids)
+
+# The three denominators, in the order report 04 draws them.
+norms14 <- c(frac_inside = "all cells inside",
+             frac_tumor  = "tumour cells inside",
+             frac_cd45   = "CD45+ cells inside")
+```
+
+> **Question.** Within MMR-deficient tumours, does each cell type's abundance differ between aneuploidy-high and -low, read one phenotype at a time on an axis of its own?
+> **Cohort.** MMR-deficient only (n = `r n_mmrd`), every figure drawn at both aneuploidy cuts (`r paste(cuts, collapse = " and ")`).
+> **Reads.** The master (built on demand by get_master()) and the FlowPath annotation tree.
+> **Out of scope.** Every cell type side by side on a shared axis, and the tissue-content and immune panels -> [04-aneuploidy-mmrd](04-aneuploidy-mmrd.html). The same panels keyed on response -> [05-response](05-response.html). Why there are two cuts -> [00-methods](00-methods.html).
+
+This is the per-phenotype companion of Part 2 of
+[04-aneuploidy-mmrd](04-aneuploidy-mmrd.html): the same cohort, the same fractions, the same
+tests and the same figure builder (`composition_box()`), with each cell type given a figure
+and a y axis of its own instead of one row in a shared grid. What the shared grid buys —
+reading one cell type's abundance against another's — is lost here on purpose; what this
+page buys is that a rare cell type is never flattened by a common one.
+
+## Building the cohort
+
+The per-patient composition is read from the FlowPath tree by `ihc_celltype_metrics()`,
+which pools a patient's images by summing counts and denominators, then joined on pid to the
+aneuploidy class once per cut and restricted to the MMR-deficient pids. The table is the
+number of patients each cut calls high and low; the difference between its rows is exactly
+the patients the higher cut moves.
+
+```{r composition-data}
+# many-to-many is DECLARED: one metric row per patient meets one row per cut.
+ct <- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data()) |>
+  filter(pid %in% mmrd_pids) |>                                # <- the MMRd restriction
+  left_join(master_cuts |> select(pid, as_cut_lab, aneuploidy_class),
+            by = "pid", relationship = "many-to-many") |>
+  filter(!is.na(aneuploidy_class))
+
+cell_types14 <- if (nrow(ct) > 0) levels(droplevels(as.factor(ct$cell_type))) else character(0)
+cat("MMR-deficient patients                        :", n_mmrd, "\n")
+cat("  ... with cell-type metrics + aneuploidy class:", n_distinct(ct$pid), "\n")
+cat("cell types, one section each                   :", length(cell_types14), "\n\n")
+if (nrow(ct) > 0) {
+  cls <- ct |> distinct(pid, as_cut_lab, aneuploidy_class)
+  print(table(cut = droplevels(cls$as_cut_lab), aneuploidy = cls$aneuploidy_class))
+}
+```
+
+## One section per cell type
+
+Each cell type below has one tab per normalization, and each tab holds two figures: the raw
+fraction with a Wilcoxon rank-sum, then the arcsine-square-root fraction with a two-sample
+t-test. Within a figure the two aneuploidy cuts are the columns and share one y axis, so the
+only difference between them is which patients sit in which box; every test is computed
+inside its own panel and never pooled across cuts. The axis stops at the largest upper
+whisker and is a zoom (`coord_cartesian()`), so a patient above it is still in the box and
+the test and is counted in the subtitle. Tumour phenotypes are included here, unlike the
+shared-axis overview in report 04, because on an axis of their own they flatten nothing. No
+multiple-testing correction is applied — one test per cell type, normalization, transform
+and cut is many comparisons, so every p-value is descriptive.
+
+```{r per-celltype, results="asis", fig.width=9, fig.height=composition_height(1), out.width="80%"}
+if (length(cell_types14) == 0) note_skip("Skipped: no MMRd patient has cell-type metrics.")
+for (ctp in cell_types14) {
+  cat("\n\n### ", ctp, " {.tabset}\n\n", sep = "")
+  for (fc in names(norms14)) {
+    cat("\n\n#### ", norms14[[fc]], "\n\n", sep = "")
+    for (asin in c(FALSE, TRUE)) {
+      d <- ct |>
+        filter(cell_type == ctp) |>
+        mutate(.v = if (asin) arcsin_sqrt(.data[[fc]]) else .data[[fc]]) |>
+        filter(is.finite(.v))
+      p <- if (nrow(d) > 0)
+             composition_box(d, "aneuploidy_class", attend_aneu_cols, attend_as_legend,
+                             by_label = "aneuploidy — MMRd only, both AS cuts",
+                             denom_label = norms14[[fc]], arcsin = asin, scope = ctp,
+                             cols = "as_cut_lab", width_in = 9)
+      if (is.null(p)) note_skip("Skipped: ", ctp, " / ", norms14[[fc]],
+                                if (asin) " (arcsine)" else " (raw)",
+                                " — no finite fractions, or only one aneuploidy class present.")
+      else print(p)
+      cat("\n\n")
+    }
+  }
+}
+```
+
+```{r session-info}
+sessionInfo()
+```
