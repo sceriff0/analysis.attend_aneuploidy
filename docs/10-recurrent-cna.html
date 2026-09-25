@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-09-06" />
+
+<title>ATTEND — 10. Recurrent copy number in aneuploidy-high tumours</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 10. Recurrent copy number in
+aneuploidy-high tumours</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-09-06</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/10-recurrent-cna.Rmd</code>) and
+HTML (<code>docs/10-recurrent-cna.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/61b26bcd18b2e31df492b216255e9b75edad6295/analysis/10-recurrent-cna.Rmd" target="_blank">61b26bc</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-21
+</td>
+<td>
+:memo: Say on the page which cut reports 07 and 10 are reporting
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/10-recurrent-cna.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/4c9d28055c119101747e8e046212632332ab09a5/analysis/10-recurrent-cna.Rmd" target="_blank">4c9d280</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:bug: The data-driven panel could only find MMRp-high loci, and Q1/Q2
+answered with the wrong instruments
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/75cb39f2cf60236ae0dcf5f157269582d68b87f9/analysis/10-recurrent-cna.Rmd" target="_blank">75cb39f</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:bug: polipo was configured as 21S188 while the data spells it 21_5_188
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/03483253d2965a47e6ff0cb4f5fc388a94a5e62b/analysis/10-recurrent-cna.Rmd" target="_blank">0348325</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: AS High / AS Low, arcsine + t-test on the score, no n=, arms back
+to red/light blue
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/c2471cfbe104c00d8ed5db04c77406586b09b8c8/analysis/10-recurrent-cna.Rmd" target="_blank">c2471cf</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:sparkles: Answer the two CNA questions in the field’s own figures
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/10-recurrent-cna.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Are there recurrent copy-number
+alterations in MMRd aneuploidy-high tumours, and if so are they the same
+ones that recur in MMRp aneuploidy-high tumours?
+<strong>Cohort.</strong> All 245 patients for the Part 1 baseline; Parts
+2 and 3 are the contrast, MMRd-high (n = 9) against MMRp-high (n = 57).
+<strong>Reads.</strong> ASCETS arm calls, ClassifyCNV segments, and the
+five GISTIC runs in data/gistic/. <strong>Out of scope.</strong>
+Mutations and the gene panels -&gt; <a
+href="08-tp53-and-gene-panels.html">08-tp53-and-gene-panels</a>. The
+TCGA cascade -&gt; <a
+href="07-molecular-classification.html">07-molecular-classification</a>.</p>
+</blockquote>
+<p>This report asks <strong>two questions, in order</strong>, and the
+second one only means anything if the first is answered yes:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Are there recurrent CNAs in MMRd aneuploidy-high
+tumours?</strong> Part 2.</li>
+<li><strong>If so, are they the same ones that recur in MMRp
+aneuploidy-high tumours?</strong> Part 3.</li>
+</ol>
+<p>Part 1 is the baseline both are read against: what recurs across the
+whole cohort, before any split. Plot conventions follow TCGA UCEC
+(Kandoth et al., <em>Nature</em> 2013); the rationale for each is in <a
+href="00-methods.html">00-methods</a>.</p>
+<p><strong>The asymmetry that governs every reading below.</strong> At n
+= 9 in the MMRd-high stratum, a peak that is <em>present</em> and stable
+to leave-one-out is informative; a peak that is <em>absent</em> is not,
+because absence and low power are indistinguishable at this n. So
+question 2 can be answered “yes, the same peaks recur” with evidence,
+but it can never be answered “no, they are different peaks” — only “we
+could not show they are the same”. Every table below reports support
+counts and confidence intervals rather than a presence/absence
+verdict.</p>
+<p>Part 1 is descriptive frequencies with <strong>no significance
+testing</strong>. Part 2’s recurrence call is GISTIC 2.0’s own q-value
+on the MMRd-high run — the field’s standard — with frequency and
+leave-one-out retention as its support. The formal between-group testing
+is confined to Part 3, and splits into the two inference families <a
+href="00-methods.html">00-methods</a> defines.</p>
+<div id="part-1-the-baseline-what-recurs-across-the-whole-cohort"
+class="section level2">
+<h2>Part 1 — the baseline: what recurs across the whole cohort</h2>
+<p>Two resolutions of the same question, coarsest first. Both are
+<strong>descriptive frequencies with no significance testing</strong>:
+GISTIC 2.0 q-values are the field’s standard for recurrence significance
+and are not applied to these figures.</p>
+<div id="arm-level" class="section level3">
+<h3>Arm level</h3>
+<p>Cohort frequency of whole-arm gains and losses from the
+<strong>ASCETS arm-level calls</strong> — the recurrent events that
+define endometrial subtypes, such as 1q and 8q gain in serous-like
+tumours. Gains extend right, losses left, and arms are shown in
+<strong>genome order</strong> (order_arms_genomic()), not sorted by
+frequency. Each arm’s fraction is out of its own
+<strong>evaluable</strong> samples — calls of LOWCOV/NC/NA are excluded
+from that arm’s denominator, not counted as neutral — and that count is
+printed on the axis label (arm (n=…)) so a reduced denominator is
+visible rather than hidden. The bars below show the 20 most-altered
+<em>eligible</em> arms out of roughly 44 in the genome — not every arm —
+where eligible means evaluable in at least 50% of samples, the identical
+rule top_arms applies to the arm annotation tracks on the oncoplots in
+Part 1 above, so neither figure can rank a poorly-covered arm ahead of a
+well-covered one. An uncallable arm’s CNV_<arm> value on those oncoplots
+is NA, not “neutral”: missing data is not evidence of no alteration.</p>
+<pre class="r"><code>arm_freq &lt;- recurrent_arm_calls(load_ascets_calls(), n_top = attend_cnv$oncoplot_arms)
+
+if (is.null(arm_freq)) {
+  note_skip(&quot;No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.&quot;)
+} else {
+  # Same eligibility gate recurrent_arm_calls() applies to top_arms (freq$eligible), so
+  # the barplot and the oncoplot annotation tracks can never disagree about which arms
+  # are well-covered enough to rank. Applied BEFORE slice_head(), so a poorly-covered arm
+  # (e.g. an acrocentric p-arm ASCETS marks LOWCOV in most samples) cannot be promoted into
+  # the figure just because it scores 100% altered on a 2-sample denominator.
+  fr &lt;- arm_freq$freq |&gt;
+    filter(eligible) |&gt;
+    slice_head(n = attend_cnv$arm_calls$n_barplot) |&gt;
+    mutate(arm = factor(arm, levels = rev(order_arms_genomic(arm))))
+
+  # Axis labels carry each arm&#39;s evaluable-sample count, so a reader can see when a
+  # frequency rests on a reduced denominator (matched by factor level, not row order).
+  arm_labels &lt;- setNames(paste0(as.character(fr$arm), &quot; (n=&quot;, fr$n_evaluable, &quot;)&quot;),
+                         as.character(fr$arm))
+
+  fr_long &lt;- fr |&gt;
+    pivot_longer(c(gain, loss), names_to = &quot;direction&quot;, values_to = &quot;frac&quot;) |&gt;
+    mutate(frac = if_else(direction == &quot;loss&quot;, -frac, frac))
+
+  ggplot(fr_long, aes(arm, frac, fill = direction)) +
+    geom_col(width = 0.8) +
+    geom_hline(yintercept = 0, colour = &quot;grey40&quot;, linewidth = 0.3) +
+    coord_flip() +
+    scale_fill_manual(values = c(gain = unname(ATTEND_PALETTE[&quot;red&quot;]),
+                                 loss = unname(ATTEND_PALETTE[&quot;blue&quot;]))) +
+    scale_x_discrete(labels = arm_labels) +
+    scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), &quot;%&quot;)) +
+    labs(title = &quot;Recurrent arm-level SCNAs across the cohort&quot;,
+         subtitle = &quot;gain (right) vs loss (left), by fraction of evaluable samples; arms in genome order&quot;,
+         x = NULL, y = &quot;fraction of evaluable samples&quot;, fill = NULL) +
+    attend_theme()
+}</code></pre>
+<pre><code>NOTE: No ASCETS arm-level calls (data/ascets/) — skipping recurrent-CNV summary.</code></pre>
+</div>
+<div id="genome-wide-by-chromosomal-location" class="section level3">
+<h3>Genome-wide, by chromosomal location</h3>
+<p>The TCGA Fig. 1a convention: alterations plotted <strong>by position
+along the genome</strong> rather than summarised per arm, split into two
+amplitude panels — <strong>low-level</strong> and
+<strong>high-level</strong> (|log2 ratio| &gt;= 1, the conventional
+amplification/homozygous-deletion cutoff) — gain up/red, loss down/blue.
+Grey vertical lines are chromosome boundaries; dashed lines mark
+centromeres, read from the arm-boundary table. ChrY is dropped from the
+axis — the cohort is uterine and therefore all female, so it carries no
+calls and only an empty tail.</p>
+<p>Built from the ClassifyCNV altered segments (data/cnv_annotations/)
+in 1 Mb bins; the figure caption states the sample denominator and
+whether it came from an explicit count, the profiled-sample attribute,
+or the segments observed. <strong>These are descriptive frequencies with
+no significance testing</strong> — GISTIC q-values are the field’s
+standard for recurrence significance and are not applied here. This is
+the figure that shows <em>focal</em> recurrence — a narrow tall spike is
+a focal peak, a broad plateau is an arm-level event and also appears in
+the arm barplot above.</p>
+<pre class="r"><code>arm_bounds &lt;- load_arm_boundaries()
+pile &lt;- segment_pileup(load_cnv_data(), arm_bounds)
+
+if (is.null(pile)) {
+  note_skip(&quot;No ClassifyCNV segments (data/cnv_annotations/) or arm-boundary table — &quot;,
+          &quot;skipping the genome-wide pileup.&quot;)
+} else {
+  # Capture the denominator + its source before any filter()/mutate() that could drop
+  # these custom attributes.
+  n_samples        &lt;- attr(pile, &quot;n_samples&quot;)
+  n_samples_source &lt;- attr(pile, &quot;n_samples_source&quot;)
+  offs             &lt;- attr(pile, &quot;chrom_offsets&quot;)
+
+  # Readable phrase for the subtitle, not the internal token (argument/profiled/observed)
+  # segment_pileup() records in n_samples_source — a subtitle should read as English.
+  n_samples_desc &lt;- c(argument = &quot;an explicitly supplied cohort size&quot;,
+                      profiled = &quot;the number of samples profiled&quot;,
+                      observed = &quot;the samples present in the segment data&quot;)[[n_samples_source]]
+
+  # ChrY dropped: the cohort is uterine and therefore all female, so chrY carries no
+  # calls and would only draw an empty axis tail. ChrX is kept.
+  pile &lt;- pile |&gt; filter(chrom != &quot;chrY&quot;)
+  offs &lt;- offs  |&gt; filter(chrom != &quot;chrY&quot;)
+
+  # Centromere = each chromosome&#39;s p/q boundary, read from the arm-boundary table
+  # (never hard-coded) and converted to genome coordinates with the same offsets used
+  # for the chromosome-boundary lines and axis breaks.
+  centromeres &lt;- arm_bounds |&gt;
+    filter(str_detect(arm, &quot;p$&quot;), chrom != &quot;chrY&quot;) |&gt;
+    mutate(chrom = as.character(chrom)) |&gt;
+    inner_join(offs |&gt; select(chrom, offset), by = &quot;chrom&quot;) |&gt;
+    transmute(gpos = offset + end)
+
+  pl &lt;- pile |&gt;
+    select(gpos, gain_low, gain_high, loss_low, loss_high) |&gt;
+    pivot_longer(-gpos, names_to = c(&quot;direction&quot;, &quot;tier&quot;), names_sep = &quot;_&quot;,
+                values_to = &quot;frac&quot;) |&gt;
+    mutate(frac = if_else(direction == &quot;loss&quot;, -frac, frac),
+           tier = factor(tier, levels = c(&quot;low&quot;, &quot;high&quot;),
+                        labels = c(&quot;low-level&quot;, &quot;high-level&quot;)))
+
+  ggplot(pl, aes(gpos, frac, fill = direction)) +
+    geom_col(width = attend_cnv$pileup$bin) +
+    geom_hline(yintercept = 0, colour = &quot;grey40&quot;, linewidth = 0.3) +
+    geom_vline(xintercept = offs$offset[-1], colour = &quot;grey85&quot;, linewidth = 0.2) +
+    geom_vline(data = centromeres, aes(xintercept = gpos), colour = &quot;grey60&quot;,
+              linewidth = 0.3, linetype = &quot;dashed&quot;) +
+    facet_grid(tier ~ ., scales = &quot;free_y&quot;) +
+    scale_fill_manual(values = c(gain = unname(ATTEND_PALETTE[&quot;red&quot;]),
+                                 loss = unname(ATTEND_PALETTE[&quot;blue&quot;]))) +
+    scale_x_continuous(breaks = offs$mid, labels = str_remove(offs$chrom, &quot;^chr&quot;),
+                       expand = c(0, 0)) +
+    scale_y_continuous(labels = function(x) paste0(abs(round(100 * x)), &quot;%&quot;)) +
+    labs(title = &quot;Genome-wide recurrent SCNA pileup (TCGA Fig. 1a convention)&quot;,
+         subtitle = paste0(&quot;gain (up) vs loss (down), fraction of &quot;, n_samples,
+                           &quot; samples (&quot;, n_samples_desc, &quot;); &quot;,
+                           attend_cnv$pileup$bin / 1e6,
+                           &quot; Mb bins; dashed lines = centromeres; no significance testing applied&quot;),
+         x = &quot;chromosome&quot;, y = &quot;fraction of samples&quot;, fill = NULL) +
+    attend_theme() +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank())
+}</code></pre>
+<p><img src="figure/10-recurrent-cna.Rmd/segment-pileup-1.svg" alt="" width="1152" style="display: block; margin: auto;" /></p>
+<hr />
+</div>
+</div>
+<div
+id="part-2-question-1-are-there-recurrent-cnas-in-mmrd-aneuploidy-high-tumours"
+class="section level2">
+<h2>Part 2 — Question 1: are there recurrent CNAs in MMRd
+aneuploidy-high tumours?</h2>
+<p>Part 1 pooled every patient. This part asks the same recurrence
+question inside the MMRd-high stratum alone, which is the group the
+study is about, and which Part 1’s pooled frequencies can hide entirely:
+9 tumours out of 245 move a cohort-wide frequency by at most a few
+percent, so a peak recurrent in all 9 is invisible in Part 1.</p>
+<div id="setup-and-the-two-id-spaces" class="section level3">
+<h3>Setup and the two ID spaces</h3>
+<p>GISTIC and .seg sample ids are sequencing <strong>barcodes</strong>;
+the master is keyed on <strong>pid</strong>. Joining them directly gives
+an all-NA result <em>with no error</em>, so every lookup below goes
+through group_of_barcode(), built on the same crosswalk as everything
+else.</p>
+<p>The grouping variable scna_group composes is_mmrd() (IHC-based, MSI
+deliberately not a criterion) with aneuploidy_class at the
+<strong>primary</strong> cut 0.1, the same definition Part 1’s frequency
+comparison uses.</p>
+<p>⚠️ <strong>A 0.1-cut result, and cannot yet be anything
+else.</strong> Every other aneuploidy figure is drawn at both cuts (0.1
+and 0.2, <a href="00-methods.html">00-methods</a>); this one cannot —
+its inputs are the per-stratum <strong>GISTIC runs on disk</strong>,
+prepared from the primary cut. Re-running at 0.2 means regenerating them
+(code/prep_gistic_group_segs.R, runbooks/gistic.md).</p>
+<pre class="r"><code>have_master &lt;- exists(&quot;master&quot;) &amp;&amp; !is.null(master) &amp;&amp; nrow(master) &gt; 0
+if (have_master &amp;&amp; !&quot;scna_group&quot; %in% names(master)) master &lt;- add_scna_group(master)
+
+cw_scna &lt;- tryCatch(build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
+                    error = function(e) NULL)
+have_cw &lt;- !is.null(cw_scna) &amp;&amp; nrow(cw_scna) &gt; 0
+
+group_of_barcode &lt;- function(ids) {
+  if (!have_master || !have_cw)
+    return(factor(rep(NA_character_, length(ids)), levels = attend_scna$group_levels))
+  barcode_scna_group(ids, master, cw_scna)
+}
+
+gx_dir   &lt;- here(&quot;data&quot;, attend_cnv$gistic$dir)
+run_dirs &lt;- c(all       = file.path(gx_dir, &quot;all&quot;),
+              mmrp_high = file.path(gx_dir, &quot;mmrp_high&quot;),
+              mmrp_low  = file.path(gx_dir, &quot;mmrp_low&quot;),
+              mmrd_low  = file.path(gx_dir, &quot;mmrd_low&quot;),
+              mmrd_high = file.path(gx_dir, &quot;mmrd_high&quot;))
+have_gistic &lt;- dir.exists(run_dirs[[&quot;all&quot;]])
+
+# Which of the five runs exist and are usable — gistic_run_inventory(), attend_scna.R.
+gistic_inv &lt;- gistic_run_inventory(run_dirs)
+loo_dir_n &lt;- { d &lt;- file.path(gx_dir, &quot;loo&quot;)
+               if (dir.exists(d)) length(list.dirs(d, recursive = FALSE)) else 0L }
+
+print(knitr::kable(gistic_inv, row.names = FALSE, caption = paste0(
+  &quot;GISTIC runs found under `&quot;, gx_dir, &quot;`. Every panel below names the run it needs; a run &quot;,
+  &quot;listed MISSING or INCOMPLETE is why the corresponding section is skipped. Leave-one-out &quot;,
+  &quot;sub-runs found: &quot;, loo_dir_n, &quot;.&quot;)))</code></pre>
+<pre><code>
+
+Table: GISTIC runs found under `/hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic`. Every panel below names the run it needs; a run listed MISSING or INCOMPLETE is why the corresponding section is skipped. Leave-one-out sub-runs found: 9.
+
+|run       |files |status              |
+|:---------|:-----|:-------------------|
+|all       |4/4   |complete            |
+|mmrp_high |0/4   |MISSING - no folder |
+|mmrp_low  |0/4   |MISSING - no folder |
+|mmrd_low  |0/4   |MISSING - no folder |
+|mmrd_high |0/4   |MISSING - no folder |</code></pre>
+<pre class="r"><code>if (any(gistic_inv$status != &quot;complete&quot;))
+  cat(&quot;\nTo rebuild a missing run: `MODE=groups Rscript code/prep_gistic_group_segs.R`&quot;,
+      &quot;writes output/gistic_input/attend_&lt;group&gt;.seg, then `MODE=groups bash&quot;,
+      &quot;code/run_gistic.sh` runs GISTIC over them. run_one() SKIPS a group whose .seg is&quot;,
+      &quot;absent, so a group with no folder at all usually means its .seg was never written,&quot;,
+      &quot;while a folder holding only gistic_inputs.mat means GISTIC started and failed.\n&quot;)</code></pre>
+<pre><code>
+To rebuild a missing run: `MODE=groups Rscript code/prep_gistic_group_segs.R` writes output/gistic_input/attend_&lt;group&gt;.seg, then `MODE=groups bash code/run_gistic.sh` runs GISTIC over them. run_one() SKIPS a group whose .seg is absent, so a group with no folder at all usually means its .seg was never written, while a folder holding only gistic_inputs.mat means GISTIC started and failed.</code></pre>
+<pre class="r"><code>if (!have_master) {
+  cat(&quot;Master table absent — run report 01 first.\n&quot;)
+} else if (!have_gistic) {
+  cat(&quot;**GISTIC outputs absent** (`&quot;, run_dirs[[&quot;all&quot;]], &quot;`).\n\n&quot;,
+      &quot;Run `MODE=groups sbatch code/run_gistic.sh`, then `MODE=loo`. &quot;,
+      &quot;this report is skipped, not silently empty.\n&quot;, sep = &quot;&quot;)
+}
+
+# The pooled run&#39;s per-sample call matrix, loaded HERE rather than at its first plotting use.
+# Both of this report&#39;s questions read it — question 1&#39;s recurrence table and the mirror plot
+# below, and every test in Part 3 — so it has to be assigned above the first of them. It used
+# to be created inside the panel-score chunk, which was fine while that chunk came first and
+# became a forward reference the moment the report was reordered around the two questions:
+# the kind that knits in an interactive session, where the object is already in the global
+# environment, and dies on a clean build. code/tests/test_rmd_chunk_order.R pins it.
+pooled &lt;- if (have_gistic) load_gistic_lesions_at(run_dirs[[&quot;all&quot;]]) else NULL</code></pre>
+<p>Peaks come from five runs; per-sample calls come from one. Five
+GISTIC2 runs feed this report: the pooled cohort and the four scna_group
+strata. GISTIC’s background model is cohort-specific, so the same tumour
+gets a different thresholded call depending on which cohort it was run
+in, and comparing calls across runs would compare five different null
+models. The two roles are therefore kept apart:</p>
+<ul>
+<li><strong>Peak definition</strong> reads the stratified runs: question
+1 takes the union of the pooled and MMRd-high runs’ peaks, the
+set-overlap table all five (gistic_peak_union()), so a peak private to
+the small MMRd-high stratum, which the pooled run’s genome-wide
+threshold would bury, is still discoverable.</li>
+<li><strong>Per-sample calls</strong> for every between-group comparison
+are read only from the pooled run’s all_lesions.conf_*.txt. The one
+exception is a question-1 locus the pooled run never called: it is
+scored on the MMRd-high run’s own calls, labelled so, and cannot enter
+question 2.</li>
+</ul>
+<p>The cohort this contrast conditions on, at both cuts. Fisher tests
+whether MMR status and aneuploidy class are associated at all — if they
+are, the MMRd-high cell is small by construction and everything below is
+underpowered.</p>
+<pre class="r"><code># Both cuts: from the master, not a run — what the strata WOULD be at the other cut.
+if (all(c(&quot;mmr_group&quot;, &quot;aneuploidy_class&quot;) %in% names(master))) {
+  cc &lt;- add_aneuploidy_cuts(master) |&gt; filter(!is.na(mmr_group), !is.na(aneuploidy_class))
+  print(knitr::kable(cc |&gt; count(as_cut_lab, MMR = mmr_group, aneu = as_label(aneuploidy_class)) |&gt;
+    pivot_wider(names_from = aneu, values_from = n, values_fill = 0),
+    caption = &quot;MMR x aneuploidy contingency at both cuts (the GISTIC runs used the primary)&quot;))
+  print(cc |&gt; group_by(as_cut_lab) |&gt; summarise(
+    fisher_p = signif(fisher.test(table(mmr_group, aneuploidy_class))$p.value, 3)))
+}</code></pre>
+<pre><code>
+
+Table: MMR x aneuploidy contingency at both cuts (the GISTIC runs used the primary)
+
+|as_cut_lab |MMR  | AS High| AS Low|
+|:----------|:----|-------:|------:|
+|AS cut 0.1 |MMRp |      57|     67|
+|AS cut 0.1 |MMRd |       9|    100|
+|AS cut 0.2 |MMRp |      35|     89|
+|AS cut 0.2 |MMRd |       4|    105|
+# A tibble: 2 × 2
+  as_cut_lab fisher_p
+  &lt;fct&gt;         &lt;dbl&gt;
+1 AS cut 0.1 4.82e-11
+2 AS cut 0.2 2.75e- 7</code></pre>
+</div>
+<div id="the-answer-which-loci-recur-inside-mmrd-high"
+class="section level3">
+<h3>The answer: which loci recur inside MMRd-high</h3>
+<p>Candidates are the union of the pooled run’s peaks and the
+<strong>MMRd-high run’s own</strong> peaks, matched by wide-limit
+overlap on chromosome and direction (q1_recurrence_table()). A locus is
+<strong>recurrent</strong> only if GISTIC calls it on the MMRd-high run,
+q &lt;= 0.25. No frequency cut is used: aneuploidy-high tumours carry
+enough arm-level events that “altered in half of them” is what burden
+alone predicts. Beside each call: the MMRd-high tumours carrying it,
+with a Wilson 95% interval (at n = 9 a normal interval leaves [0, 1]),
+and the fraction of leave-one-out MMRd-high GISTIC re-runs
+(data/gistic/loo/) that retain the peak.</p>
+<p>Calls come from the <strong>pooled</strong> run wherever the locus
+has a pooled peak; a locus only the MMRd-high run found is scored on
+that run’s own calls, and <code>calls_from</code> says so. Retention is
+informal stability selection (Meinshausen &amp; Bühlmann 2010) at
+leave-one-out — a descriptive robustness diagnostic, not an FDR
+statement: retained in 9/9 re-runs, the locus depends on no single
+tumour; in 3, it is one or two tumours’ worth of signal. Presence here
+is evidence; absence at this n is not.</p>
+<pre class="r"><code>mmrd_run &lt;- load_gistic_lesions_at(run_dirs[[&quot;mmrd_high&quot;]])
+loo_dirs &lt;- { d &lt;- file.path(gx_dir, &quot;loo&quot;)
+              if (dir.exists(d)) list.dirs(d, full.names = TRUE, recursive = FALSE) else character(0) }
+loo_q1 &lt;- if (!is.null(mmrd_run) &amp;&amp; length(loo_dirs)) loo_stability(mmrd_run$peaks, loo_dirs) else NULL
+q1_tbl &lt;- NULL
+if (is.null(pooled) || is.null(mmrd_run)) {
+  cat(&quot;Question 1 needs both the pooled and the MMRd-high GISTIC runs — see the inventory above.\n&quot;)
+} else {
+  # cat(), not warning(): opts_chunk hides warnings, and a stale run must be visible.
+  stale &lt;- group_of_barcode(rownames(mmrd_run$mat))
+  if (any(!is.na(stale) &amp; stale != &quot;MMRd-high&quot;))
+    cat(&quot;**Stale run:**&quot;, sum(!is.na(stale) &amp; stale != &quot;MMRd-high&quot;), &quot;sample(s) in the MMRd-high&quot;,
+        &quot;GISTIC run are no longer MMRd-high on the current master.\n\n&quot;)
+  q1_tbl &lt;- q1_recurrence_table(pooled, mmrd_run, group_of_barcode(rownames(pooled$mat)),
+                                fdr = attend_cnv$gistic$fdr_cutoff, loo = loo_q1)
+  cat(&quot;**&quot;, sum(q1_tbl$recurrent), &quot; loci are recurrent in MMRd-high** (q &lt;= &quot;,
+      attend_cnv$gistic$fdr_cutoff, &quot; on its own run; &quot;,
+      sum(q1_tbl$recurrent &amp; q1_tbl$found_in != &quot;both runs&quot;), &quot; found by that run alone). &quot;,
+      &quot;Leave-one-out re-runs found: &quot;, length(loo_dirs), &quot;.\n\n&quot;, sep = &quot;&quot;)
+  print(knitr::kable(
+    utils::head(q1_tbl[, c(&quot;locus&quot;, &quot;direction&quot;, &quot;found_in&quot;, &quot;q_stratum&quot;, &quot;recurrent&quot;, &quot;n&quot;, &quot;n_altered&quot;,
+                           &quot;freq&quot;, &quot;ci_lo&quot;, &quot;ci_hi&quot;, &quot;loo_retained_frac&quot;, &quot;calls_from&quot;)], 30),
+    digits = 3, caption = paste(&quot;Question 1 — candidate loci in MMRd aneuploidy-high, recurrent calls&quot;,
+                                &quot;first, with Wilson 95% intervals and leave-one-out retention&quot;)))
+}</code></pre>
+<pre><code>Question 1 needs both the pooled and the MMRd-high GISTIC runs — see the inventory above.</code></pre>
+</div>
+<div id="the-same-answer-in-the-form-the-field-reads-it"
+class="section level3">
+<h3>The same answer in the form the field reads it</h3>
+<p>The table above is the answer; this is that answer drawn in the form
+the field reads it — why that form is the canonical one is in <a
+href="00-methods.html#recurrent-copy-number">00-methods</a>.
+<code>maftools::readGistic()</code> reads the <strong>MMRd-high run’s
+own</strong> four GISTIC 2.0 output files
+(<code>find_gistic_files(dir = ...)</code>, so the pooled run’s files
+cannot be picked up instead) and <code>gisticChromPlot()</code> draws
+the G-score along the linearised genome, amplifications right, deletions
+left, with the significance line at 0.25. This is a
+<strong>stratum-specific run at n = 9</strong>: peak <em>discovery</em>
+at that n is what the union-of-five design in Part 3 qualifies, and
+every per-sample call quoted anywhere in this report still comes from
+the pooled run.</p>
+<pre class="r"><code>gx_mmrd   &lt;- find_gistic_files(dir = run_dirs[[&quot;mmrd_high&quot;]])
+have_maft &lt;- requireNamespace(&quot;maftools&quot;, quietly = TRUE)
+fdr_g     &lt;- attend_cnv$gistic$fdr_cutoff
+
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
+if (!have_maft) {
+  cat(&quot;`maftools` is not installed — `renv::install(\&quot;bioc::maftools\&quot;)`, then&quot;,
+      &quot;`renv::snapshot()`. The peak table above stands on its own.\n&quot;)
+} else if (is.null(gx_mmrd) || any(vapply(gx_mmrd, is.null, logical(1)))) {
+  cat(&quot;The MMRd-high GISTIC run is missing at least one of the four files readGistic()&quot;,
+      &quot;requires (all_lesions / amp_genes / del_genes / scores.gistic) under `&quot;,
+      run_dirs[[&quot;mmrd_high&quot;]], &quot;`. Run `MODE=groups sbatch code/run_gistic.sh`.\n&quot;, sep = &quot;&quot;)
+} else {
+  g_mmrd &lt;- tryCatch(
+    maftools::readGistic(gisticAllLesionsFile = gx_mmrd$all_lesions,
+                         gisticAmpGenesFile   = gx_mmrd$amp_genes,
+                         gisticDelGenesFile   = gx_mmrd$del_genes,
+                         gisticScoresFile     = gx_mmrd$scores, isTCGA = FALSE),
+    error = function(e) { cat(&quot;readGistic(): &quot;, conditionMessage(e), &quot;\n&quot;); NULL })
+  if (!is.null(g_mmrd)) {
+    maftools::gisticChromPlot(gistic = g_mmrd, fdrCutOff = fdr_g, markBands = &quot;all&quot;)
+  }
+}</code></pre>
+<pre><code>The MMRd-high GISTIC run is missing at least one of the four files readGistic()requires (all_lesions / amp_genes / del_genes / scores.gistic) under `/hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic/mmrd_high`. Run `MODE=groups sbatch code/run_gistic.sh`.</code></pre>
+<p>The same peaks as a bubble plot: q-value against the number of genes
+the wide peak spans, so a peak carrying the signal on a handful of genes
+separates visually from a broad one that does not localise. Read it as
+the companion to the chromosome plot above — same peaks, same 0.25
+cutoff, arranged by focality rather than by position.</p>
+<pre class="r"><code>if (exists(&quot;g_mmrd&quot;) &amp;&amp; !is.null(g_mmrd)) {
+  maftools::gisticBubblePlot(gistic = g_mmrd, fdrCutOff = fdr_g)
+} else {
+  cat(&quot;No MMRd-high GISTIC object — see the message above.\n&quot;)
+}</code></pre>
+<pre><code>No MMRd-high GISTIC object — see the message above.</code></pre>
+</div>
+<div id="where-those-calls-sit-on-the-genome" class="section level3">
+<h3>Where those calls sit on the genome</h3>
+<p>Peak-call frequency from the pooled run, amplifications above the
+axis and deletions below, split by subgroup and chromosome. The visual
+counterpart to the composite score: if MMRd-high really phenocopies
+MMRp-high, their two panels should have peaks in the same places.</p>
+<pre class="r"><code>if (exists(&quot;pooled&quot;) &amp;&amp; !is.null(pooled)) {
+  grp3      &lt;- group_of_barcode(rownames(pooled$mat))
+  freq_tbl3 &lt;- scna_freq_table(pooled$mat, grp3)
+  p3 &lt;- scna_mirror_plot(freq_tbl3, pooled$peaks,
+                         title = &quot;Pooled-run peak-call frequency by subgroup (amp above / del below)&quot;)
+  if (!is.null(p3)) print(p3)
+}</code></pre>
+<p><img src="figure/10-recurrent-cna.Rmd/scna-mirror-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div
+id="part-3-question-2-are-they-the-same-peaks-that-recur-in-mmrp-aneuploidy-high"
+class="section level2">
+<h2>Part 3 — Question 2: are they the same peaks that recur in MMRp
+aneuploidy-high?</h2>
+<p>The mirror plot above already puts the two strata side by side; this
+part measures the comparison rather than eyeballing it. <strong>The
+question asked is a concordance question — are they the <em>same</em>
+peaks — and the three tests at the end of this part are difference
+tests, which cannot answer it</strong>; why, and why agreement is
+reported first, is in <a
+href="00-methods.html#recurrent-copy-number">00-methods</a>. Agreement
+is measured by three instruments that scale from coarse to fine — the
+<strong>peak sets</strong> (Jaccard), the <strong>G-score
+profiles</strong> (the two runs back to back), and the <strong>per-peak
+frequencies</strong> (a scatter against the diagonal, with Spearman’s
+rho). The difference tests follow, and are reported whatever they
+say.</p>
+<div id="do-the-two-strata-even-have-the-same-peaks-available-to-them"
+class="section level3">
+<h3>Do the two strata even have the same peaks available to them?</h3>
+<p>The prior structural question, before any call is compared: how much
+do the five GISTIC runs’ significant-peak sets overlap at all, as
+pairwise Jaccard. It matters for question 2 in a specific way — if the
+MMRd-high run carries peaks no other run finds, then “the same peaks
+recur in both groups” is not even the right shape of answer for those
+loci, because the pooled run’s genome-wide threshold buried them. Peaks
+private to a single run are listed separately, and they are the ones to
+read first. Jaccard is confounded by run size — GISTIC’s power grows
+with n, so a nine-patient run finds few peaks and scores low against a
+large run even when all of them are shared — so the <strong>overlap
+coefficient</strong> (|A ∩ B| / the smaller set, 1 when the small run’s
+peaks are a subset) is printed beside it, with each run’s peak
+count.</p>
+<pre class="r"><code>union_peaks &lt;- gistic_peak_union(run_dirs)
+if (is.null(union_peaks)) {
+  cat(&quot;No GISTIC lesions parsed from any of the five run folders — skipped.\n&quot;)
+} else {
+  pss &lt;- peak_set_structure(union_peaks)
+  n_pk &lt;- paste(names(pss$n_peaks), pss$n_peaks, sep = &quot; = &quot;, collapse = &quot;, &quot;)
+  print(knitr::kable(round(pss$jaccard, 2),
+                     caption = paste0(&quot;Jaccard overlap of significant-peak sets between the five GISTIC runs (peaks: &quot;, n_pk, &quot;)&quot;)))
+  print(knitr::kable(round(pss$overlap, 2),
+                     caption = &quot;Overlap coefficient — not penalised for a small run whose peaks are a subset of a large one&#39;s&quot;))
+  if (nrow(pss$private))
+    print(knitr::kable(pss$private,
+                       caption = &quot;Peaks private to a single run (no overlapping peak in any other)&quot;))
+}</code></pre>
+<pre><code>
+
+Table: Jaccard overlap of significant-peak sets between the five GISTIC runs (peaks: all = 326)
+
+|    | all|
+|:---|---:|
+|all |   1|
+
+
+Table: Overlap coefficient — not penalised for a small run whose peaks are a subset of a large one&#39;s
+
+|    | all|
+|:---|---:|
+|all |   1|
+
+
+Table: Peaks private to a single run (no overlapping peak in any other)
+
+|source |union_id    |
+|:------|:-----------|
+|all    |U001_1_amp  |
+|all    |U002_1_amp  |
+|all    |U003_1_amp  |
+|all    |U004_1_amp  |
+|all    |U005_1_amp  |
+|all    |U006_1_amp  |
+|all    |U007_1_amp  |
+|all    |U008_1_amp  |
+|all    |U009_1_amp  |
+|all    |U010_1_del  |
+|all    |U011_1_del  |
+|all    |U012_1_del  |
+|all    |U013_1_del  |
+|all    |U014_1_del  |
+|all    |U015_1_del  |
+|all    |U016_1_del  |
+|all    |U017_1_del  |
+|all    |U018_1_del  |
+|all    |U019_1_del  |
+|all    |U020_10_amp |
+|all    |U021_10_amp |
+|all    |U022_10_amp |
+|all    |U023_10_amp |
+|all    |U024_10_amp |
+|all    |U025_10_amp |
+|all    |U026_10_amp |
+|all    |U027_10_amp |
+|all    |U028_10_del |
+|all    |U029_10_del |
+|all    |U030_10_del |
+|all    |U031_10_del |
+|all    |U032_10_del |
+|all    |U033_10_del |
+|all    |U034_11_amp |
+|all    |U035_11_amp |
+|all    |U036_11_amp |
+|all    |U037_11_amp |
+|all    |U038_11_amp |
+|all    |U039_11_amp |
+|all    |U040_11_amp |
+|all    |U041_11_amp |
+|all    |U042_11_amp |
+|all    |U043_11_del |
+|all    |U044_11_del |
+|all    |U045_11_del |
+|all    |U046_11_del |
+|all    |U047_11_del |
+|all    |U048_11_del |
+|all    |U049_11_del |
+|all    |U050_11_del |
+|all    |U051_11_del |
+|all    |U052_12_amp |
+|all    |U053_12_amp |
+|all    |U054_12_amp |
+|all    |U055_12_amp |
+|all    |U056_12_amp |
+|all    |U057_12_amp |
+|all    |U058_12_amp |
+|all    |U059_12_del |
+|all    |U060_12_del |
+|all    |U061_12_del |
+|all    |U062_12_del |
+|all    |U063_12_del |
+|all    |U064_12_del |
+|all    |U065_12_del |
+|all    |U066_12_del |
+|all    |U067_12_del |
+|all    |U068_12_del |
+|all    |U069_13_amp |
+|all    |U070_13_amp |
+|all    |U071_13_amp |
+|all    |U072_13_amp |
+|all    |U073_13_del |
+|all    |U074_13_del |
+|all    |U075_13_del |
+|all    |U076_13_del |
+|all    |U077_13_del |
+|all    |U078_14_amp |
+|all    |U079_14_amp |
+|all    |U080_14_amp |
+|all    |U081_14_amp |
+|all    |U082_14_amp |
+|all    |U083_14_del |
+|all    |U084_14_del |
+|all    |U085_14_del |
+|all    |U086_14_del |
+|all    |U087_15_amp |
+|all    |U088_15_amp |
+|all    |U089_15_amp |
+|all    |U090_15_amp |
+|all    |U091_15_del |
+|all    |U092_15_del |
+|all    |U093_15_del |
+|all    |U094_15_del |
+|all    |U095_15_del |
+|all    |U096_16_amp |
+|all    |U097_16_amp |
+|all    |U098_16_amp |
+|all    |U099_16_amp |
+|all    |U100_16_amp |
+|all    |U101_16_amp |
+|all    |U102_16_amp |
+|all    |U103_16_del |
+|all    |U104_16_del |
+|all    |U105_16_del |
+|all    |U106_16_del |
+|all    |U107_16_del |
+|all    |U108_16_del |
+|all    |U109_16_del |
+|all    |U110_16_del |
+|all    |U111_16_del |
+|all    |U112_16_del |
+|all    |U113_17_amp |
+|all    |U114_17_amp |
+|all    |U115_17_amp |
+|all    |U116_17_amp |
+|all    |U117_17_amp |
+|all    |U118_17_del |
+|all    |U119_17_del |
+|all    |U120_17_del |
+|all    |U121_17_del |
+|all    |U122_17_del |
+|all    |U123_17_del |
+|all    |U124_17_del |
+|all    |U125_17_del |
+|all    |U126_18_amp |
+|all    |U127_18_amp |
+|all    |U128_18_amp |
+|all    |U129_18_amp |
+|all    |U130_18_amp |
+|all    |U131_18_amp |
+|all    |U132_18_amp |
+|all    |U133_18_del |
+|all    |U134_18_del |
+|all    |U135_18_del |
+|all    |U136_18_del |
+|all    |U137_18_del |
+|all    |U138_18_del |
+|all    |U139_19_amp |
+|all    |U140_19_amp |
+|all    |U141_19_amp |
+|all    |U142_19_amp |
+|all    |U143_19_amp |
+|all    |U144_19_amp |
+|all    |U145_19_amp |
+|all    |U146_19_amp |
+|all    |U147_19_amp |
+|all    |U148_19_amp |
+|all    |U149_19_del |
+|all    |U150_19_del |
+|all    |U151_19_del |
+|all    |U152_19_del |
+|all    |U153_19_del |
+|all    |U154_19_del |
+|all    |U155_19_del |
+|all    |U156_19_del |
+|all    |U157_19_del |
+|all    |U158_19_del |
+|all    |U159_19_del |
+|all    |U160_2_amp  |
+|all    |U161_2_amp  |
+|all    |U162_2_amp  |
+|all    |U163_2_amp  |
+|all    |U164_2_amp  |
+|all    |U165_2_amp  |
+|all    |U166_2_amp  |
+|all    |U167_2_amp  |
+|all    |U168_2_del  |
+|all    |U169_2_del  |
+|all    |U170_2_del  |
+|all    |U171_2_del  |
+|all    |U172_2_del  |
+|all    |U173_2_del  |
+|all    |U174_2_del  |
+|all    |U175_20_amp |
+|all    |U176_20_amp |
+|all    |U177_20_amp |
+|all    |U178_20_amp |
+|all    |U179_20_amp |
+|all    |U180_20_amp |
+|all    |U181_20_amp |
+|all    |U182_20_amp |
+|all    |U183_20_del |
+|all    |U184_20_del |
+|all    |U185_20_del |
+|all    |U186_20_del |
+|all    |U187_20_del |
+|all    |U188_20_del |
+|all    |U189_20_del |
+|all    |U190_21_amp |
+|all    |U191_21_amp |
+|all    |U192_21_amp |
+|all    |U193_21_amp |
+|all    |U194_21_amp |
+|all    |U195_21_del |
+|all    |U196_21_del |
+|all    |U197_22_amp |
+|all    |U198_22_amp |
+|all    |U199_22_amp |
+|all    |U200_22_del |
+|all    |U201_22_del |
+|all    |U202_22_del |
+|all    |U203_22_del |
+|all    |U204_22_del |
+|all    |U205_3_amp  |
+|all    |U206_3_amp  |
+|all    |U207_3_amp  |
+|all    |U208_3_amp  |
+|all    |U209_3_amp  |
+|all    |U210_3_amp  |
+|all    |U211_3_amp  |
+|all    |U212_3_amp  |
+|all    |U213_3_del  |
+|all    |U214_3_del  |
+|all    |U215_3_del  |
+|all    |U216_3_del  |
+|all    |U217_3_del  |
+|all    |U218_3_del  |
+|all    |U219_3_del  |
+|all    |U220_4_amp  |
+|all    |U221_4_amp  |
+|all    |U222_4_amp  |
+|all    |U223_4_amp  |
+|all    |U224_4_amp  |
+|all    |U225_4_del  |
+|all    |U226_4_del  |
+|all    |U227_4_del  |
+|all    |U228_4_del  |
+|all    |U229_4_del  |
+|all    |U230_4_del  |
+|all    |U231_5_amp  |
+|all    |U232_5_amp  |
+|all    |U233_5_amp  |
+|all    |U234_5_amp  |
+|all    |U235_5_amp  |
+|all    |U236_5_amp  |
+|all    |U237_5_del  |
+|all    |U238_5_del  |
+|all    |U239_5_del  |
+|all    |U240_5_del  |
+|all    |U241_5_del  |
+|all    |U242_5_del  |
+|all    |U243_5_del  |
+|all    |U244_5_del  |
+|all    |U245_5_del  |
+|all    |U246_5_del  |
+|all    |U247_5_del  |
+|all    |U248_5_del  |
+|all    |U249_6_amp  |
+|all    |U250_6_amp  |
+|all    |U251_6_amp  |
+|all    |U252_6_amp  |
+|all    |U253_6_amp  |
+|all    |U254_6_amp  |
+|all    |U255_6_amp  |
+|all    |U256_6_del  |
+|all    |U257_6_del  |
+|all    |U258_6_del  |
+|all    |U259_6_del  |
+|all    |U260_6_del  |
+|all    |U261_6_del  |
+|all    |U262_6_del  |
+|all    |U263_6_del  |
+|all    |U264_7_amp  |
+|all    |U265_7_amp  |
+|all    |U266_7_amp  |
+|all    |U267_7_amp  |
+|all    |U268_7_amp  |
+|all    |U269_7_amp  |
+|all    |U270_7_amp  |
+|all    |U271_7_amp  |
+|all    |U272_7_del  |
+|all    |U273_7_del  |
+|all    |U274_7_del  |
+|all    |U275_7_del  |
+|all    |U276_7_del  |
+|all    |U277_7_del  |
+|all    |U278_7_del  |
+|all    |U279_7_del  |
+|all    |U280_7_del  |
+|all    |U281_7_del  |
+|all    |U282_8_amp  |
+|all    |U283_8_amp  |
+|all    |U284_8_amp  |
+|all    |U285_8_amp  |
+|all    |U286_8_amp  |
+|all    |U287_8_amp  |
+|all    |U288_8_amp  |
+|all    |U289_8_amp  |
+|all    |U290_8_del  |
+|all    |U291_8_del  |
+|all    |U292_8_del  |
+|all    |U293_8_del  |
+|all    |U294_8_del  |
+|all    |U295_8_del  |
+|all    |U296_8_del  |
+|all    |U297_9_amp  |
+|all    |U298_9_amp  |
+|all    |U299_9_amp  |
+|all    |U300_9_amp  |
+|all    |U301_9_amp  |
+|all    |U302_9_amp  |
+|all    |U303_9_amp  |
+|all    |U304_9_amp  |
+|all    |U305_9_del  |
+|all    |U306_9_del  |
+|all    |U307_9_del  |
+|all    |U308_9_del  |
+|all    |U309_9_del  |
+|all    |U310_9_del  |
+|all    |U311_9_del  |
+|all    |U312_9_del  |
+|all    |U313_9_del  |
+|all    |U314_X_amp  |
+|all    |U315_X_amp  |
+|all    |U316_X_amp  |
+|all    |U317_X_amp  |
+|all    |U318_X_amp  |
+|all    |U319_X_del  |
+|all    |U320_X_del  |
+|all    |U321_X_del  |
+|all    |U322_X_del  |
+|all    |U323_X_del  |
+|all    |U324_X_del  |
+|all    |U325_X_del  |
+|all    |U326_X_del  |</code></pre>
+</div>
+<div id="the-two-g-score-profiles-back-to-back" class="section level3">
+<h3>The two G-score profiles, back to back</h3>
+<p>The Jaccard above is set membership; this is amplitude.
+<code>coGisticChromPlot()</code> draws the MMRd-high and MMRp-high runs’
+G-scores on one linearised genome, vertically opposed, so a peak present
+in both at similar height reads as a shared event and a peak on one side
+only reads as private. Amplifications and deletions are separate figures
+because they are separate GISTIC statistics, not two halves of one axis.
+Each run is its own GISTIC run, so its background model is its own —
+which is exactly why this figure is read for <em>where</em> the peaks
+are and never for whether one group’s G-score is numerically larger.</p>
+<pre class="r"><code>read_run &lt;- function(nm) {
+  gx &lt;- find_gistic_files(dir = run_dirs[[nm]])
+  if (is.null(gx) || any(vapply(gx, is.null, logical(1)))) return(NULL)
+  tryCatch(maftools::readGistic(gisticAllLesionsFile = gx$all_lesions,
+                                gisticAmpGenesFile   = gx$amp_genes,
+                                gisticDelGenesFile   = gx$del_genes,
+                                gisticScoresFile     = gx$scores, isTCGA = FALSE),
+           error = function(e) NULL)
+}
+g_d &lt;- if (have_maft) read_run(&quot;mmrd_high&quot;) else NULL
+g_p &lt;- if (have_maft) read_run(&quot;mmrp_high&quot;) else NULL
+
+if (!have_maft) {
+  cat(&quot;`maftools` is not installed — the concordance scatter below needs none of it&quot;,
+      &quot;and still runs.\n&quot;)
+} else if (is.null(g_d) || is.null(g_p)) {
+  cat(&quot;Need a complete four-file GISTIC run for BOTH strata (`&quot;, run_dirs[[&quot;mmrd_high&quot;]],
+      &quot;` and `&quot;, run_dirs[[&quot;mmrp_high&quot;]], &quot;`). Run `MODE=groups sbatch code/run_gistic.sh`.\n&quot;,
+      sep = &quot;&quot;)
+} else {
+  for (ty in c(&quot;Amp&quot;, &quot;Del&quot;))
+    maftools::coGisticChromPlot(gistic1 = g_d, gistic2 = g_p,
+                                g1Name = &quot;MMRd-high&quot;, g2Name = &quot;MMRp-high&quot;,
+                                type = ty, fdrCutOff = fdr_g)
+}</code></pre>
+<pre><code>Need a complete four-file GISTIC run for BOTH strata (`/hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic/mmrd_high` and `/hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic/mmrp_high`). Run `MODE=groups sbatch code/run_gistic.sh`.</code></pre>
+</div>
+<div id="peak-by-peak-one-group-against-the-other"
+class="section level3">
+<h3>Peak by peak, one group against the other</h3>
+<p>The figure the question is literally asking for. Every pooled-run
+peak is one point: its alteration frequency in MMRd-high (x) against
+MMRp-high (y). <strong>A point on the dashed diagonal recurs at the same
+rate in both groups</strong>, and distance off it is how specific a peak
+is to one stratum. The loci question 1 called recurrent are labelled,
+because they are the ones the question is about. Both axes come from the
+<strong>pooled run’s</strong> per-sample calls, one background model; at
+n = 9 an MMRd-high frequency takes only 10 values, so points sit on
+bands by construction.</p>
+<p>Spearman’s rho has no fixed benchmark here — peaks near zero in both
+groups and correlated peaks on one arm inflate it, small n deflates it —
+so it is printed against two references (concordance_null()): rho
+between <strong>random splits of the same MMRd-high + MMRp-high
+patients</strong> at the same sizes, the most concordant “the same” can
+look at this n (patients are permuted, so arm-level peak correlation is
+in that null too), and rho against <strong>MMRp-low</strong>, a group
+expected to differ. It is given over all peaks and over question 1’s
+recurrent loci; those were selected for MMRd-high frequency, which
+biases rho downward.</p>
+<pre class="r"><code>if (!is.null(pooled)) {
+  grp_c  &lt;- group_of_barcode(rownames(pooled$mat))
+  freq_c &lt;- scna_freq_table(pooled$mat, grp_c)
+  rec_c  &lt;- if (is.null(q1_tbl)) NULL else q1_tbl[q1_tbl$recurrent &amp; !is.na(q1_tbl$pooled_peak_id), ]
+  labs_c &lt;- if (NROW(rec_c)) stats::setNames(rec_c$locus, rec_c$pooled_peak_id) else NULL
+
+  p_conc &lt;- scna_concordance_plot(freq_c, pooled$peaks, &quot;MMRd-high&quot;, &quot;MMRp-high&quot;,
+                                  label_peaks = labs_c,
+                                  title = &quot;Per-peak alteration frequency: MMRd-high vs MMRp-high&quot;)
+  if (is.null(p_conc)) {
+    cat(&quot;Concordance scatter skipped — one of the two strata has no pooled-run calls.\n&quot;)
+  } else {
+    print(p_conc)
+    fmt_cn &lt;- function(cn, what) {
+      if (is.null(cn)) return(paste0(what, &quot;: fewer than 3 peaks, not computed.&quot;))
+      sprintf(paste(&quot;%s (%d peaks): rho = %.2f. Same-population splits: median %.2f, 95%% range&quot;,
+                    &quot;[%.2f, %.2f], %.0f%% at or below the observed. Against %s: rho = %.2f.&quot;),
+              what, cn$n_peaks, cn$rho, cn$null_median, cn$null_lo, cn$null_hi,
+              100 * cn$frac_null_below, cn$floor_group, cn$ref_rho)
+    }
+    cn_rec &lt;- if (NROW(rec_c) &gt;= 3) concordance_null(pooled$mat, grp_c, cols = rec_c$pooled_peak_id) else NULL
+    cat(&quot;\n&quot;, fmt_cn(concordance_null(pooled$mat, grp_c), &quot;All pooled-run peaks&quot;), &quot;\n\n&quot;,
+        fmt_cn(cn_rec, &quot;Question 1&#39;s recurrent loci&quot;), &quot;\n&quot;, sep = &quot;&quot;)
+  }
+}</code></pre>
+<p><img src="figure/10-recurrent-cna.Rmd/q2-concordance-1.svg" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+All pooled-run peaks (329 peaks): rho = 0.61. Same-population splits: median 0.71, 95% range [0.63, 0.77], 1% at or below the observed. Against MMRp-low: rho = 0.60.
+
+Question 1&#39;s recurrent loci: fewer than 3 peaks, not computed.</code></pre>
+</div>
+<div id="the-answer-locus-by-locus" class="section level3">
+<h3>The answer, locus by locus</h3>
+<p>Question 2 is conditional, so this keeps only the loci question 1
+called recurrent (q2_same_loci_table()) and scores each in MMRp-high
+from the pooled run’s calls, with both Wilson 95% intervals and the
+difference. “The same” needs the MMRp-high interval to sit high too;
+wide overlapping intervals at n = 9 mean <em>not determinable</em>,
+never <em>different</em>. A locus only the MMRd-high run found has no
+pooled peak: kept, NA, with the reason.</p>
+<pre class="r"><code>q2_tbl &lt;- if (is.null(q1_tbl)) NULL else
+  q2_same_loci_table(q1_tbl, pooled, group_of_barcode(rownames(pooled$mat)))
+if (!NROW(q2_tbl)) {
+  cat(&quot;No locus was called recurrent in MMRd-high, so question 2 does not arise in this build.\n&quot;)
+} else {
+  print(knitr::kable(q2_tbl, digits = 3, caption = paste(
+    &quot;Question 2 — each MMRd-high recurrent locus scored in MMRp-high on the pooled run,&quot;,
+    &quot;Wilson 95% intervals for both (target = MMRd-high, ref = MMRp-high)&quot;)))
+}</code></pre>
+<pre><code>No locus was called recurrent in MMRd-high, so question 2 does not arise in this build.</code></pre>
+</div>
+<div id="the-primary-endpoint-a-pre-specified-serous-like-panel-score"
+class="section level3">
+<h3>The primary endpoint — a pre-specified serous-like panel score</h3>
+<p><strong>Why a composite score rather than testing peaks one at a
+time.</strong> At n ≈ 9 no individual peak has the power to show a
+difference, and testing hundreds of peaks in a group that small produces
+false positives, not findings. A single composite score over a
+<em>fixed, externally-specified</em> set of loci concentrates the
+evidence into one test.</p>
+<p><strong>What the panel is.</strong> The 12 loci (attend_scna$panel)
+are fixed <em>a priori</em> from the TCGA UCEC recurrent-peak list
+(Kandoth et al. 2013). No locus was added, removed, or re-directioned
+after looking at ATTEND’s own GISTIC output. Each locus is
+<strong>directional</strong> — a deletion at <em>MYC</em> does not count
+as serous-like — matched by match_panel_peaks().</p>
+<p><strong>Why the panel is fixed in advance, and what that
+costs.</strong> A data-driven panel — the loci that best separate
+MMRd-high from MMRp-high <em>in ATTEND</em> — is a legitimate analysis,
+but it is not this one, and it cannot be tested the way this one is.
+Selecting loci uses the group labels, so the resulting score is no
+longer independent of those labels under the null; permuting the labels
+afterwards does not undo the selection, because the selection was made
+on the unpermuted labels. The permutation null then understates the
+variability actually present and the nominal p is not the type-I error
+rate (Kriegeskorte et al., <em>Nat Neurosci</em> 2009, on circular
+analysis; the general problem is post-selection inference). At n ≈ 9
+against a few hundred candidate peaks, selection alone can manufacture
+near-complete separation from noise, so this is not a small
+correction.</p>
+<p>Three routes make a data-driven panel valid, and each is a different
+study: <strong>hold-out</strong>, where loci are chosen on one split and
+scored on an untouched one — impossible at this n; <strong>selection
+nested inside the resampling</strong>, where every permutation
+re-derives its own panel from scratch so the null absorbs the selection
+— valid here, and strictly less powerful than the fixed panel, because
+the null it builds is wider; or <strong>a global test that selects
+nothing</strong>, such as a permutational multivariate test across the
+whole peak matrix, which is data-driven in that it uses every locus but
+answers “is the profile different at all?” rather than “is it
+serous-like?”.</p>
+<p>So pre-specification is not a claim to the better analysis. It buys
+one thing: a single nominal p that can be read at face value. It costs
+power against any difference the panel is not aimed at — if these
+tumours reach aneuploidy by a route TCGA’s serous tumours do not use, a
+fixed serous panel is pointed the wrong way and returns a null result
+that means “not serous-like”, never “not different”. Choosing the fixed
+panel here is choosing to spend the little power n ≈ 9 affords on the
+one hypothesis that has external support, rather than to spread it
+across every peak or to buy apparent significance with selection. A
+data-driven panel found in these data would be reported as
+<strong>hypothesis-generating</strong>, alongside this test rather than
+in place of it.</p>
+<p>Loci with no matching pooled-run peak of the right direction
+<strong>leave the denominator</strong> rather than counting as
+unaltered, so the score is a fraction of <em>resolvable</em> loci.</p>
+<p>The test is a <strong>label permutation</strong> (B = 10^{4}), which
+makes no distributional assumption — appropriate at this n. A Wilcoxon
+is reported alongside. A permutation p is bounded below by 1/(B+1), so a
+floor-level result is reported as p &lt; … rather than as an exact tiny
+value.</p>
+<p><strong>The permutation does not control SCNA burden.</strong> If
+MMRp-high is simply more aneuploid, every panel scores higher there. The
+burden control (panel_specificity_test()) sets the observed difference
+against B random panels drawn from the pooled run’s peaks with the same
+number of amplification and deletion loci the panel resolved; a burden
+difference moves those too. Its resampling unit is the locus, so it
+reads “specific to these loci”, and it sits beside the primary endpoint,
+never in place of it.</p>
+<pre class="r"><code>if (is.null(pooled)) {
+  cat(&quot;Pooled GISTIC run (`&quot;, run_dirs[[&quot;all&quot;]], &quot;`) not readable — panel score skipped.\n&quot;, sep = &quot;&quot;)
+} else {
+  scores &lt;- panel_score(pooled$mat, pooled$peaks)
+  grp    &lt;- group_of_barcode(rownames(pooled$mat))
+
+  cat(&quot;Panel resolved&quot;, attr(scores, &quot;n_loci&quot;), &quot;of 12 pre-specified loci to a pooled-run &quot;,
+      &quot;peak of the matching direction&quot;,
+      if (attr(scores, &quot;n_loci&quot;) &gt; 0) paste0(&quot; (&quot;, paste(attr(scores, &quot;loci&quot;), collapse = &quot;, &quot;), &quot;).&quot;)
+      else &quot;.&quot;, &quot;\n\n&quot;)
+
+  p1 &lt;- panel_score_plot(scores, grp,
+                         title = &quot;Composite TCGA UCEC serous-like panel score, by subgroup&quot;)
+  if (!is.null(p1)) print(p1)
+
+  keep2 &lt;- !is.na(grp) &amp; grp %in% c(&quot;MMRd-high&quot;, &quot;MMRp-high&quot;)
+  if (sum(keep2) &gt;= 3 &amp;&amp; dplyr::n_distinct(droplevels(grp[keep2])) == 2) {
+    g2 &lt;- droplevels(grp[keep2])
+    pt &lt;- perm_test_two_group(scores[keep2], g2, B = attend_scna$perm_B, seed = 1)
+    wt &lt;- tryCatch(stats::wilcox.test(scores[keep2] ~ g2), error = function(e) NULL)
+
+    floor_p &lt;- 1 / (pt$B + 1)
+    p_txt &lt;- if (pt$p &lt;= floor_p + 1e-12) {
+      sprintf(&quot;p &lt; %s (bounded at the B = %s resolution floor)&quot;,
+              format(floor_p, scientific = TRUE, digits = 1), format(pt$B, big.mark = &quot;,&quot;))
+    } else sprintf(&quot;p = %.4g&quot;, pt$p)
+
+    cat(&quot;**MMRd-high (n =&quot;, sum(g2 == &quot;MMRd-high&quot;), &quot;) vs MMRp-high (n =&quot;, sum(g2 == &quot;MMRp-high&quot;),
+        &quot;)**: observed difference in mean panel score =&quot;, signif(pt$stat, 3),
+        &quot;; label-permutation &quot;, p_txt, &quot;.&quot;,
+        if (!is.null(wt)) paste0(&quot; Wilcoxon p = &quot;, signif(wt$p.value, 3), &quot;.&quot;) else &quot;&quot;,
+        &quot;\n\nIf the &quot;, sum(g2 == &quot;MMRd-high&quot;), &quot; reach aneuploidy by a different route, the score separates from &quot;,
+        &quot;MMRp-high; if they phenocopy copy-number-high tumours, it does not.\n\n&quot;)
+    ps_t &lt;- panel_specificity_test(pooled$mat[keep2, , drop = FALSE], pooled$peaks, grp[keep2],
+                                   B = attend_scna$perm_B, seed = 1)
+    if (!is.null(ps_t))
+      cat(&quot;**Burden control.** The same difference over &quot;, format(ps_t$B, big.mark = &quot;,&quot;),
+          &quot; random panels of &quot;, ps_t$n_amp, &quot; amplification + &quot;, ps_t$n_del,
+          &quot; deletion pooled-run peaks: mean &quot;, signif(ps_t$null_mean, 3), &quot;, 95% range [&quot;,
+          signif(ps_t$null_lo, 3), &quot;, &quot;, signif(ps_t$null_hi, 3), &quot;]; p = &quot;, signif(ps_t$p, 3),
+          &quot; that the serous loci differ from random loci.\n\n&quot;, sep = &quot;&quot;)
+  } else {
+    cat(&quot;Fewer than 3 samples resolved to both MMRd-high and MMRp-high — permutation test skipped.\n\n&quot;)
+  }
+}</code></pre>
+<pre><code>Panel resolved 8 of 12 pre-specified loci to a pooled-run  peak of the matching direction  (MYC, CCNE1, ERBB2, PIK3CA_SOX2, SOX17, 1q, 20q13, FGFR3). </code></pre>
+<p><img src="figure/10-recurrent-cna.Rmd/scna-panel-score-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<pre><code>**MMRd-high (n = 9 ) vs MMRp-high (n = 57 )**: observed difference in mean panel score = 0.115 ; label-permutation  p = 0.07159 .  Wilcoxon p = 0.0538. 
+
+If the  9  reach aneuploidy by a different route, the score separates from  MMRp-high; if they phenocopy copy-number-high tumours, it does not.
+
+**Burden control.** The same difference over 10,000 random panels of 8 amplification + 0 deletion pooled-run peaks: mean 0.0272, 95% range [-0.11, 0.159]; p = 0.207 that the serous loci differ from random loci.</code></pre>
+</div>
+<div id="the-exploratory-counterpart-a-data-driven-panel"
+class="section level3">
+<h3>The exploratory counterpart — a data-driven panel</h3>
+<p>The panel above is aimed at the TCGA serous phenotype, so a null
+result there means “not serous-like”, never “not different”. This asks
+the larger question the fixed panel cannot: is there
+<strong>any</strong> directional peak set that separates MMRd-high from
+MMRp-high? The loci are chosen from the same pooled-run
+all_lesions.conf_*.txt matrix, by the difference in alteration frequency
+between the two groups. Each locus keeps its GISTIC direction and
+records the group it is enriched in; a tumour scores the fraction of
+loci where it matches the MMRp-high side — altered where MMRp-high is
+enriched, unaltered where MMRd-high is — so loci enriched in
+<strong>either</strong> group count.</p>
+<p><strong>This is Family B and can never be Family A.</strong> The loci
+are chosen using the group labels, so permuting those labels afterwards
+would not undo the selection and the resulting null would be far too
+narrow. perm_test_selected_panel() therefore <strong>re-runs the
+selection inside every permutation replicate</strong>, on the permuted
+labels, which is what restores the p-value’s meaning. Measured on pure
+noise, the hoisted-selection version returns the minimum possible p on
+100% of datasets while the nested version is uniform —
+<code>code/tests/test_nested_selection_permutation.R</code> pins that
+calibration.</p>
+<p>Three numbers make this readable, and all three are printed: the
+nested p, the selected loci, and each locus’s <strong>leave-one-out
+selection frequency</strong>. At n ≈ 9 and 57 per group a panel whose
+membership turns over when one patient is dropped is not a finding, and
+a low LOO fraction says so directly. The global burden test below it
+selects nothing at all, so it stays interpretable when both panels come
+back null.</p>
+<pre class="r"><code>if (exists(&quot;pooled&quot;) &amp;&amp; !is.null(pooled)) {
+  grp_sel &lt;- group_of_barcode(rownames(pooled$mat))
+  keep_s  &lt;- !is.na(grp_sel) &amp; grp_sel %in% c(&quot;MMRd-high&quot;, &quot;MMRp-high&quot;)
+  if (sum(keep_s) &gt;= 6 &amp;&amp; dplyr::n_distinct(droplevels(grp_sel[keep_s])) == 2) {
+    m_sel &lt;- pooled$mat[keep_s, , drop = FALSE]
+    g_sel &lt;- droplevels(grp_sel[keep_s])
+    # Direction from the PEAK, never from the call&#39;s sign: all_lesions calls are unsigned.
+    pdir_s &lt;- pooled$peaks$direction[match(colnames(m_sel), pooled$peaks$peak_id)]
+    ds    &lt;- perm_test_selected_panel(m_sel, g_sel, n_select = attend_scna$select_n,
+                                      B = attend_scna$select_perm_B, seed = 1, peak_dir = pdir_s)
+    floor_s &lt;- 1 / (ds$B + 1)
+    cat(&quot;**Data-driven panel (Family B, exploratory).** &quot;, attend_scna$select_n,
+        &quot; loci selected from &quot;, ncol(m_sel), &quot; pooled-run peaks; nested permutation B = &quot;,
+        format(ds$B, big.mark = &quot;,&quot;), &quot;. Observed difference in mean score = &quot;,
+        signif(ds$stat, 3), &quot;; &quot;,
+        if (ds$p &lt;= floor_s + 1e-12) paste0(&quot;p &lt; &quot;, signif(floor_s, 2), &quot; (resolution floor)&quot;)
+        else paste0(&quot;p = &quot;, signif(ds$p, 4)), &quot;.\n\n&quot;, sep = &quot;&quot;)
+    print(knitr::kable(
+      data.frame(locus = ds$loci, peak_direction = ds$peak_dir, enriched_in = ds$enriched_in,
+                 loo_selection_frac = round(ds$loo_frac, 2)),
+      caption = paste(&quot;Selected loci and how often each survives leave-one-out;&quot;,
+                      &quot;a low fraction means the panel is an artefact of one patient&quot;)))
+    # Same plot type as the pre-specified score, relabelled: asserting &quot;TCGA UCEC panel&quot;
+    # on this figure would claim provenance this panel does not have.
+    p2 &lt;- panel_score_plot(ds$score, g_sel,
+            title = &quot;Data-driven panel score (exploratory, Family B)&quot;,
+            ylab  = &quot;Fraction of selected loci matching the MMRp-high side (0-1)&quot;)
+    if (!is.null(p2)) print(p2)
+
+    gb &lt;- perm_test_global_burden(m_sel, g_sel, B = attend_scna$perm_B, seed = 1)
+    fg &lt;- 1 / (gb$B + 1)
+    cat(&quot;\n**Global burden, no selection.** Mean fraction of all &quot;, ncol(m_sel),
+        &quot; peaks altered in either direction; difference = &quot;, signif(gb$stat, 3), &quot;; &quot;,
+        if (gb$p &lt;= fg + 1e-12) paste0(&quot;p &lt; &quot;, signif(fg, 2)) else paste0(&quot;p = &quot;, signif(gb$p, 4)),
+        &quot;.\n\n&quot;, sep = &quot;&quot;)
+  } else {
+    cat(&quot;Fewer than 6 samples across both MMRd-high and MMRp-high — the data-driven &quot;,
+        &quot;panel is skipped; selection needs more samples than the fixed panel, not fewer.\n&quot;,
+        sep = &quot;&quot;)
+  }
+}</code></pre>
+<pre><code>**Data-driven panel (Family B, exploratory).** 12 loci selected from 329 pooled-run peaks; nested permutation B = 2,000. Observed difference in mean score = 0.44; p = 0.05697.
+
+
+
+Table: Selected loci and how often each survives leave-one-out; a low fraction means the panel is an artefact of one patient
+
+|locus                  |peak_direction |enriched_in | loo_selection_frac|
+|:----------------------|:--------------|:-----------|------------------:|
+|Deletion Peak  72      |del            |MMRp-high   |               1.00|
+|Amplification Peak  10 |amp            |MMRp-high   |               1.00|
+|Amplification Peak 133 |amp            |MMRd-high   |               1.00|
+|Amplification Peak  31 |amp            |MMRp-high   |               1.00|
+|Deletion Peak  36      |del            |MMRp-high   |               1.00|
+|Amplification Peak  52 |amp            |MMRd-high   |               0.94|
+|Amplification Peak  49 |amp            |MMRp-high   |               0.95|
+|Amplification Peak 150 |amp            |MMRp-high   |               0.91|
+|Amplification Peak  88 |amp            |MMRp-high   |               0.89|
+|Amplification Peak  19 |amp            |MMRd-high   |               0.91|
+|Amplification Peak  85 |amp            |MMRp-high   |               0.91|
+|Amplification Peak  26 |amp            |MMRp-high   |               0.41|</code></pre>
+<p><img src="figure/10-recurrent-cna.Rmd/scna-selected-panel-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<pre><code>
+**Global burden, no selection.** Mean fraction of all 329 peaks altered in either direction; difference = 0.0591; p = 0.003.</code></pre>
+<div id="which-loci-drive-the-score" class="section level4">
+<h4>Which loci drive the score</h4>
+<p>The composite above is the primary endpoint; this breaks it into its
+12 parts as a <strong>secondary, more granular</strong> view. Each locus
+is tested one at a time and <strong>Holm-corrected within the 12-locus
+family</strong>.</p>
+<p>Holm is applied over <strong>all 12 pre-specified loci</strong>,
+including any that did not resolve to a pooled-run peak (p = NA) — not
+just the testable ones. Shrinking the family to the loci that happened
+to resolve would inflate significance on the survivors.</p>
+<pre class="r"><code>if (exists(&quot;pooled&quot;) &amp;&amp; !is.null(pooled)) {
+  mp &lt;- match_panel_peaks(pooled$peaks, attend_scna$panel)
+  ft_all &lt;- scna_freq_table(pooled$mat, grp)
+  rows &lt;- lapply(seq_len(nrow(mp)), function(i) {
+    pk &lt;- mp$peak_id[i]
+    if (is.na(pk)) return(data.frame(locus = mp$locus[i], direction = mp$direction[i],
+                                     freq_mmrd_high = NA_real_, freq_mmrp_high = NA_real_,
+                                     p = NA_real_, stringsAsFactors = FALSE))
+    a &lt;- ft_all[ft_all$peak_id == pk &amp; ft_all$scna_group == &quot;MMRd-high&quot;, ]
+    b &lt;- ft_all[ft_all$peak_id == pk &amp; ft_all$scna_group == &quot;MMRp-high&quot;, ]
+    p &lt;- NA_real_
+    if (nrow(a) &amp;&amp; nrow(b)) {
+      tt &lt;- matrix(c(a$n_altered, a$n - a$n_altered, b$n_altered, b$n - b$n_altered), nrow = 2)
+      p &lt;- tryCatch(stats::fisher.test(tt)$p.value, error = function(e) NA_real_)
+    }
+    data.frame(locus = mp$locus[i], direction = mp$direction[i],
+               freq_mmrd_high = if (nrow(a)) a$freq else NA_real_,
+               freq_mmrp_high = if (nrow(b)) b$freq else NA_real_,
+               p = p, stringsAsFactors = FALSE)
+  })
+  locus_tbl &lt;- do.call(rbind, rows)
+  locus_tbl$p_holm &lt;- family_adjust(locus_tbl$p, &quot;A&quot;, n = nrow(locus_tbl))
+  knitr::kable(locus_tbl, digits = 3,
+               caption = &quot;The 12 pre-specified TCGA UCEC loci, Holm-adjusted within family (secondary to the composite score)&quot;)
+}</code></pre>
+<table>
+<caption>The 12 pre-specified TCGA UCEC loci, Holm-adjusted within
+family (secondary to the composite score)</caption>
+<thead>
+<tr class="header">
+<th align="left">locus</th>
+<th align="left">direction</th>
+<th align="right">freq_mmrd_high</th>
+<th align="right">freq_mmrp_high</th>
+<th align="right">p</th>
+<th align="right">p_holm</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">MYC</td>
+<td align="left">amp</td>
+<td align="right">0.444</td>
+<td align="right">0.684</td>
+<td align="right">0.258</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">CCNE1</td>
+<td align="left">amp</td>
+<td align="right">0.333</td>
+<td align="right">0.561</td>
+<td align="right">0.287</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="odd">
+<td align="left">ERBB2</td>
+<td align="left">amp</td>
+<td align="right">0.667</td>
+<td align="right">0.614</td>
+<td align="right">1.000</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">PIK3CA_SOX2</td>
+<td align="left">amp</td>
+<td align="right">0.556</td>
+<td align="right">0.807</td>
+<td align="right">0.192</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="odd">
+<td align="left">SOX17</td>
+<td align="left">amp</td>
+<td align="right">0.667</td>
+<td align="right">0.596</td>
+<td align="right">1.000</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">1q</td>
+<td align="left">amp</td>
+<td align="right">1.000</td>
+<td align="right">0.842</td>
+<td align="right">0.341</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="odd">
+<td align="left">20q13</td>
+<td align="left">amp</td>
+<td align="right">0.556</td>
+<td align="right">0.649</td>
+<td align="right">0.713</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">FGFR3</td>
+<td align="left">amp</td>
+<td align="right">0.222</td>
+<td align="right">0.614</td>
+<td align="right">0.036</td>
+<td align="right">0.432</td>
+</tr>
+<tr class="odd">
+<td align="left">PTEN</td>
+<td align="left">del</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">RB1</td>
+<td align="left">del</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CDKN2A</td>
+<td align="left">del</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">TP53</td>
+<td align="left">del</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 readxl_1.5.0      fs_2.1.0          here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        lattice_0.22-5    
+ [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
+ [9] parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4       RColorBrewer_1.1-3
+[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
+[17] git2r_0.33.0       httpuv_1.6.12      htmltools_0.5.9    sass_0.4.10       
+[21] yaml_2.3.12        later_1.4.8        pillar_1.11.1      crayon_1.5.3      
+[25] jquerylib_0.1.4    whisker_0.4.1      cachem_1.1.0       tidyselect_1.2.1  
+[29] digest_0.6.39      stringi_1.8.7      splines_4.3.2      labeling_0.4.3    
+[33] maftools_2.18.0    rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
+[37] cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1  survival_3.8-11   
+[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
+[45] bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
+[49] otel_0.2.0         workflowr_1.7.2    cellranger_1.1.0   hms_1.1.4         
+[53] DNAcopy_1.76.0     evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
+[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
+[61] jsonlite_2.0.0     R6_2.6.1          </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 readxl_1.5.0      fs_2.1.0          here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        lattice_0.22-5    
+ [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
+ [9] parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4       RColorBrewer_1.1-3
+[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
+[17] git2r_0.33.0       httpuv_1.6.12      htmltools_0.5.9    sass_0.4.10       
+[21] yaml_2.3.12        later_1.4.8        pillar_1.11.1      crayon_1.5.3      
+[25] jquerylib_0.1.4    whisker_0.4.1      cachem_1.1.0       tidyselect_1.2.1  
+[29] digest_0.6.39      stringi_1.8.7      splines_4.3.2      labeling_0.4.3    
+[33] maftools_2.18.0    rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
+[37] cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1  survival_3.8-11   
+[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
+[45] bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
+[49] otel_0.2.0         workflowr_1.7.2    cellranger_1.1.0   hms_1.1.4         
+[53] DNAcopy_1.76.0     evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
+[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
+[61] jsonlite_2.0.0     R6_2.6.1          </code></pre>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

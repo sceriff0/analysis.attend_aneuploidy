@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-17" />
+
+<title>ATTEND — 11. MMRd aneuploidy: metastatic (ATTEND) vs primary (TCGA)</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 11. MMRd aneuploidy: metastatic
+(ATTEND) vs primary (TCGA)</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-17</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/11-mmrd-crosscohort.Rmd</code>)
+and HTML (<code>docs/11-mmrd-crosscohort.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0f67d88f2e51aea57deca0f17c3937956579e5de/analysis/11-mmrd-crosscohort.Rmd" target="_blank">0f67d88</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-21
+</td>
+<td>
+:art: Every aneuploidy-keyed figure, at both cuts
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/11-mmrd-crosscohort.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/d688d09c81fe66906ddcd74aee476ec5a02c0699/analysis/11-mmrd-crosscohort.Rmd" target="_blank">d688d09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: One spelling and one palette per concept, across every report
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/03483253d2965a47e6ff0cb4f5fc388a94a5e62b/analysis/11-mmrd-crosscohort.Rmd" target="_blank">0348325</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: AS High / AS Low, arcsine + t-test on the score, no n=, arms back
+to red/light blue
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/11-mmrd-crosscohort.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/e361b034b102f600bfb603f755165a30a3e1d63f/analysis/11-mmrd-crosscohort.Rmd" target="_blank">e361b03</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:rewind: Restore report 11 — a68533f deleted it without saying so
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/a68533f5d8b4d0b239da86e1383edb048137e149/analysis/11-mmrd-crosscohort.Rmd" target="_blank">a68533f</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:bug: Report 09 drew its clustering matrix, not TCGA Fig. 1a — display
+the genome
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/3cf3175347d1101b1aea0a419dfef9d08ff6aeb8/analysis/11-mmrd-crosscohort.Rmd" target="_blank">3cf3175</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:bug: attend_box() takes no geom_boxplot passthrough — and guard the
+call sites
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/68dfcad7ffdb622617d710f128bb9034933c3491/analysis/11-mmrd-crosscohort.Rmd" target="_blank">68dfcad</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-17
+</td>
+<td>
+:sparkles: Reports 10 and 11 — the classification applied to TCGA data
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Does aneuploidy substructure MMR-deficient
+tumours in metastatic disease (ATTEND) in a way that is absent from
+primary disease (TCGA UCEC)? <strong>Cohort.</strong> MMR-deficient
+only, in both cohorts, side by side. <strong>Reads.</strong> The master
+(built on demand by get_master()) for the ATTEND arm; data/tcga_2013/
+plus ASCETS run on its segments for the TCGA arm. <strong>Out of
+scope.</strong> The ATTEND MMRd split itself, against mutations and
+composition -&gt; <a
+href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a>. ATTEND TMB
+bimodality and its own TCGA replication -&gt; <a
+href="06-tmb.html">06-tmb</a>. Every ATTEND survival model -&gt; <a
+href="02-survival.html">02-survival</a>. Cluster-level correspondence
+between the two cohorts -&gt; <a
+href="09-tcga2013-fig1a.html">09-tcga2013-fig1a</a>. The aneuploidy
+classes, the two cuts and why both are reported -&gt; <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<p>ATTEND is a cohort of <strong>metastatic</strong> endometrial
+tumours; TCGA UCEC is <strong>primary</strong>. <a
+href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a> works inside
+ATTEND’s MMR-deficient stratum, where aneuploidy appears to carve the
+group in two. This report asks whether that is specific to metastatic
+disease, on four measurements that fail in different ways, so no single
+one has to carry the answer:</p>
+<ul>
+<li><strong>Shape</strong> — is the aneuploidy distribution within MMRd
+bimodal in ATTEND and unimodal in TCGA? Bimodality is
+<strong>scale-invariant</strong>, so this works even when the two
+cohorts’ scores are on different axes.</li>
+<li><strong>Level</strong> — is MMRd aneuploidy <em>absolutely</em>
+higher in metastatic disease? This needs a shared axis and is skipped
+without one.</li>
+<li><strong>Prevalence</strong> — what fraction of MMRd tumours cross
+the aneuploidy line in each cohort? Two integers per cohort and an exact
+test: no distributional assumption, no survival event, and the only arm
+whose precision improves as the cohorts grow.</li>
+<li><strong>Orthogonality</strong> — does TMB track aneuploidy
+<em>within</em> an MMR stratum in TCGA? If it did, the aneuploidy split
+would be re-discovering the hypermutator phenotype rather than adding an
+axis.</li>
+</ul>
+<p><strong>Every aneuploidy-keyed figure and table here is drawn at both
+cuts</strong>, 0.1 and 0.2 — attend_thresholds$aneuploidy and
+$aneuploidy_alt, returned as a pair by aneu_cuts(); <a
+href="00-methods.html">00-methods</a> holds the justification and is not
+restated. The cut is load-bearing for this report’s central question, so
+a result that survives only one of the two is a result about the
+threshold. Panels that plot the <em>continuous</em> score carry no class
+and are therefore drawn once, with both cuts as reference lines instead
+of as a facet.</p>
+<p>The shared axis is the load-bearing piece. ATTEND’s aneuploidy score
+is ASCETS (fraction of evaluable arms altered, 0–1); the cBioPortal
+column is Taylor et al. 2018, a <em>count</em> of altered arms (0–39).
+No constant converts one into the other, because ASCETS’s denominator is
+the per-sample number of evaluable arms.
+<code>code/run_ascets_tcga.sh</code> removes the obstacle by running
+<strong>ASCETS on TCGA’s own segments</strong>, producing the same
+statistic on both sides; without that output every scale-dependent panel
+below is skipped rather than computed on incomparable numbers.</p>
+<p>Calling stringency is matched where it can be: ATTEND runs
+<code>ascets(min_boc = 0.5, alteration_threshold = 0.7)</code> and
+leaves <code>threshold</code> and <code>noise</code> at their defaults —
+a fixed ±0.2 log2 cutoff with no LCR noise modelling — and
+<code>run_ascets_tcga.sh</code> uses those same values. (ATTEND runs
+ASCETS per sample and the TCGA script runs it pooled; with a fixed
+threshold that is equivalent, since the only cohort-level step in ASCETS
+is the noise-threshold estimation, which is not in use.) <strong>One
+difference cannot be removed here:</strong> ATTEND is tumour-only DRAGEN
+WES with no purity/ploidy correction, TCGA is purity-corrected SNP6.
+Low-purity ATTEND tumours have compressed log2 ratios and will
+<em>under</em>-call arms, so an ATTEND-higher result is conservative —
+but the assay difference also changes which arms clear the coverage cut,
+so a <em>small</em> level difference is suggestive, not decisive.</p>
+<div id="part-1-is-the-split-present-in-each-cohort"
+class="section level2">
+<h2>Part 1 — is the split present in each cohort?</h2>
+<p>The ATTEND arm is the MMR-deficient stratum of the master, taken
+through <code>mmrd_aneuploidy_split()</code>, whose MMRd criterion is
+MMR-protein loss by <strong>IHC</strong> — <a
+href="00-methods.html">00-methods</a> explains why MSI-high is a
+correlate and not a criterion. Its aneuploidy values are the ASCETS
+scores loaded from <code>data/ascets/</code>.</p>
+<p>The TCGA arm prefers the <strong>2013 publication cohort</strong>
+(<code>data/tcga_2013/</code>, via <code>load_tcga_ucec_2013()</code>)
+joined to ASCETS run on its segments
+(<code>load_tcga_2013_ascets()</code>), which is what creates the shared
+scale. Its MMRd rule is <code>attend_tcga_ref_2013$mmrd_rule</code>,
+whose default <code>"tcga_exact"</code> makes MMRd <strong>the paper’s
+own MSI (hyper-mutated) integrative cluster and nothing else</strong>:
+every other classified tumour is MMRp, and the tumours TCGA never
+classified are NA — unclassified, not proficient. That is the only rule
+whose output can be quoted as “TCGA’s MSI group”. If the ASCETS output
+is absent the report falls back to the legacy PanCanAtlas export
+(<code>load_tcga_ucec()</code>, Taylor arm count) and drops every
+scale-dependent panel, saying so in the table.</p>
+<p>Both cohorts are classified by <strong>one helper over one cut
+vector</strong>: <code>add_aneuploidy_cuts()</code> re-derives
+<code>aneuploidy_class</code> at each cut from
+<code>attend_cols$aneuploidy</code>, for the ATTEND rows
+(<code>master_cuts</code>) and for the TCGA rows
+(<code>tcga_cuts_df</code>) alike. <code>same_cut</code> records whether
+the two vectors are identical and gates every cross-cohort panel below,
+because ATTEND at 0.1 drawn beside TCGA at 0.2 would be a comparison of
+two different questions. The last table is the cost of the choice in
+ATTEND MMRd patients: raising a cut can only demote, so the two
+classifications are nested and the movers score between them.</p>
+<pre class="r"><code>master      &lt;- get_master() |&gt; add_molecular_classes()
+# The same patients once per cut, with aneuploidy_class and the MMR x AS group re-derived at
+# each. Every cut-dependent panel facets on as_cut_lab instead of being written twice.
+master_cuts &lt;- add_aneuploidy_cuts(master, scna = TRUE)
+attend_mmrd &lt;- mmrd_aneuploidy_split(master)
+attend_aneu &lt;- if (!is.null(attend_mmrd))
+  attend_mmrd$aneu_value[is.finite(attend_mmrd$aneu_value)] else numeric(0)
+
+t13 &lt;- tryCatch(load_tcga_ucec_2013(),   error = function(e) tibble())
+tas &lt;- tryCatch(load_tcga_2013_ascets(), error = function(e) tibble())
+use_ascets &lt;- nrow(t13) &gt; 0 &amp;&amp; nrow(tas) &gt; 0
+
+if (use_ascets) {
+  tcga &lt;- t13 |&gt;
+    left_join(tas, by = &quot;ID&quot;) |&gt;
+    distinct(pid, .keep_all = TRUE) |&gt;          # survival is a per-PATIENT analysis
+    transmute(pid, mmrd, pole, tmb, aneuploidy = ascets_aneuploidy, cn_cluster_k4,
+              os_months, os_event, pfs_months, pfs_event, stage, grade)
+  tcga_scale  &lt;- &quot;ASCETS (fraction of evaluable arms, 0-1) — SAME statistic as ATTEND&quot;
+  tcga_source &lt;- &quot;data/tcga_2013/ascets/ (code/run_ascets_tcga.sh)&quot;
+} else {
+  tcga &lt;- tryCatch(load_tcga_ucec(), error = function(e) tibble())
+  if (nrow(tcga) &gt; 0) tcga &lt;- tcga |&gt;
+    mutate(pfs_months = NA_real_, pfs_event = NA_integer_,
+           stage = NA_character_, grade = NA_character_, cn_cluster_k4 = NA_character_,
+           pole = NA, tmb = suppressWarnings(as.numeric(tmb)))
+  tcga_scale  &lt;- paste0(&quot;cBioPortal &quot;, attend_tcga_ref$aneuploidy_col,
+                        &quot; (Taylor 2018 arm COUNT, 0-39) — NOT ATTEND&#39;s scale&quot;)
+  tcga_source &lt;- &quot;data/tcga/ (code/fetch_tcga_ucec.R)&quot;
+}
+
+tcga_mmrd &lt;- if (nrow(tcga) &gt; 0) filter(tcga, mmrd) else tcga
+tcga_aneu &lt;- if (nrow(tcga_mmrd) &gt; 0) tcga_mmrd$aneuploidy[is.finite(tcga_mmrd$aneuploidy)] else numeric(0)
+
+lab_attend &lt;- &quot;ATTEND (metastatic)&quot;
+lab_tcga   &lt;- &quot;TCGA UCEC (primary)&quot;
+have_attend &lt;- length(attend_aneu) &gt;= 4
+have_tcga   &lt;- length(tcga_aneu)   &gt;= 4
+# Every LEVEL comparison below requires both cohorts on the ASCETS [0,1] scale. Shape
+# comparisons do not, because bimodality is scale-invariant.
+comparable  &lt;- use_ascets &amp;&amp; have_attend &amp;&amp; have_tcga &amp;&amp;
+               all(is.finite(range(attend_aneu))) &amp;&amp; max(attend_aneu, na.rm = TRUE) &lt;= 1
+
+# ONE cut vector per cohort, and the cross-cohort panels run only when the two are
+# IDENTICAL. ATTEND is always on the ASCETS [0,1] scale, so it always carries the configured
+# pair. TCGA carries the SAME pair when ASCETS has been run on its segments; on the
+# arm-COUNT fallback 0.1 and 0.2 are not its scale&#39;s numbers at all — a 0.1 line there sits
+# against the axis and would call every tumour aneuploidy-high — so it falls back to a
+# single within-cohort median, labelled with its own value. same_cut is the guard that makes
+# &quot;ATTEND at 0.1 beside TCGA at 0.2&quot; impossible rather than merely unintended.
+tcga_all_aneu &lt;- if (nrow(tcga) &gt; 0) tcga$aneuploidy[is.finite(tcga$aneuploidy)] else numeric(0)
+tcga_cuts &lt;- if (comparable) cuts else
+  if (length(tcga_all_aneu) &gt; 0) stats::median(tcga_all_aneu) else numeric(0)
+same_cut  &lt;- comparable &amp;&amp; identical(as.numeric(tcga_cuts), as.numeric(cuts))
+
+# ⚠️ TWO fallback medians, on purpose. Part 4 compares MMRd against MMRp, so its fallback cut
+# is the WHOLE cohort&#39;s median. Part 5 asks whether aneuploidy substructures MMRd — a
+# WITHIN-stratum question — so its fallback is the MMRd subset&#39;s own median. They are the
+# same number only by accident: MMRd tumours are quieter than UCEC as a whole (which carries
+# the serous, copy-number-high arm), so splitting MMRd at the cohort median can leave an
+# &quot;aneuploidy-high&quot; arm of two patients and answer the substructure question with an empty
+# cell. When ASCETS has been run on TCGA both collapse to the configured pair and this is
+# moot. Each part labels the cut it used.
+#
+# The TCGA frame once per cut goes through the SAME helper on the SAME column name the ATTEND
+# rows go through: one derivation, so the two halves cannot drift to different rules.
+tcga_cuts_df &lt;- if (length(tcga_cuts) &gt; 0 &amp;&amp; nrow(tcga) &gt; 0) {
+  tcga |&gt;
+    mutate(!!attend_cols$aneuploidy := aneuploidy) |&gt;
+    add_aneuploidy_cuts(cuts = tcga_cuts) |&gt;
+    tibble::as_tibble()
+} else tibble()
+
+# Part 5&#39;s frame: MMRd only, cut at MMRd&#39;s own median on the fallback scale.
+tcga_mmrd_cuts &lt;- if (comparable) cuts else
+  if (length(tcga_aneu) &gt; 0) stats::median(tcga_aneu) else numeric(0)
+tcga_mmrd_cuts_df &lt;- if (length(tcga_mmrd_cuts) &gt; 0 &amp;&amp; nrow(tcga_mmrd) &gt; 0) {
+  tcga_mmrd |&gt;
+    mutate(!!attend_cols$aneuploidy := aneuploidy) |&gt;
+    add_aneuploidy_cuts(cuts = tcga_mmrd_cuts) |&gt;
+    tibble::as_tibble()
+} else tibble()
+
+knitr::kable(tibble(
+  cohort  = c(lab_attend, lab_tcga),
+  MMRd_n  = c(length(attend_aneu), length(tcga_aneu)),
+  scale   = c(&quot;ASCETS (fraction of evaluable arms, 0-1)&quot;, tcga_scale),
+  source  = c(&quot;data/ascets/ (DRAGEN .seg)&quot;, tcga_source)),
+  caption = &quot;MMR-deficient tumours per cohort, and the aneuploidy statistic each uses.&quot;)</code></pre>
+<table>
+<caption>MMR-deficient tumours per cohort, and the aneuploidy statistic
+each uses.</caption>
+<colgroup>
+<col width="13%" />
+<col width="4%" />
+<col width="47%" />
+<col width="34%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">cohort</th>
+<th align="right">MMRd_n</th>
+<th align="left">scale</th>
+<th align="left">source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ATTEND (metastatic)</td>
+<td align="right">109</td>
+<td align="left">ASCETS (fraction of evaluable arms, 0-1)</td>
+<td align="left">data/ascets/ (DRAGEN .seg)</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA UCEC (primary)</td>
+<td align="right">65</td>
+<td align="left">ASCETS (fraction of evaluable arms, 0-1) — SAME
+statistic as ATTEND</td>
+<td align="left">data/tcga_2013/ascets/ (code/run_ascets_tcga.sh)</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>cat(&quot;\nAneuploidy cuts — ATTEND: &quot;, paste(cuts, collapse = &quot;, &quot;),
+    &quot; | TCGA: &quot;, if (length(tcga_cuts) &gt; 0) paste(signif(tcga_cuts, 3), collapse = &quot;, &quot;) else &quot;none&quot;,
+    if (same_cut) &quot; — IDENTICAL, so the cross-cohort panels run.\n&quot; else
+      &quot; — NOT identical, so every cross-cohort class panel is skipped.\n&quot;, sep = &quot;&quot;)</code></pre>
+<pre><code>
+Aneuploidy cuts — ATTEND: 0.1, 0.2 | TCGA: 0.1, 0.2 — IDENTICAL, so the cross-cohort panels run.</code></pre>
+<pre class="r"><code># The ATTEND MMRd arm at each cut, from master_cuts. mmrd_aneuploidy_split() above and
+# add_aneuploidy_cuts() here select MMRd through the same is_mmrd() IHC criterion and read
+# the same attend_cols$aneuploidy column, so these are the same patients as attend_aneu,
+# classified at the fixed cut rather than at the split&#39;s optionally GMM-refined boundary.
+attend_by_cut &lt;- master_cuts |&gt;
+  filter(is_mmrd(MMR_class) %in% TRUE, !is.na(aneuploidy_class)) |&gt;
+  count(as_cut_lab, class = as_label(aneuploidy_class)) |&gt;
+  tidyr::pivot_wider(names_from = class, values_from = n, values_fill = 0)
+knitr::kable(attend_by_cut, caption = paste0(
+  &quot;ATTEND MMRd tumours per aneuploidy class at each cut. Raising the cut can only demote, &quot;,
+  &quot;so the two classifications are nested and the difference between the AS High counts is &quot;,
+  &quot;the number of patients the choice of threshold moves.&quot;))</code></pre>
+<table>
+<caption>ATTEND MMRd tumours per aneuploidy class at each cut. Raising
+the cut can only demote, so the two classifications are nested and the
+difference between the AS High counts is the number of patients the
+choice of threshold moves.</caption>
+<thead>
+<tr class="header">
+<th align="left">as_cut_lab</th>
+<th align="right">AS High</th>
+<th align="right">AS Low</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AS cut 0.1</td>
+<td align="right">9</td>
+<td align="right">100</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.2</td>
+<td align="right">4</td>
+<td align="right">105</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
+if (!have_tcga)
+  cat(&quot;\n**No TCGA MMRd data** — run `Rscript code/fetch_tcga_ucec_2013.R`, then re-knit.\n&quot;)
+if (nrow(t13) &gt; 0 &amp;&amp; !use_ascets)
+  cat(&quot;\n**TCGA 2013 clinical present but no ASCETS output** — run `bash code/run_ascets_tcga.sh`&quot;,
+      &quot;to unlock the shared-scale panels (Parts 2 and 3).\n&quot;)</code></pre>
+<p>Aneuploidy density within MMRd, one panel per cohort, each annotated
+with <strong>Hartigan’s dip-test</strong> p from
+<code>dip_bimodality()</code> — a small p means the distribution is
+multimodal, i.e. a real split rather than a continuum. The panels are
+<strong>free-scaled on purpose</strong>: this figure compares shape
+only, and putting two different statistics on one axis would invite
+exactly the level comparison that Part 2 gates behind the shared scale.
+TCGA is drawn in the reference grey and only ATTEND carries a hue,
+because TCGA is the external cohort the ATTEND result is measured
+against. The dip test needs at least four finite values and the optional
+<code>diptest</code> package; where either is missing the annotation
+says so instead of printing a number. The score is plotted
+<strong>raw</strong>, so no class and no cut enters this panel: both
+cuts appear only as dashed reference lines, and only on a panel whose
+axis is the ASCETS [0,1] scale — on the arm-count fallback the TCGA
+panel carries no line, because 0.1 and 0.2 are not numbers on that
+axis.</p>
+<pre class="r"><code>dip_a &lt;- dip_bimodality(attend_aneu)
+dip_t &lt;- dip_bimodality(tcga_aneu)
+
+# Braces required: a function body of the bare form `if (x) a` with `else` on the NEXT line
+# is an R syntax error, the same trap the survival-cut label below carries.
+dip_lab &lt;- function(d) {
+  if (is.finite(d$p)) {
+    sprintf(&quot;dip p = %.3g%s&quot;, d$p,
+            ifelse(isTRUE(d$bimodal), &quot; (multimodal)&quot;, &quot; (unimodal)&quot;))
+  } else &quot;diptest unavailable&quot;
+}
+
+dens_df &lt;- bind_rows(
+  if (have_attend) tibble(cohort = lab_attend, aneu = attend_aneu) else NULL,
+  if (have_tcga)   tibble(cohort = lab_tcga,   aneu = tcga_aneu)   else NULL)
+
+if (nrow(dens_df) &gt; 0) {
+  labs_df &lt;- tibble(cohort = c(lab_attend, lab_tcga),
+                    lab    = c(dip_lab(dip_a), dip_lab(dip_t))) |&gt;
+    filter(cohort %in% dens_df$cohort)
+
+  # Reference lines per PANEL, not per figure: ATTEND is always ASCETS, TCGA only when
+  # run_ascets_tcga.sh has been run. Drawing 0.1 on an arm-count axis would put the line at
+  # the origin and read as &quot;every TCGA tumour is aneuploidy-high&quot;.
+  cut_df &lt;- bind_rows(
+    if (have_attend)               tibble(cohort = lab_attend, xc = cuts) else NULL,
+    if (have_tcga &amp;&amp; use_ascets)   tibble(cohort = lab_tcga,   xc = cuts) else NULL)
+
+  p &lt;- ggplot(dens_df, aes(aneu)) +
+    geom_density(aes(fill = cohort), colour = &quot;grey30&quot;, alpha = 0.5, adjust = 0.9) +
+    geom_rug(alpha = 0.4) +
+    geom_text(data = labs_df, aes(x = Inf, y = Inf, label = lab),
+              hjust = 1.05, vjust = 1.5, size = 3.3) +
+    facet_wrap(~ cohort, scales = &quot;free&quot;) +
+    scale_fill_manual(values = attend_cohort_cols, guide = &quot;none&quot;) +
+    labs(title = &quot;Aneuploidy within MMRd — metastatic vs primary&quot;,
+         subtitle = paste0(&quot;free axes: shape only. Multimodal = a real split; unimodal = a &quot;,
+                           &quot;continuum. Dashed = the two AS cuts, &quot;,
+                           paste(cuts, collapse = &quot; and &quot;), &quot; (ASCETS panels only)&quot;),
+         x = &quot;aneuploidy score (cohort-specific scale)&quot;, y = &quot;density&quot;) +
+    attend_theme()
+  if (nrow(cut_df) &gt; 0)
+    p &lt;- p + geom_vline(data = cut_df, aes(xintercept = xc), linetype = &quot;dashed&quot;,
+                        colour = &quot;grey40&quot;, linewidth = 0.4)
+  print(p)
+} else cat(&quot;No aneuploidy data for either cohort yet.\n&quot;)</code></pre>
+<p><img src="figure/11-mmrd-crosscohort.Rmd/density-contrast-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>The same dip test as a table, so the statistic and n are legible
+rather than read off a panel annotation. Read <code>n</code> first: with
+a handful of tumours per cohort the dip test has very little power, so a
+non-significant p is weak evidence of unimodality and not evidence of
+it. One row per cohort and not per cut: the dip statistic is computed on
+the raw score vector and never sees a class, so both cuts would return
+the identical number.</p>
+<pre class="r"><code>knitr::kable(tibble(
+  cohort   = c(lab_attend, lab_tcga),
+  n        = c(dip_a$n, dip_t$n),
+  dip_stat = round(c(dip_a$dip, dip_t$dip), 4),
+  dip_p    = signif(c(dip_a$p, dip_t$p), 3),
+  multimodal = c(dip_a$bimodal, dip_t$bimodal)),
+  caption = paste0(&quot;Hartigan dip test per cohort, on the MMRd aneuploidy values. &quot;,
+                   &quot;Scale-invariant, so it is valid even on the arm-count fallback.&quot;))</code></pre>
+<table>
+<caption>Hartigan dip test per cohort, on the MMRd aneuploidy values.
+Scale-invariant, so it is valid even on the arm-count
+fallback.</caption>
+<thead>
+<tr class="header">
+<th align="left">cohort</th>
+<th align="right">n</th>
+<th align="right">dip_stat</th>
+<th align="right">dip_p</th>
+<th align="left">multimodal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ATTEND (metastatic)</td>
+<td align="right">109</td>
+<td align="right">0.1117</td>
+<td align="right">0</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA UCEC (primary)</td>
+<td align="right">65</td>
+<td align="right">0.1462</td>
+<td align="right">0</td>
+<td align="left">TRUE</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div
+id="part-2-is-mmrd-aneuploidy-absolutely-higher-in-metastatic-disease"
+class="section level2">
+<h2>Part 2 — is MMRd aneuploidy absolutely higher in metastatic
+disease?</h2>
+<p>Part 1 compared shape; this compares <strong>level</strong>, which
+the shared ASCETS scale makes legitimate. Both axes are now “fraction of
+evaluable chromosome arms altered”, so the two densities can be drawn on
+one axis and the medians compared directly. The dashed lines are the two
+aneuploidy-high cutoffs, 0.1 and 0.2, drawn in the aneuploidy-high
+colour because that is what they mark — and they now mean the same thing
+in both cohorts. The figure is <strong>not</strong> faceted by cut: it
+plots the raw score with no class, so the cut changes nothing in it
+except where the lines fall, which is exactly the comparison a reader
+needs in order to judge either cut.</p>
+<p>The test is a <strong>Mann–Whitney</strong> (rank-based, no
+distributional assumption) on the two MMRd aneuploidy vectors, reported
+with the rank-biserial effect size, because a p-value alone is
+uninformative when the group sizes differ by an order of magnitude. It
+is one test and not one per cut, for the same reason: it ranks the
+scores themselves and never thresholds them. The whole part is
+<strong>skipped</strong> unless ASCETS has been run on TCGA: on
+mismatched scales the comparison is meaningless rather than merely
+imprecise. Interpret the size of any shift against the purity/platform
+asymmetry stated at the top — the two uncorrectable biases run in
+opposite directions, so a small shift is not interpretable in either
+direction.</p>
+<pre class="r"><code>if (comparable) {
+  both &lt;- bind_rows(tibble(cohort = lab_attend, aneu = attend_aneu),
+                    tibble(cohort = lab_tcga,   aneu = tcga_aneu))
+  w  &lt;- suppressWarnings(stats::wilcox.test(attend_aneu, tcga_aneu))
+  # rank-biserial r = 1 - 2U/(n1*n2); negated below so positive = ATTEND higher.
+  U  &lt;- unname(w$statistic); rbc &lt;- 1 - 2 * U / (length(attend_aneu) * length(tcga_aneu))
+  md &lt;- both |&gt; group_by(cohort) |&gt;
+    summarise(n = n(), median = round(median(aneu), 3),
+              IQR = paste0(round(quantile(aneu, .25), 3), &quot;-&quot;, round(quantile(aneu, .75), 3)),
+              .groups = &quot;drop&quot;)
+  knitr::kable(md, caption = paste0(
+    &quot;MMRd aneuploidy on the SHARED ASCETS scale. Mann-Whitney p = &quot;, signif(w$p.value, 3),
+    &quot;; rank-biserial r = &quot;, round(-rbc, 3), &quot; (positive = ATTEND higher).&quot;))
+
+  ggplot(both, aes(aneu, fill = cohort)) +
+    geom_density(colour = &quot;grey30&quot;, alpha = 0.45, adjust = 0.9) +
+    # BOTH cuts, because this panel carries no class: the lines are the only thing the
+    # choice of threshold changes here.
+    geom_vline(xintercept = cuts, linetype = &quot;dashed&quot;,
+               colour = attend_aneu_high, linewidth = 0.4) +
+    scale_fill_manual(values = attend_cohort_cols, name = attend_cohort_legend) +
+    labs(title = &quot;MMRd aneuploidy, metastatic vs primary — one shared axis&quot;,
+         subtitle = paste0(&quot;ASCETS fraction of evaluable arms altered; dashed = the two &quot;,
+                           &quot;aneuploidy-high cutoffs, &quot;, paste(cuts, collapse = &quot; and &quot;)),
+         x = &quot;ASCETS aneuploidy score (0-1)&quot;, y = &quot;density&quot;) +
+    attend_theme()
+} else if (!use_ascets) {
+  cat(&quot;Level comparison skipped — needs ASCETS on TCGA. Run `bash code/run_ascets_tcga.sh`.\n&quot;)
+} else cat(&quot;Level comparison skipped — ATTEND aneuploidy is not on the [0,1] ASCETS scale.\n&quot;)</code></pre>
+<p><img src="figure/11-mmrd-crosscohort.Rmd/absolute-level-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div
+id="part-3-how-many-mmrd-tumours-are-aneuploidy-high-in-each-cohort"
+class="section level2">
+<h2>Part 3 — how many MMRd tumours are aneuploidy-high in each
+cohort?</h2>
+<p>Part 1 asks whether a split exists and Part 2 whether the whole
+distribution shifts. This asks the simplest question of the three:
+<strong>what fraction of MMRd tumours cross the aneuploidy line, in each
+cohort?</strong> A 2×2 and a Fisher exact test, with exact
+Clopper–Pearson intervals on each proportion. It needs no distributional
+assumption and no survival event, which is why the intervals are the
+part to read: with a small aneuploidy-high count on either side the
+interval stays wide even when the point estimates differ substantially,
+and a wide interval is the honest summary.</p>
+<p>This is the arm the cut moves most, so it is computed at
+<strong>both</strong> cuts, 0.1 and 0.2, one block of rows each, with
+its <strong>own</strong> Fisher test per cut — the two cuts are never
+pooled into one test, because they are two different questions about the
+same patients. Inside each block a single <code>k</code> is applied to
+both cohorts in the same expression, which is what makes “ATTEND at one
+cut, TCGA at another” impossible rather than merely unintended; the
+whole table is additionally gated on <code>same_cut</code>. The arm is
+skipped on the arm-count fallback because neither cut is transferable
+there. The <strong>fixed</strong> cutoffs are used deliberately, not the
+GMM-refined boundary <code>mmrd_aneuploidy_split()</code> can compute:
+that boundary is fitted to ATTEND’s own distribution, so applying it to
+TCGA would beg the question this part asks.</p>
+<pre class="r"><code>prop_ci &lt;- function(x, n) {                       # Clopper-Pearson exact interval
+  if (n == 0) return(&quot;n/a&quot;)
+  ci &lt;- stats::binom.test(x, n)$conf.int
+  sprintf(&quot;%.1f%% (%.1f-%.1f)&quot;, 100 * x / n, 100 * ci[1], 100 * ci[2])
+}
+
+if (same_cut) {
+  # ONE k per block, applied to both cohorts in the SAME expression and with the same
+  # `&gt;= k` rule add_molecular_classes() uses, so the two halves of a row cannot be counted
+  # at different thresholds. The test is inside the block: cuts are never pooled.
+  prop_at &lt;- function(k) {
+    a_hi &lt;- sum(attend_aneu &gt;= k); a_n &lt;- length(attend_aneu)
+    t_hi &lt;- sum(tcga_aneu   &gt;= k); t_n &lt;- length(tcga_aneu)
+    ft   &lt;- stats::fisher.test(matrix(c(a_hi, a_n - a_hi, t_hi, t_n - t_hi), nrow = 2))
+    tibble(cut             = as.character(as_cut_label(k, cuts)),
+           cohort          = c(lab_attend, lab_tcga),
+           MMRd_n          = c(a_n, t_n),
+           aneuploidy_high = c(a_hi, t_hi),
+           percent         = c(prop_ci(a_hi, a_n), prop_ci(t_hi, t_n)),
+           fisher_p        = signif(ft$p.value, 3),
+           odds_ratio      = sprintf(&quot;%.2f (%.2f-%.2f)&quot;, ft$estimate,
+                                     ft$conf.int[1], ft$conf.int[2]))
+  }
+  knitr::kable(bind_rows(lapply(cuts, prop_at)), caption = paste0(
+    &quot;MMRd tumours at or above each shared ASCETS cutoff (&gt;= &quot;,
+    paste(cuts, collapse = &quot;, &quot;), &quot;). Fisher exact and the odds ratio are computed &quot;,
+    &quot;SEPARATELY within each cut and repeat down its two rows; percentages carry exact &quot;,
+    &quot;Clopper-Pearson intervals. ATTEND is the first row of each pair, so the odds ratio &quot;,
+    &quot;reads ATTEND against TCGA at that cut.&quot;))
+} else cat(&quot;Skipped — needs ASCETS on TCGA so both cohorts share the same cutoffs.&quot;,
+           &quot;Run `bash code/run_ascets_tcga.sh`.\n&quot;)</code></pre>
+<table>
+<caption>MMRd tumours at or above each shared ASCETS cutoff (&gt;= 0.1,
+0.2). Fisher exact and the odds ratio are computed SEPARATELY within
+each cut and repeat down its two rows; percentages carry exact
+Clopper-Pearson intervals. ATTEND is the first row of each pair, so the
+odds ratio reads ATTEND against TCGA at that cut.</caption>
+<colgroup>
+<col width="11%" />
+<col width="20%" />
+<col width="7%" />
+<col width="16%" />
+<col width="16%" />
+<col width="9%" />
+<col width="17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">cut</th>
+<th align="left">cohort</th>
+<th align="right">MMRd_n</th>
+<th align="right">aneuploidy_high</th>
+<th align="left">percent</th>
+<th align="right">fisher_p</th>
+<th align="left">odds_ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AS cut 0.1</td>
+<td align="left">ATTEND (metastatic)</td>
+<td align="right">109</td>
+<td align="right">9</td>
+<td align="left">8.3% (3.8-15.1)</td>
+<td align="right">1</td>
+<td align="left">0.89 (0.27-3.18)</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.1</td>
+<td align="left">TCGA UCEC (primary)</td>
+<td align="right">65</td>
+<td align="right">6</td>
+<td align="left">9.2% (3.5-19.0)</td>
+<td align="right">1</td>
+<td align="left">0.89 (0.27-3.18)</td>
+</tr>
+<tr class="odd">
+<td align="left">AS cut 0.2</td>
+<td align="left">ATTEND (metastatic)</td>
+<td align="right">109</td>
+<td align="right">4</td>
+<td align="left">3.7% (1.0-9.1)</td>
+<td align="right">1</td>
+<td align="left">0.79 (0.13-5.56)</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.2</td>
+<td align="left">TCGA UCEC (primary)</td>
+<td align="right">65</td>
+<td align="right">3</td>
+<td align="left">4.6% (1.0-12.9)</td>
+<td align="right">1</td>
+<td align="left">0.79 (0.13-5.56)</td>
+</tr>
+</tbody>
+</table>
+<p>A second reference point taken <strong>entirely from TCGA’s published
+data</strong>: how many of TCGA’s MMRd tumours were assigned to
+copy-number <strong>cluster 4</strong>, its serous-like SCNA cluster?
+Both fields are TCGA’s own (integrative cluster and
+<code>CNA_CLUSTER_K4</code>, Suppl. Data File S1.1), so this proportion
+involves no cutoff, no ASCETS and no choice of ours — and so is one
+table, not one per cut. It is <strong>not the same criterion</strong> as
+the table above — cluster membership rather than an aneuploidy threshold
+— so the two are not interchangeable and only the shared-cutoff table
+supports a like-for-like test. This is a sanity anchor: if either shared
+cutoff puts a wildly different fraction of TCGA MMRd above the line than
+TCGA’s own clustering did, that cutoff is drawing a different line than
+the clustering, and that needs explaining before either number is
+quoted. The cross-tabulation is a derived observation — the paper
+reports cluster 4’s histology composition but never its subtype
+composition — so it is not quotable from the publication.</p>
+<pre class="r"><code>if (have_tcga &amp;&amp; &quot;cn_cluster_k4&quot; %in% names(tcga_mmrd) &amp;&amp; any(!is.na(tcga_mmrd$cn_cluster_k4))) {
+  d  &lt;- tcga_mmrd |&gt; filter(!is.na(cn_cluster_k4))
+  n4 &lt;- sum(as.character(d$cn_cluster_k4) == &quot;4&quot;)
+  knitr::kable(tibble(
+    definition  = &quot;TCGA MMRd in copy-number cluster 4 (serous-like)&quot;,
+    MMRd_n      = nrow(d),
+    in_cluster4 = n4,
+    percent     = prop_ci(n4, nrow(d))),
+    caption = &quot;TCGA&#39;s own published assignment — no threshold, no ASCETS, no choice of ours.&quot;)
+} else cat(&quot;Published-anchor table skipped — needs the 2013 cohort with CNA_CLUSTER_K4.\n&quot;)</code></pre>
+<table>
+<caption>TCGA’s own published assignment — no threshold, no ASCETS, no
+choice of ours.</caption>
+<colgroup>
+<col width="58%" />
+<col width="8%" />
+<col width="14%" />
+<col width="19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">definition</th>
+<th align="right">MMRd_n</th>
+<th align="right">in_cluster4</th>
+<th align="left">percent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TCGA MMRd in copy-number cluster 4 (serous-like)</td>
+<td align="right">65</td>
+<td align="right">2</td>
+<td align="left">3.1% (0.4-10.7)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="part-4-does-tmb-track-aneuploidy-within-an-mmr-stratum"
+class="section level2">
+<h2>Part 4 — does TMB track aneuploidy within an MMR stratum?</h2>
+<p><a href="06-tmb.html">06-tmb</a> Part 2 asks, in ATTEND: within each
+MMR stratum, does TMB differ between aneuploidy-high and aneuploidy-low
+tumours? Splitting by MMR <strong>first</strong> matters because the two
+routes to a genomic extreme are distinct — MMR-deficient tumours are
+hypermutators (high TMB, often modest aneuploidy), whereas the CN-high /
+serous-like route drives high aneuploidy at <em>low</em> TMB. If
+aneuploidy-high and TMB-high were the same tumours, aneuploidy would add
+nothing to TMB; the interest is in their being different axes. This part
+puts the same question to TCGA.</p>
+<p>TMB here is TCGA’s <code>TMB_NONSYNONYMOUS</code> from
+<code>data_clinical_sample.txt</code>, available on the exome-sequenced
+subset, split at <code>attend_thresholds$tmb</code> = 10 mut/Mb. It is
+<strong>not</strong> either of ATTEND’s two reported definitions and is
+never plotted alongside them — it is a different cohort’s single number,
+and <a href="00-methods.html">00-methods</a> fixes what the two ATTEND
+definitions are. It also needs no ancestry correction: ATTEND recomputes
+ancestry-aware TMB because its TMB is <em>tumour-only</em>, so residual
+private germline variants leak into the count in an ancestry-structured
+way, whereas TCGA’s value comes from tumour/normal
+<strong>paired</strong> exomes where the matched normal already removes
+germline variants per patient. Applying a Nassar-style correction to it
+would subtract a bias that has already been removed.</p>
+<p><strong>POLE is excluded from MMRp, and that is not
+optional.</strong> POLE-ultramutated tumours have a median TMB two
+orders of magnitude above the copy-number groups, so leaving them in
+MMRp would make that panel unreadable and misrepresent MMRp as high-TMB.
+ATTEND has no POLE cases, so excluding them is also what makes the two
+cohorts’ MMRp groups comparable; the POLE count and median are printed
+separately for reference. The aneuploidy class is taken from
+<code>tcga_cuts_df</code>, i.e. re-derived at each cut by
+<code>add_aneuploidy_cuts()</code> rather than thresholded here, so the
+counts below are a partition per cut and the panels that follow can
+facet on it. Where ASCETS has not been run on TCGA the cut vector
+collapses to that cohort’s own median and the page says so, because 0.1
+and 0.2 are ASCETS [0,1] numbers with no meaning on an arm count.</p>
+<pre class="r"><code>have_tcga_tmb &lt;- nrow(tcga) &gt; 0 &amp;&amp; &quot;tmb&quot; %in% names(tcga) &amp;&amp; any(is.finite(tcga$tmb))
+
+# aneuploidy_class comes from tcga_cuts_df — already re-derived once per cut by the same
+# helper the ATTEND rows go through — so nothing here re-implements the threshold rule.
+tcga_tmb &lt;- if (have_tcga_tmb &amp;&amp; nrow(tcga_cuts_df) &gt; 0) {
+  tcga_cuts_df |&gt;
+    mutate(mmr_group = dplyr::case_when(!is.na(pole) &amp; pole ~ &quot;POLE&quot;,
+                                        mmrd %in% TRUE      ~ &quot;MMRd&quot;,
+                                        mmrd %in% FALSE     ~ &quot;MMRp&quot;,
+                                        TRUE                ~ NA_character_)) |&gt;
+    filter(is.finite(tmb), !is.na(aneuploidy_class), mmr_group %in% c(&quot;MMRp&quot;, &quot;MMRd&quot;)) |&gt;
+    mutate(mmr_group = factor(mmr_group, levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;)))
+} else tibble()
+
+if (nrow(tcga_tmb) &gt; 0) {
+  pole_n   &lt;- sum(!is.na(tcga$pole) &amp; tcga$pole)
+  pole_med &lt;- suppressWarnings(stats::median(tcga$tmb[!is.na(tcga$pole) &amp; tcga$pole], na.rm = TRUE))
+  if (!same_cut)
+    note_skip(&quot;The configured cuts (&quot;, paste(cuts, collapse = &quot; and &quot;), &quot;) are ASCETS [0,1] &quot;,
+              &quot;numbers and do not transfer to TCGA&#39;s arm COUNT, so the panels below are &quot;,
+              &quot;drawn at ONE cut — TCGA&#39;s own within-cohort median, &quot;,
+              signif(tcga_cuts, 3), &quot;. Run `bash code/run_ascets_tcga.sh` for both.&quot;)
+  cat(&quot;patients per cut x MMR group x aneuploidy status:\n&quot;)
+  print(tcga_tmb |&gt;
+          count(as_cut_lab, mmr_group, class = as_label(aneuploidy_class)) |&gt;
+          tidyr::pivot_wider(names_from = class, values_from = n, values_fill = 0))
+  cat(&quot;\nPOLE (excluded from the panels): n = &quot;, pole_n,
+      &quot;, median TMB = &quot;, round(pole_med, 1), &quot; mut/Mb\n&quot;, sep = &quot;&quot;)
+} else cat(&quot;TMB part skipped — needs the 2013 cohort with TMB_NONSYNONYMOUS.\n&quot;)</code></pre>
+<pre><code>patients per cut x MMR group x aneuploidy status:
+# A tibble: 4 × 4
+  as_cut_lab mmr_group `AS High` `AS Low`
+  &lt;fct&gt;      &lt;fct&gt;         &lt;int&gt;    &lt;int&gt;
+1 AS cut 0.1 MMRp             74       76
+2 AS cut 0.1 MMRd              6       59
+3 AS cut 0.2 MMRp             44      106
+4 AS cut 0.2 MMRd              3       62
+
+POLE (excluded from the panels): n = 17, median TMB = 225.9 mut/Mb</code></pre>
+<p>TCGA TMB in aneuploidy-high versus aneuploidy-low tumours, one column
+per MMR group and one <strong>row per aneuploidy cut</strong>, boxes
+filled by aneuploidy status and the dashed line at the TMB-high cut.
+<code>attend_box()</code> picks the mark per facet cell from the data —
+box and points where the cell has at least ten patients, a median
+crossbar and points below that — so <code>by</code> carries the cut as
+well as the MMR group, or a cell’s mark would be chosen from both cuts’
+patients at once. The TCGA MMRd aneuploidy-high cell is small and
+quartiles drawn from a handful of values would be an artefact of which
+two landed in the middle. The layout is <code>facet_wrap()</code> over
+both variables rather than <code>facet_grid()</code> because each panel
+needs its <strong>own</strong> y axis: MMRd TMB sits an order of
+magnitude above MMRp, and <code>facet_grid()</code> frees y by row only,
+which would put the two MMR groups back on one scale.</p>
+<pre class="r"><code>if (nrow(tcga_tmb) &gt; 0) {
+  # fill rides the TOP-LEVEL aes and attend_box(fill = NULL) inherits it — the idiom every
+  # other semantic-fill box in the pipeline uses. attend_box() applies outlier.shape = NA
+  # itself (it always draws the points, so an outlier layer would double-plot patients);
+  # it takes no geom_boxplot passthrough, so naming one here is an error, not a no-op.
+  ggplot(tcga_tmb, aes(aneuploidy_class, tmb, fill = aneuploidy_class)) +
+    attend_box(tcga_tmb, x = &quot;aneuploidy_class&quot;, y = &quot;tmb&quot;,
+               by = c(&quot;mmr_group&quot;, &quot;as_cut_lab&quot;), fill = NULL) +
+    geom_hline(yintercept = attend_thresholds$tmb, linetype = &quot;dashed&quot;,
+               colour = attend_aneu_high, linewidth = 0.4) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label, name = attend_as_legend) +
+    scale_x_discrete(labels = as_label) +
+    facet_wrap(~ as_cut_lab + mmr_group, scales = &quot;free_y&quot;,
+               nrow = dplyr::n_distinct(tcga_tmb$as_cut_lab)) +
+    labs(title = &quot;TCGA UCEC — TMB by aneuploidy status, within MMR strata, at each cut&quot;,
+         subtitle = paste0(&quot;dashed = TMB-high cut (&quot;, attend_thresholds$tmb, &quot; mut/Mb); &quot;,
+                           &quot;aneuploidy-high = score &gt;= the row&#39;s cut (&quot;,
+                           paste(signif(tcga_cuts, 3), collapse = &quot;, &quot;), &quot;); POLE excluded&quot;),
+         x = NULL, y = &quot;TMB (mut/Mb, nonsynonymous)&quot;) +
+    attend_theme()
+} else cat(&quot;No TCGA TMB/aneuploidy data to plot.\n&quot;)</code></pre>
+<p><img src="figure/11-mmrd-crosscohort.Rmd/tcga-tmb-box-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>The same contrast as counts: the TMB-high fraction on each side of
+the aneuploidy line, within each MMR group <strong>and within each
+cut</strong>, with a Fisher exact test per cell of that grid — the cut
+is a grouping key, never pooled, since pooling would count the same
+patient twice under two classifications. The test is withheld — reported
+as NA — wherever an aneuploidy group holds fewer than three patients,
+because a 2×2 with a cell of one or two produces a p-value that moves
+entirely with a single reclassification; the higher cut demotes patients
+into the low arm, so a row can lose its test even where the lower cut
+kept one.</p>
+<pre class="r"><code>if (nrow(tcga_tmb) &gt; 0) {
+  tab &lt;- tcga_tmb |&gt;
+    group_by(as_cut_lab, mmr_group) |&gt;
+    group_modify(function(.x, ...) {
+      hi    &lt;- .x$tmb &gt;= attend_thresholds$tmb
+      is_lo &lt;- .x$aneuploidy_class == &quot;aneuploidy-low&quot;
+      n_lo &lt;- sum(is_lo); n_hi &lt;- sum(!is_lo)
+      hilo &lt;- sum(is_lo &amp; hi); hihi &lt;- sum(!is_lo &amp; hi)
+      p &lt;- if (n_lo &gt;= 3 &amp;&amp; n_hi &gt;= 3)
+        suppressWarnings(stats::fisher.test(
+          matrix(c(hilo, n_lo - hilo, hihi, n_hi - hihi), 2))$p.value) else NA_real_
+      tibble(aneu_low_n = n_lo, TMBhi_in_low = hilo,
+             aneu_high_n = n_hi, TMBhi_in_high = hihi,
+             fisher_p = if (is.na(p)) NA_character_ else signif(p, 3))
+    })
+  knitr::kable(tab, caption = paste0(
+    &quot;TMB-high (&gt;= &quot;, attend_thresholds$tmb, &quot; mut/Mb) fraction by aneuploidy status, within &quot;,
+    &quot;each MMR group at each cut. Fisher exact per cut x MMR group, never pooled across &quot;,
+    &quot;cuts; NA when an aneuploidy group has &lt; 3 patients.&quot;))
+} else cat(&quot;TMB 2x2 skipped.\n&quot;)</code></pre>
+<table>
+<caption>TMB-high (&gt;= 10 mut/Mb) fraction by aneuploidy status,
+within each MMR group at each cut. Fisher exact per cut x MMR group,
+never pooled across cuts; NA when an aneuploidy group has &lt; 3
+patients.</caption>
+<colgroup>
+<col width="13%" />
+<col width="12%" />
+<col width="13%" />
+<col width="16%" />
+<col width="15%" />
+<col width="17%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">as_cut_lab</th>
+<th align="left">mmr_group</th>
+<th align="right">aneu_low_n</th>
+<th align="right">TMBhi_in_low</th>
+<th align="right">aneu_high_n</th>
+<th align="right">TMBhi_in_high</th>
+<th align="right">fisher_p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AS cut 0.1</td>
+<td align="left">MMRp</td>
+<td align="right">76</td>
+<td align="right">2</td>
+<td align="right">74</td>
+<td align="right">0</td>
+<td align="right">0.497</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.1</td>
+<td align="left">MMRd</td>
+<td align="right">59</td>
+<td align="right">28</td>
+<td align="right">6</td>
+<td align="right">3</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="odd">
+<td align="left">AS cut 0.2</td>
+<td align="left">MMRp</td>
+<td align="right">106</td>
+<td align="right">2</td>
+<td align="right">44</td>
+<td align="right">0</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.2</td>
+<td align="left">MMRd</td>
+<td align="right">62</td>
+<td align="right">30</td>
+<td align="right">3</td>
+<td align="right">1</td>
+<td align="right">1.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div
+id="part-5-the-split-in-tcga-mmrd-survival-and-why-it-cannot-decide-anything"
+class="section level2">
+<h2>Part 5 — the split in TCGA MMRd survival, and why it cannot decide
+anything</h2>
+<p>Parts 1–3 ask whether a split exists; this asks whether it carries
+outcome signal in primary disease. <strong>Read the event count before
+the p-value, and treat this part as descriptive only.</strong> TCGA UCEC
+is an early-stage, long-follow-up cohort with very few events among MMRd
+patients — of the order of a dozen deaths under the
+<code>"tcga_exact"</code> rule. At that event count the test cannot
+detect even a large hazard ratio, so a non-significant result here is
+<strong>not</strong> evidence that the split is absent in primary
+disease, and a significant one is fragile, threshold-dependent noise.
+The arms that can discriminate are shape, level and prevalence.</p>
+<p>The cuts are ATTEND’s own cutpoints when the scales match and,
+otherwise, a single median taken <strong>within the MMRd subset
+itself</strong> — this part asks whether aneuploidy substructures MMRd,
+so the fallback line has to fall inside that stratum; the cohort-wide
+median used in Part 4 would leave an aneuploidy-high arm of a handful of
+patients here. Labelled either way, and frozen before the outcome is
+looked at. Every row of the table is fitted <strong>within one
+cut</strong> — one log-rank, one unadjusted Cox and one adjusted Cox per
+cut per endpoint — so no model sees a patient under two classifications.
+Progression-free survival is the primary endpoint because it carries
+more events than OS in this cohort and is the endpoint the paper’s own
+Fig. 1b uses; OS is reported beside it. Each row carries a log-rank p,
+an unadjusted Cox HR, and a Cox HR <strong>adjusted for stage and
+grade</strong> — TCGA UCEC is heavily Stage I, so an unadjusted split
+can be reading stage rather than biology, though the adjustment does not
+rescue an underpowered comparison, it only stops an unadjusted one from
+misleading.</p>
+<pre class="r"><code>surv_ok &lt;- have_tcga &amp;&amp; requireNamespace(&quot;survival&quot;, quietly = TRUE)
+
+# Braces required: a top-level `if (x) a` with `else` on the NEXT line is an R syntax error.
+cut_lab &lt;- if (same_cut) {
+  paste0(&quot;ATTEND cutpoints (ASCETS &gt;= &quot;, paste(cuts, collapse = &quot;, &quot;), &quot;)&quot;)
+} else {
+  # MMRd&#39;s OWN median, not the cohort&#39;s — this is a within-stratum split (see the cohorts
+  # chunk), and the label has to say which line the curves were actually cut at.
+  paste0(&quot;within-MMRd median (&gt;= &quot;, signif(tcga_mmrd_cuts, 3), &quot;)&quot;)
+}
+
+# MMRd rows of the per-cut frame: aneuploidy_class is already re-derived at each cut, so the
+# only thing added here is the stage/grade adjustment model&#39;s inputs.
+tcga_surv &lt;- if (surv_ok &amp;&amp; nrow(tcga_mmrd_cuts_df) &gt; 0) {
+  tcga_mmrd_cuts_df |&gt;
+    filter(mmrd %in% TRUE, is.finite(aneuploidy)) |&gt;
+    mutate(stage_bin = factor(dplyr::case_when(stage %in% c(&quot;Stage I&quot;, &quot;Stage II&quot;)   ~ &quot;I-II&quot;,
+                                               stage %in% c(&quot;Stage III&quot;, &quot;Stage IV&quot;) ~ &quot;III-IV&quot;,
+                                               TRUE ~ NA_character_)),
+           grade_f   = factor(grade))
+} else NULL
+
+# `d` is ONE cut&#39;s rows. Taking the frame as an argument rather than reading tcga_surv is
+# what keeps a model from pooling the two classifications of the same patient.
+fit_one &lt;- function(d, tcol, ecol, label) {
+  if (is.null(d) || !all(c(tcol, ecol) %in% names(d))) return(NULL)
+  x &lt;- d |&gt; filter(is.finite(.data[[tcol]]), !is.na(.data[[ecol]]),
+                   !is.na(aneuploidy_class))
+  if (nrow(x) == 0 || dplyr::n_distinct(x$aneuploidy_class) &lt; 2) return(NULL)
+  S  &lt;- survival::Surv(x[[tcol]], x[[ecol]])
+  sd &lt;- survival::survdiff(S ~ x$aneuploidy_class)
+  p  &lt;- 1 - stats::pchisq(sd$chisq, length(sd$n) - 1)
+  ci &lt;- summary(survival::coxph(S ~ aneuploidy_class, data = x))$conf.int[1, c(1, 3, 4)]
+  # Stage/grade adjustment: NA when a stratum is empty or the model fails to converge.
+  adj &lt;- tryCatch(summary(survival::coxph(S ~ aneuploidy_class + stage_bin + grade_f,
+                                          data = x))$conf.int[1, c(1, 3, 4)],
+                  error = function(e) c(NA_real_, NA_real_, NA_real_))
+  ev &lt;- tapply(x[[ecol]], x$aneuploidy_class, sum)
+  tibble(endpoint = label,
+         n_low = sum(x$aneuploidy_class == &quot;aneuploidy-low&quot;),
+         n_high = sum(x$aneuploidy_class == &quot;aneuploidy-high&quot;),
+         events_low = unname(ev[1]), events_high = unname(ev[2]),
+         events_total = sum(x[[ecol]]),
+         logrank_p = signif(p, 3),
+         HR = sprintf(&quot;%.2f (%.2f-%.2f)&quot;, ci[1], ci[2], ci[3]),
+         HR_adj_stage_grade = if (is.na(adj[1])) &quot;n/a&quot; else
+           sprintf(&quot;%.2f (%.2f-%.2f)&quot;, adj[1], adj[2], adj[3]))
+}
+
+st &lt;- NULL
+if (!is.null(tcga_surv) &amp;&amp; nrow(tcga_surv) &gt; 0) {
+  st &lt;- bind_rows(lapply(split(tcga_surv, droplevels(tcga_surv$as_cut_lab)), function(d)
+    bind_rows(fit_one(d, &quot;pfs_months&quot;, &quot;pfs_event&quot;, &quot;PFS (primary)&quot;),
+              fit_one(d, &quot;os_months&quot;,  &quot;os_event&quot;,  &quot;OS&quot;)) |&gt;
+      mutate(cut = as.character(d$as_cut_lab[1]), .before = 1)))
+}
+if (!is.null(st) &amp;&amp; nrow(st) &gt; 0) {
+  knitr::kable(st, caption = paste0(
+    &quot;TCGA UCEC MMRd survival by aneuploidy split, one block per cut — &quot;, cut_lab,
+    &quot;. Every model is fitted within its own cut. READ events_total FIRST: below ~30 events &quot;,
+    &quot;neither a significant nor a non-significant result is informative.&quot;))
+} else cat(&quot;TCGA survival table skipped — needs data/tcga_2013/ + the survival package.\n&quot;)</code></pre>
+<table>
+<caption>TCGA UCEC MMRd survival by aneuploidy split, one block per cut
+— ATTEND cutpoints (ASCETS &gt;= 0.1, 0.2). Every model is fitted within
+its own cut. READ events_total FIRST: below ~30 events neither a
+significant nor a non-significant result is informative.</caption>
+<colgroup>
+<col width="9%" />
+<col width="11%" />
+<col width="4%" />
+<col width="5%" />
+<col width="9%" />
+<col width="9%" />
+<col width="10%" />
+<col width="8%" />
+<col width="14%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">cut</th>
+<th align="left">endpoint</th>
+<th align="right">n_low</th>
+<th align="right">n_high</th>
+<th align="right">events_low</th>
+<th align="right">events_high</th>
+<th align="right">events_total</th>
+<th align="right">logrank_p</th>
+<th align="left">HR</th>
+<th align="left">HR_adj_stage_grade</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AS cut 0.1</td>
+<td align="left">PFS (primary)</td>
+<td align="right">55</td>
+<td align="right">5</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">10</td>
+<td align="right">0.8210</td>
+<td align="left">1.27 (0.16-10.04)</td>
+<td align="left">0.00 (0.00-Inf)</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.1</td>
+<td align="left">OS</td>
+<td align="right">59</td>
+<td align="right">6</td>
+<td align="right">5</td>
+<td align="right">2</td>
+<td align="right">7</td>
+<td align="right">0.0576</td>
+<td align="left">4.32 (0.83-22.49)</td>
+<td align="left">1.59 (0.14-17.80)</td>
+</tr>
+<tr class="odd">
+<td align="left">AS cut 0.2</td>
+<td align="left">PFS (primary)</td>
+<td align="right">58</td>
+<td align="right">2</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">10</td>
+<td align="right">0.1340</td>
+<td align="left">4.28 (0.54-33.91)</td>
+<td align="left">0.00 (0.00-Inf)</td>
+</tr>
+<tr class="even">
+<td align="left">AS cut 0.2</td>
+<td align="left">OS</td>
+<td align="right">62</td>
+<td align="right">3</td>
+<td align="right">6</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">0.0937</td>
+<td align="left">5.13 (0.61-43.22)</td>
+<td align="left">0.00 (0.00-Inf)</td>
+</tr>
+</tbody>
+</table>
+<p>The Kaplan–Meier for whichever endpoint carries the most events at
+that cut — the least underpowered picture available, not a separate
+analysis — drawn <strong>once per cut, in a loop</strong> rather than as
+a faceted figure: <code>ggsurvfit</code> builds its p-value annotation
+and its risk table per plot, and a facet would leave one risk table
+under two sets of curves. Each cut therefore gets its own endpoint
+choice, its own p and its own risk table. Curves take the aneuploidy
+palette, so aneuploidy-high is the same red here as in every other
+figure on the site. The risk table is the part to read: it shows how
+quickly both arms run out of patients at risk, which is the concrete
+form of the power limit stated above.</p>
+<pre class="r"><code>if (!is.null(tcga_surv) &amp;&amp; requireNamespace(&quot;ggsurvfit&quot;, quietly = TRUE) &amp;&amp;
+    !is.null(st) &amp;&amp; nrow(st) &gt; 0) {
+  for (lv in levels(droplevels(tcga_surv$as_cut_lab))) {
+    sl &lt;- st |&gt; filter(cut == lv)
+    if (nrow(sl) == 0) { note_skip(lv, &quot;: no fitted endpoint, so no KM.&quot;); next }
+    best &lt;- sl$endpoint[which.max(sl$events_total)]
+    tcol &lt;- if (grepl(&quot;^PFS&quot;, best)) &quot;pfs_months&quot; else &quot;os_months&quot;
+    ecol &lt;- if (grepl(&quot;^PFS&quot;, best)) &quot;pfs_event&quot;  else &quot;os_event&quot;
+    d &lt;- tcga_surv |&gt;
+      filter(as.character(as_cut_lab) == lv, is.finite(.data[[tcol]]),
+             !is.na(.data[[ecol]]), !is.na(aneuploidy_class)) |&gt;
+      mutate(time = .data[[tcol]], event = .data[[ecol]])
+    if (nrow(d) &gt; 0 &amp;&amp; dplyr::n_distinct(d$aneuploidy_class) == 2) {
+      print(
+        ggsurvfit::survfit2(survival::Surv(time, event) ~ aneuploidy_class, data = d) |&gt;
+          ggsurvfit::ggsurvfit(linewidth = 1) +
+          ggsurvfit::add_pvalue() + ggsurvfit::add_risktable() +
+          # POSITIONAL, in the factor&#39;s own level order, not name-matched: ggsurvfit labels
+          # its strata from the formula and the exact spelling it lands on is its business,
+          # so a named lookup would fail with &quot;insufficient values in manual scale&quot; at knit
+          # time. Same reason km_facet() takes attend_pal(2) positionally. The loop is what
+          # keeps this safe across the two cuts: add_molecular_classes() rebuilds
+          # aneuploidy_class with the SAME low-then-high level order at every cut
+          # (test_class_level_order.R), and the n_distinct() == 2 guard above means both
+          # strata are present, so position 1 is always aneuploidy-low.
+          ggplot2::scale_colour_manual(
+            values = unname(attend_aneu_cols[c(&quot;aneuploidy-low&quot;, &quot;aneuploidy-high&quot;)])) +
+          ggplot2::labs(title = paste0(&quot;TCGA UCEC MMRd — &quot;, best, &quot; by aneuploidy split (&quot;,
+                                       lv, &quot;)&quot;),
+                        subtitle = paste0(&quot;n = &quot;, nrow(d), &quot;, &quot;, sum(d$event),
+                                          &quot; events — underpowered; read the CI, not the p&quot;)))
+    } else note_skip(lv, &quot;: not enough TCGA MMRd rows, or only one class, for the split KM.&quot;)
+  }
+} else cat(&quot;TCGA survival KM skipped — needs survival + ggsurvfit.\n&quot;)</code></pre>
+<pre><code>TCGA survival KM skipped — needs survival + ggsurvfit.</code></pre>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        lattice_0.22-5    
+ [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
+ [9] parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4       RColorBrewer_1.1-3
+[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
+[17] git2r_0.33.0       httpuv_1.6.12      htmltools_0.5.9    sass_0.4.10       
+[21] yaml_2.3.12        later_1.4.8        pillar_1.11.1      crayon_1.5.3      
+[25] jquerylib_0.1.4    whisker_0.4.1      diptest_0.77-2     cachem_1.1.0      
+[29] mclust_6.0.1       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
+[33] splines_4.3.2      labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0     
+[37] grid_4.3.2         cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1 
+[41] survival_3.8-11    utf8_1.2.6         withr_3.0.3        scales_1.4.0      
+[45] promises_1.5.0     bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31    
+[49] bit_4.6.0          otel_0.2.0         workflowr_1.7.2    cellranger_1.1.0  
+[53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
+[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
+[61] jsonlite_2.0.0     R6_2.6.1          </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        lattice_0.22-5    
+ [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
+ [9] parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4       RColorBrewer_1.1-3
+[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
+[17] git2r_0.33.0       httpuv_1.6.12      htmltools_0.5.9    sass_0.4.10       
+[21] yaml_2.3.12        later_1.4.8        pillar_1.11.1      crayon_1.5.3      
+[25] jquerylib_0.1.4    whisker_0.4.1      diptest_0.77-2     cachem_1.1.0      
+[29] mclust_6.0.1       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
+[33] splines_4.3.2      labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0     
+[37] grid_4.3.2         cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1 
+[41] survival_3.8-11    utf8_1.2.6         withr_3.0.3        scales_1.4.0      
+[45] promises_1.5.0     bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31    
+[49] bit_4.6.0          otel_0.2.0         workflowr_1.7.2    cellranger_1.1.0  
+[53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
+[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
+[61] jsonlite_2.0.0     R6_2.6.1          </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

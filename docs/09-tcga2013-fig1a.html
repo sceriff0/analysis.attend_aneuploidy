@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-17" />
+
+<title>ATTEND — 09. TCGA UCEC 2013 — Fig. 1a reproduced on TCGA’s own data</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 09. TCGA UCEC 2013 — Fig. 1a
+reproduced on TCGA’s own data</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-17</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/09-tcga2013-fig1a.Rmd</code>) and
+HTML (<code>docs/09-tcga2013-fig1a.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/09-tcga2013-fig1a.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/d688d09c81fe66906ddcd74aee476ec5a02c0699/analysis/09-tcga2013-fig1a.Rmd" target="_blank">d688d09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: One spelling and one palette per concept, across every report
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/2ab2dfac5d0f0c4c863dacbe5a46a043c424ce93/analysis/09-tcga2013-fig1a.Rmd" target="_blank">2ab2dfa</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:bug: serous_in_top matched a string subtype_short never contains
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/09-tcga2013-fig1a.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Run on TCGA’s own data, does this
+pipeline’s Fig-1a reproduction recover TCGA’s published copy-number
+partition — and where do MMR status and aneuploidy sit on that figure?
+<strong>Cohort.</strong> TCGA UCEC 2013, every tumour carrying SNP6
+segments. <strong>Reads.</strong> data/tcga_2013/ (data_cna_hg19.seg,
+the two clinical tables, pancan_aneuploidy.tsv),
+data/tcga_gistic_peaks_2013.tsv, and data/arm_boundaries_hg19.tsv.
+<strong>Out of scope.</strong> The ATTEND cohort and its cascade -&gt;
+<a
+href="07-molecular-classification.html">07-molecular-classification</a>.
+Why Euclidean / Ward.D2, and why the heatmap draws a different matrix
+from the one it clusters -&gt; <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<p>This is <a
+href="07-molecular-classification.html">07-molecular-classification</a>’s
+figure, built the same way, on <strong>TCGA’s own tumours</strong>. It
+exists because here <strong>the right answer is published</strong>: the
+2013 study ships its own copy-number cluster assignment
+(<code>CNA_CLUSTER_K4</code>), so the pipeline can be scored rather than
+merely inspected. If it cannot recover TCGA’s partition on TCGA’s data,
+report 07’s ATTEND clusters need a second look before they are
+interpreted.</p>
+<p>It also draws something the paper could not. TCGA 2013 has <strong>no
+per-sample aneuploidy score</strong> — the score used here is
+retrofitted from the later PanCancer-Atlas work — so the relationship
+between the four SCNA clusters and aneuploidy was never plotted. Every
+heatmap below carries an aneuploidy bar, and Part 4 makes the comparison
+explicit.</p>
+<p>Two properties make this a cleaner test than report 07 can be:</p>
+<ul>
+<li><strong>The peaks are published.</strong> Report 07 clusters peaks
+GISTIC learned <em>from ATTEND</em>, and a TCGA run of our own would
+need parameters TCGA never published (the Supplementary Methods say only
+<em>“identified from segmented data using GISTIC 2.0”</em> — no
+<code>-ta</code>/<code>-td</code>/<code>-conf</code>, no reference
+build). Here the peak list is TCGA’s own, from Supplementary Data File
+S2.1, so the clustering feature involves no parameter guess and no
+GISTIC run.</li>
+<li><strong>No liftover.</strong> TCGA’s segments and TCGA’s published
+peak boundaries are both hg19, so the peaks apply directly and the
+genome bins use the bundled hg19 arm table. Binning hg19 coordinates
+against hg38 lengths would shift every bin and misplace every
+centromere.</li>
+</ul>
+<p>What remains ours, and cannot be taken from the paper: the
+<strong>distance and linkage</strong>. The Supplementary Methods name
+none for the copy-number clustering, so this report uses the pipeline’s
+configured pair, exactly as report 07 does.</p>
+<div id="part-1-the-two-matrices" class="section level2">
+<h2>Part 1 — the two matrices</h2>
+<p>TCGA use <strong>two different matrices</strong> for this figure, and
+keeping them apart is what makes it the paper’s figure rather than a
+picture of a clustering input — <a href="00-methods.html">00-methods</a>
+sets out the rule. Both are built here from the same
+<code>data/tcga_2013/data_cna_hg19.seg</code>.</p>
+<p><strong>The clustering feature</strong> is TCGA’s stated one (Suppl.
+Methods S2): <em>“thresholded relative copy number data in significantly
+reoccurring amplifications or deletions regions identified by GISTIC
+2.0.”</em> <code>published_peak_matrix_from_seg()</code> takes, for each
+sample × published peak, the length-weighted mean log2 seg-mean inside
+the peak’s wide boundaries (a peak with no overlapping segment becomes
+0, copy-neutral), then <strong>thresholds</strong> it, because S2 is
+explicit that the clustering ran on thresholded and not continuous
+values. The cut points are not published, so they are configuration here
+and stated in the table below.</p>
+<p><strong>The display feature</strong> is what the Fig. 1a legend
+describes: <em>“SCNAs in each tumour (horizontal axis) plotted by
+chromosomal location (vertical axis)”</em> — the whole genome, on a
+continuous colour scale. <code>segments_to_bin_matrix()</code> tiles the
+same segments into 1 Mb bins genome-wide using the hg19 arm table for
+chromosome lengths and order, taking the length-weighted mean
+<code>Segment_Mean</code> per sample × bin, uncovered genome = 0.</p>
+<pre class="r"><code># |x| &lt; 0.1 -&gt; 0 ; 0.1 &lt;= |x| &lt; 0.9 -&gt; +-1 (low-level) ; |x| &gt;= 0.9 -&gt; +-2 (high-level).
+# NOT TCGA&#39;s cut points, which were never published — hence stated on the page, not buried.
+thr_cuts &lt;- c(0.1, 0.9)
+
+# RESTRICT TO TCGA&#39;S OWN CORE SET. data_clinical_sample.txt carries DATA_CORE_SAMPLE (Y/N),
+# and the missing integrated SUBTYPE tracks it EXACTLY: 141 of 373 samples are non-core and
+# all 141 are the ones with no subtype, while all 232 core samples have one. So the gap is
+# TCGA&#39;s study design, not a hole in our export -- see the prose above. Set to FALSE to draw
+# the paper&#39;s own denominator (all tumours with copy number, n = 363) at the cost of an
+# unlabelled third of the annotation.
+core_only &lt;- TRUE
+
+tcga_clin &lt;- tryCatch(load_tcga_ucec_2013(),   error = function(e) tibble())
+tcga_seg  &lt;- tryCatch(load_tcga_2013_seg(),    error = function(e) tibble())
+peaks     &lt;- tryCatch(load_tcga_published_peaks(), error = function(e) tibble())
+# hg19, NOT the pipeline default: these are SNP6 segments on hg19 coordinates.
+arms19    &lt;- tryCatch(load_arm_boundaries(build = &quot;hg19&quot;), error = function(e) NULL)
+
+have_seg   &lt;- nrow(tcga_seg) &gt; 0
+have_peaks &lt;- nrow(peaks) &gt; 0
+
+# Kept unfiltered for the cohort-cost comparison in Part 3 — restricting the cohort changes
+# the clustering, so the price of `core_only` has to be measured, not assumed.
+tcga_seg_all  &lt;- tcga_seg
+tcga_clin_all &lt;- tcga_clin
+
+if (core_only &amp;&amp; nrow(tcga_clin) &gt; 0 &amp;&amp; &quot;core_sample&quot; %in% names(tcga_clin)) {
+  keep_ids &lt;- tcga_clin$ID[tcga_clin$core_sample %in% TRUE]
+  n_before &lt;- nrow(tcga_clin)
+  tcga_clin &lt;- tcga_clin |&gt; filter(ID %in% keep_ids)
+  if (have_seg) tcga_seg &lt;- tcga_seg |&gt; filter(ID %in% keep_ids)
+  cat(&quot;Restricted to TCGA&#39;s core set (DATA_CORE_SAMPLE = Y):&quot;, nrow(tcga_clin), &quot;of&quot;,
+      n_before, &quot;tumours. The&quot;, n_before - nrow(tcga_clin), &quot;dropped are exactly the ones&quot;,
+      &quot;with no integrated subtype.\n&quot;)
+} else if (core_only) {
+  cat(&quot;core_only = TRUE but no DATA_CORE_SAMPLE column is available —&quot;,
+      &quot;drawing every tumour with copy number.\n&quot;)
+}</code></pre>
+<pre><code>Restricted to TCGA&#39;s core set (DATA_CORE_SAMPLE = Y): 232 of 373 tumours. The 141 dropped are exactly the ones with no integrated subtype.</code></pre>
+<pre class="r"><code># CLUSTERING matrix — thresholded, peak-restricted (S2&#39;s feature space).
+clust_mat &lt;- if (have_seg &amp;&amp; have_peaks)
+  published_peak_matrix_from_seg(tcga_seg, peaks, threshold = thr_cuts) else NULL
+# DISPLAY matrix — continuous, genome-wide (the Fig-1a body).
+disp_mat  &lt;- if (have_seg &amp;&amp; !is.null(arms19))
+  segments_to_bin_matrix(tcga_seg, arms19) else NULL
+
+# Drop bins on chromosomes this cohort has NO segments for at all.
+# segments_to_bin_matrix() fills uncovered genome with 0 = copy-neutral, which is the right
+# assumption for a gap inside a chromosome that WAS assayed and the wrong one for a whole
+# chromosome that never was: the hg19 arm table carries chrY, this is a uterine cohort with
+# zero chrY segments, and its all-zero chrY bins would render as a white &quot;no alteration&quot; block
+# instead of &quot;not applicable&quot;. Driven by the cohort&#39;s own coverage, not a chrY special case.
+if (!is.null(disp_mat)) {
+  covered &lt;- unique(paste0(&quot;chr&quot;, str_remove(as.character(tcga_seg$Chromosome), &quot;^chr&quot;)))
+  bin_chr &lt;- str_extract(setdiff(names(disp_mat), &quot;ID&quot;), &quot;^chr[0-9XY]+&quot;)
+  drop_b  &lt;- setdiff(names(disp_mat), &quot;ID&quot;)[!bin_chr %in% covered]
+  if (length(drop_b)) {
+    disp_mat &lt;- disp_mat |&gt; select(-all_of(drop_b))
+    cat(&quot;Dropped&quot;, length(drop_b), &quot;genome bins on chromosome(s) with no segments in this&quot;,
+        &quot;cohort:&quot;, paste(sort(unique(str_extract(drop_b, &quot;^chr[0-9XY]+&quot;))), collapse = &quot;, &quot;),
+        &quot;— all-zero bins there would read as &#39;no alteration&#39; rather than &#39;not assayed&#39;.\n&quot;)
+  }
+}</code></pre>
+<pre><code>Dropped 60 genome bins on chromosome(s) with no segments in this cohort: chrY — all-zero bins there would read as &#39;no alteration&#39; rather than &#39;not assayed&#39;.</code></pre>
+<pre class="r"><code># cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
+if (!have_seg)
+  cat(&quot;**No TCGA segments** (data/tcga_2013/data_cna_hg19.seg) —&quot;,
+      &quot;run `Rscript code/fetch_tcga_ucec_2013.R`. Every panel below is skipped.\n&quot;)
+if (have_seg &amp;&amp; !have_peaks)
+  cat(&quot;**No published peak list** (data/tcga_gistic_peaks_2013.tsv) —&quot;,
+      &quot;the clustering feature cannot be built.\n&quot;)
+if (have_seg &amp;&amp; is.null(arms19))
+  cat(&quot;**No hg19 arm table** (data/arm_boundaries_hg19.tsv) —&quot;,
+      &quot;the genome-wide display matrix cannot be built; the heatmap will fall back.\n&quot;)</code></pre>
+<p>Both matrices side by side, so the difference between what is
+clustered and what is drawn is a number on the page rather than a claim
+in prose. The row counts are the point: a few dozen peaks against a few
+thousand genome bins.</p>
+<pre class="r"><code>if (!is.null(clust_mat) || !is.null(disp_mat)) {
+  knitr::kable(tibble(
+    role     = c(&quot;clustered&quot;, &quot;displayed&quot;),
+    matrix   = c(&quot;published GISTIC peaks, THRESHOLDED&quot;,
+                 &quot;1 Mb genome bins, CONTINUOUS&quot;),
+    samples  = c(if (is.null(clust_mat)) NA_integer_ else nrow(clust_mat),
+                 if (is.null(disp_mat))  NA_integer_ else nrow(disp_mat)),
+    features = c(if (is.null(clust_mat)) NA_integer_ else ncol(clust_mat) - 1L,
+                 if (is.null(disp_mat))  NA_integer_ else ncol(disp_mat)  - 1L),
+    provenance = c(paste0(&quot;Suppl. Data File S2.1 peaks; cut at &quot;,
+                          paste(thr_cuts, collapse = &quot;/&quot;)),
+                   &quot;data_cna_hg19.seg tiled on arm_boundaries_hg19.tsv&quot;),
+    caption_note = c(&quot;Suppl. Methods S2 feature space&quot;, &quot;Fig. 1a legend&quot;)),
+    caption = paste0(&quot;The two matrices. Only the first is clustered; only the second is &quot;,
+                     &quot;drawn. Both come from the same hg19 segment file.&quot;))
+} else cat(&quot;Matrix summary skipped — no segments.\n&quot;)</code></pre>
+<table>
+<caption>The two matrices. Only the first is clustered; only the second
+is drawn. Both come from the same hg19 segment file.</caption>
+<colgroup>
+<col width="6%" />
+<col width="24%" />
+<col width="5%" />
+<col width="6%" />
+<col width="34%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">role</th>
+<th align="left">matrix</th>
+<th align="right">samples</th>
+<th align="right">features</th>
+<th align="left">provenance</th>
+<th align="left">caption_note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">clustered</td>
+<td align="left">published GISTIC peaks, THRESHOLDED</td>
+<td align="right">232</td>
+<td align="right">79</td>
+<td align="left">Suppl. Data File S2.1 peaks; cut at 0.1/0.9</td>
+<td align="left">Suppl. Methods S2 feature space</td>
+</tr>
+<tr class="even">
+<td align="left">displayed</td>
+<td align="left">1 Mb genome bins, CONTINUOUS</td>
+<td align="right">232</td>
+<td align="right">3053</td>
+<td align="left">data_cna_hg19.seg tiled on arm_boundaries_hg19.tsv</td>
+<td align="left">Fig. 1a legend</td>
+</tr>
+</tbody>
+</table>
+<p>The cohort as TCGA classified it, which is also the annotation stack
+for the heatmap. Every column here is <strong>TCGA’s own published
+field</strong>, not a call of ours: the integrative subtype, the
+MSI-derived MMR status, and the published copy-number cluster.
+Aneuploidy is the one exception and is flagged as such — it is
+retrofitted from the PanCancer-Atlas table
+(<code>pancan_aneuploidy.tsv</code>, a <em>count</em> of altered arms,
+0–39), or from ASCETS run on these same segments when
+<code>code/run_ascets_tcga.sh</code> has been run, which puts it on
+ATTEND’s own 0–1 scale. Whichever is used is named in the table.</p>
+<p><strong>Why a third of the cohort has no integrated subtype, and why
+it is dropped here.</strong> The missing <code>SUBTYPE</code> is not a
+hole in this export — it is TCGA’s study design, and the sample table
+proves it. <code>DATA_CORE_SAMPLE</code> is <code>Y</code> for
+<strong>232</strong> of 373 samples and <code>N</code> for
+<strong>141</strong>, and those 141 non-core samples are
+<em>exactly</em> the 141 with no subtype: zero disagreements in either
+direction. The integrated classification required the full multiplatform
+data (exome, methylation, mRNA, miRNA), which only the core set has; the
+remaining 141 tumours carry SNP6 copy number and were never
+integratively classified. TCGA’s published cross-tabulation shows the
+same boundary — <code>Copy-number high (Serous-like)</code> is
+<strong>60/60</strong> inside published cluster 4,
+<code>MSI (Hyper-mutated)</code> spreads across clusters 1–3 (22/31/10)
+with only 2 in cluster 4, and the 141 non-core tumours sit outside all
+of it.</p>
+<p><code>core_only</code> above therefore restricts to TCGA’s own core
+set rather than to a criterion of ours, and the count is printed so the
+denominator is never implicit. Set it to <code>FALSE</code> to recover
+the paper’s own denominator — Fig. 1a used every tumour with copy
+number.</p>
+<p>⚠️ <strong>The restriction is not free, and Part 3 measures what it
+costs.</strong> Dropping the non-core tumours removes the unclassified
+annotation block, but it also re-clusters a third fewer tumours, and on
+this cohort that degrades the reproduction sharply: agreement with
+TCGA’s published partition falls and the published serous-like tumours
+stop concentrating in the highest-burden cluster. The distance × cohort
+table in Part 3 prints both, so the trade is visible on the page rather
+than buried in a flag.</p>
+<p><strong>TP53 is absent from this report’s annotation stack</strong>,
+unlike report 07’s. <code>data/tcga_2013/</code> carries clinical tables
+and segments only — no mutation calls — so there is nothing to build a
+TP53 bar from, and an all-NA bar is dropped rather than drawn as an
+empty row.</p>
+<pre class="r"><code>tcga_ascets &lt;- tryCatch(load_tcga_2013_ascets(), error = function(e) tibble())
+use_ascets  &lt;- nrow(tcga_ascets) &gt; 0
+
+aneu_tbl &lt;- if (use_ascets) {
+  tcga_ascets |&gt; transmute(ID, aneuploidy_value = ascets_aneuploidy)
+} else if (nrow(tcga_clin) &gt; 0) {
+  tcga_clin |&gt; transmute(ID, aneuploidy_value = aneuploidy)
+} else NULL
+aneu_label &lt;- if (use_ascets)
+  &quot;ASCETS fraction of evaluable arms (0-1) — same statistic as ATTEND&quot; else
+  &quot;PanCancer-Atlas arm COUNT (0-39, Taylor 2018) — NOT ATTEND&#39;s scale&quot;
+
+if (nrow(tcga_clin) &gt; 0) {
+  knitr::kable(tibble(
+    field = c(&quot;tumours with clinical data&quot;, &quot;with a published CN cluster&quot;,
+              &quot;with an integrative subtype&quot;, &quot;MMR-deficient (TCGA&#39;s MSI cluster)&quot;,
+              &quot;POLE-ultramutated&quot;, &quot;with an aneuploidy value&quot;),
+    n = c(nrow(tcga_clin),
+          sum(!is.na(tcga_clin$cn_cluster_k4)),
+          sum(!is.na(tcga_clin$subtype_short)),
+          sum(tcga_clin$mmrd %in% TRUE),
+          sum(tcga_clin$pole %in% TRUE),
+          if (is.null(aneu_tbl)) 0L else sum(is.finite(aneu_tbl$aneuploidy_value)))),
+    caption = paste0(&quot;TCGA UCEC 2013 as published. Aneuploidy source: &quot;, aneu_label,
+                     &quot;. A third of the cohort has no integrative subtype — it was assigned &quot;,
+                     &quot;to the core set only — which is why the heatmap legends the missing &quot;,
+                     &quot;category explicitly instead of leaving it an unlabelled grey.&quot;))
+} else cat(&quot;Cohort table skipped — no clinical data.\n&quot;)</code></pre>
+<table>
+<caption>TCGA UCEC 2013 as published. Aneuploidy source: ASCETS fraction
+of evaluable arms (0-1) — same statistic as ATTEND. A third of the
+cohort has no integrative subtype — it was assigned to the core set only
+— which is why the heatmap legends the missing category explicitly
+instead of leaving it an unlabelled grey.</caption>
+<thead>
+<tr class="header">
+<th align="left">field</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">tumours with clinical data</td>
+<td align="right">232</td>
+</tr>
+<tr class="even">
+<td align="left">with a published CN cluster</td>
+<td align="right">232</td>
+</tr>
+<tr class="odd">
+<td align="left">with an integrative subtype</td>
+<td align="right">232</td>
+</tr>
+<tr class="even">
+<td align="left">MMR-deficient (TCGA’s MSI cluster)</td>
+<td align="right">65</td>
+</tr>
+<tr class="odd">
+<td align="left">POLE-ultramutated</td>
+<td align="right">17</td>
+</tr>
+<tr class="even">
+<td align="left">with an aneuploidy value</td>
+<td align="right">365</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="part-2-the-fig-1a-heatmap" class="section level2">
+<h2>Part 2 — the Fig-1a heatmap</h2>
+<p>The clustering runs on the <strong>thresholded peak</strong> matrix
+with the pipeline’s configured cut, distance and linkage, and the
+copy-number-high cluster is named from that matrix’s own SCNA burden
+(<code>cnv_high_cluster_burden()</code>, mean |value| per cluster) so it
+never sees the aneuploidy score. The annotation frame is keyed by sample
+barcode, which is what <code>fig1a_heatmap()</code> indexes its columns
+by.</p>
+<pre class="r"><code>cl &lt;- if (!is.null(clust_mat) &amp;&amp; nrow(clust_mat) &gt;= k_cnv)
+  cluster_arm_matrix(clust_mat, k = k_cnv, method = cnv_method, dist_method = cnv_dist) else NULL
+
+high_cluster &lt;- if (!is.null(cl)) cnv_high_cluster_burden(cl) else NA_integer_
+
+# ORDER THE CLUSTERS BY SCNA BURDEN — the paper&#39;s x-axis. cutree() numbers clusters by order
+# of first appearance in the dendrogram, so the heatmap blocks come out in a sequence that
+# means nothing; Fig. 1a runs quiet -&gt; high, left -&gt; right. Relabelling is presentation only
+# (the partition is untouched, and ARI is label-invariant), but it is what makes the figure
+# read as the paper&#39;s, and it makes cluster numbers comparable to TCGA&#39;s published 1..4 and
+# to report 07&#39;s ATTEND clusters. `high_cluster` is TRANSLATED rather than assumed to be k:
+# it comes from cnv_high_cluster_burden() on the PEAK matrix, and whether the pipeline&#39;s own
+# rule agrees with the display-matrix ordering is exactly what Part 3 checks.
+if (!is.null(cl) &amp;&amp; !is.null(disp_mat)) {
+  dm0 &lt;- as.matrix(disp_mat[, setdiff(names(disp_mat), &quot;ID&quot;), drop = FALSE])
+  rownames(dm0) &lt;- disp_mat$ID
+  rl &lt;- relabel_clusters_by_burden(cl$cluster, dm0)
+  cl$cluster &lt;- rl$cluster
+  cl$assignment$cnv_cluster &lt;- unname(rl$map[as.character(cl$assignment$cnv_cluster)])
+  if (!is.na(high_cluster)) high_cluster &lt;- unname(rl$map[as.character(high_cluster)])
+  cat(&quot;Clusters relabelled by ascending SCNA burden (mean |log2| on the display matrix):\n&quot;)
+  print(round(sort(rl$burden), 4))
+}</code></pre>
+<pre><code>Clusters relabelled by ascending SCNA burden (mean |log2| on the display matrix):
+     2      1      4      3 
+0.0356 0.1870 0.2074 0.2468 </code></pre>
+<pre class="r"><code>ann &lt;- NULL
+if (!is.null(cl)) {
+  ids &lt;- rownames(cl$matrix)
+  ann &lt;- data.frame(CN_cluster = factor(cl$cluster[ids]), row.names = ids)
+  if (nrow(tcga_clin) &gt; 0) {
+    grab &lt;- function(col) tcga_clin[[col]][match(ids, tcga_clin$ID)]
+    ann$TCGA_class &lt;- factor(as.character(grab(&quot;subtype_short&quot;)),
+                             levels = levels(tcga_clin$subtype_short))
+    mm &lt;- grab(&quot;mmrd&quot;)
+    ann$MMR &lt;- factor(ifelse(is.na(mm), NA_character_, ifelse(mm, &quot;MMRd&quot;, &quot;MMRp&quot;)),
+                      levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;))
+    # TCGA&#39;s OWN partition as a bar, so agreement with the recomputed clusters beneath is
+    # readable by eye. Same cluster colours as the bottom bar (see .fig1a_covariate_cols):
+    # &quot;recomputed 3&quot; and &quot;published 3&quot; are the same colour on purpose.
+    ann$Published_CN_cluster &lt;- factor(as.character(grab(&quot;cn_cluster_k4&quot;)),
+                                       levels = as.character(1:4))
+  }
+  if (!is.null(aneu_tbl))
+    ann$Aneuploidy &lt;- aneu_tbl$aneuploidy_value[match(ids, aneu_tbl$ID)]
+  cat(&quot;Clustered&quot;, nrow(cl$matrix), &quot;tumours on&quot;, ncol(cl$matrix),
+      &quot;published peaks;&quot;, cnv_dist, &quot;distance +&quot;, cnv_method, &quot;linkage, k =&quot;, k_cnv,
+      &quot;\nHighest-burden (copy-number-high) cluster:&quot;, high_cluster, &quot;\n&quot;)
+} else cat(&quot;Clustering skipped — need the thresholded peak matrix.\n&quot;)</code></pre>
+<pre><code>Clustered 232 tumours on 79 published peaks; euclidean distance + ward.D2 linkage, k = 4 
+Highest-burden (copy-number-high) cluster: 4 </code></pre>
+<p>The figure. Rows are the 1 Mb genome bins ordered by chromosomal
+location and split by chromosome; columns are tumours, split by the
+peak-based clusters and ordered within each split by dendrogram; the
+body is the continuous log2 landscape, red for gain and blue for loss.
+The colour limit is the 98th percentile of |value|, so a handful of
+extreme amplifications cannot wash the whole panel out. The annotation
+bars, top to bottom, are TCGA’s integrative subtype, its MMR status, its
+published copy-number cluster, and aneuploidy as a binary split plus the
+continuous score. If the hg19 arm table is missing this falls back to
+drawing the thresholded peak matrix and says so — that fallback is
+<em>not</em> Fig. 1a, and the label on the panel states it rather than
+leaving the reader to infer it.</p>
+<pre class="r"><code>hm_mat &lt;- NULL
+if (!is.null(cl) &amp;&amp; !is.null(disp_mat)) {
+  dm &lt;- as.matrix(disp_mat[, setdiff(names(disp_mat), &quot;ID&quot;), drop = FALSE])
+  rownames(dm) &lt;- disp_mat$ID
+  dm &lt;- dm[rownames(dm) %in% names(cl$cluster), , drop = FALSE]   # clustered tumours only
+  if (nrow(dm) &gt;= 2) hm_mat &lt;- dm else
+    cat(&quot;The bin matrix shares&quot;, nrow(dm), &quot;samples with the clustering — falling back.\n&quot;)
+}
+if (!is.null(cl)) {
+  if (!is.null(hm_mat)) {
+    hm_vtype &lt;- &quot;continuous&quot;
+    hm_label &lt;- &quot;genome-wide continuous SCNA (1 Mb bins) — the Fig-1a display&quot;
+    feat_pos &lt;- feature_positions(colnames(hm_mat))     # &quot;chr1:0&quot; bins carry their own coords
+  } else {
+    hm_mat   &lt;- cl$matrix
+    hm_vtype &lt;- &quot;thresholded&quot;
+    hm_label &lt;- &quot;FALLBACK: thresholded published peaks (no hg19 bin matrix) — not Fig. 1a&quot;
+    pk_cyto  &lt;- if (have_peaks) peaks |&gt; distinct(peak_id, cytoband) |&gt; tibble::deframe() else NULL
+    feat_pos &lt;- feature_positions(colnames(hm_mat), cytoband = pk_cyto)
+  }
+
+  # WHY-IS-THERE-NO-HEATMAP gate. fig1a_heatmap() returns invisible(NULL) on several
+  # conditions, each announced only with message() — which opts_chunk (message = FALSE)
+  # swallows, so the figure just silently fails to appear. Whichever line reads FALSE / 0
+  # below is the reason.
+  cat(&quot;Fig-1a preconditions&quot;,
+      &quot;\n  displaying               :&quot;, hm_label,
+      &quot;\n  ComplexHeatmap installed :&quot;, requireNamespace(&quot;ComplexHeatmap&quot;, quietly = TRUE),
+      &quot;\n  circlize installed       :&quot;, requireNamespace(&quot;circlize&quot;, quietly = TRUE),
+      &quot;\n  display (samples x feat) :&quot;, nrow(hm_mat), &quot;x&quot;, ncol(hm_mat),
+      &quot;\n  clustered on             :&quot;, nrow(cl$matrix), &quot;x&quot;, ncol(cl$matrix), &quot;peaks&quot;,
+      &quot;\n  feature positions mapped :&quot;, sum(feat_pos$feature %in% colnames(hm_mat)),
+      &quot;\n  annotation bars          :&quot;, if (is.null(ann)) 0L else ncol(ann), &quot;\n&quot;)
+
+  fig1a_heatmap(hm_mat, feat_pos, cl$cluster, ann_col = ann, value_type = hm_vtype,
+                main = paste0(&quot;TCGA UCEC 2013 — Fig. 1a; columns split by clusters from &quot;,
+                              &quot;TCGA&#39;s published peaks, cluster &quot;, high_cluster,
+                              &quot; = copy-number high&quot;))
+} else cat(&quot;Heatmap skipped — no clustering.\n&quot;)</code></pre>
+<pre><code>Fig-1a preconditions 
+  displaying               : genome-wide continuous SCNA (1 Mb bins) — the Fig-1a display 
+  ComplexHeatmap installed : TRUE 
+  circlize installed       : TRUE 
+  display (samples x feat) : 232 x 3053 
+  clustered on             : 232 x 79 peaks 
+  feature positions mapped : 3053 
+  annotation bars          : 5 </code></pre>
+<p><img src="figure/09-tcga2013-fig1a.Rmd/hm-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<p>The same canvas with the cluster assignment at every k from 2 to 8
+stacked beneath it. The dendrogram is computed once and cut repeatedly,
+so the partitions are nested and can share one figure: reading a column
+downward shows how that tumour’s label subdivides as k grows. Here it
+answers a question report 07 cannot — TCGA fixed k = 4 and published the
+result, so the <code>Published_CN_cluster</code> bar above is the
+reference the sweep can be read against.</p>
+<pre class="r"><code>if (!is.null(cl) &amp;&amp; exists(&quot;hm_mat&quot;) &amp;&amp; exists(&quot;feat_pos&quot;)) {
+  # ksweep intersects rownames(mat) with hc$labels itself, so the genome-wide display matrix
+  # and the peak-learned dendrogram line up with no extra handling.
+  fig1a_heatmap_ksweep(hm_mat, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
+                       value_type = hm_vtype,
+                       main = paste0(&quot;TCGA UCEC 2013 — k = &quot;, min(k_sweep), &quot;..&quot;, max(k_sweep),
+                                     &quot; cluster bars on one Fig-1a canvas&quot;))
+} else cat(&quot;k-sweep skipped — no clustering.\n&quot;)</code></pre>
+<p><img src="figure/09-tcga2013-fig1a.Rmd/hm-ksweep-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+</div>
+<div id="part-3-does-it-recover-tcgas-published-partition"
+class="section level2">
+<h2>Part 3 — does it recover TCGA’s published partition?</h2>
+<p>The test the whole report exists for. Agreement is scored with the
+<strong>adjusted Rand index</strong>, which is chance-corrected and so
+is not inflated by cluster-size imbalance, over the tumours carrying a
+published assignment.</p>
+<p>Two columns qualify the answer and belong beside it rather than after
+it. <code>burden_pick</code> is the cluster
+<code>cnv_high_cluster_burden()</code> names as copy-number-high;
+<code>best_overlap</code> is the cluster that actually overlaps
+published cluster 4 (TCGA’s serous-like group) most. The burden rule is
+a <strong>heuristic</strong> — greatest mean |value| — and on
+thresholded features mean |value| counts a deep deletion and a high
+amplification identically, so a small deletion-heavy cluster can outrank
+the genuinely serous-like one. <strong>When the two disagree the
+heuristic has failed</strong>, and since report 07 uses that same rule
+on ATTEND, where no published answer exists to catch it, this is the
+only place the failure is visible at all.</p>
+<pre class="r"><code>scored &lt;- NULL
+if (!is.null(cl) &amp;&amp; nrow(tcga_clin) &gt; 0 &amp;&amp; any(!is.na(tcga_clin$cn_cluster_k4))) {
+  pub &lt;- tcga_clin |&gt; filter(!is.na(cn_cluster_k4)) |&gt;
+    transmute(ID, published = as.character(cn_cluster_k4))
+  j &lt;- cl$assignment |&gt; inner_join(pub, by = &quot;ID&quot;)
+  if (nrow(j) &gt; 0) {
+    f1 &lt;- function(tp, fp, fn) round(2 * tp / max(1, 2 * tp + fp + fn), 3)
+    best &lt;- j |&gt; filter(published == &quot;4&quot;) |&gt; count(cnv_cluster) |&gt;
+      slice_max(n, n = 1, with_ties = FALSE)
+    bo &lt;- if (nrow(best)) as.character(best$cnv_cluster[1]) else NA_character_
+    scored &lt;- tibble(
+      n_scored     = nrow(j),
+      ARI          = round(adjusted_rand_index(j$cnv_cluster, j$published), 3),
+      burden_pick  = as.character(high_cluster),
+      burden_F1_vs_pub4 = f1(sum(j$cnv_cluster == high_cluster &amp; j$published == &quot;4&quot;),
+                             sum(j$cnv_cluster == high_cluster &amp; j$published != &quot;4&quot;),
+                             sum(j$cnv_cluster != high_cluster &amp; j$published == &quot;4&quot;)),
+      best_overlap = bo,
+      best_F1_vs_pub4   = if (is.na(bo)) NA_real_ else
+        f1(sum(j$cnv_cluster == bo &amp; j$published == &quot;4&quot;),
+           sum(j$cnv_cluster == bo &amp; j$published != &quot;4&quot;),
+           sum(j$cnv_cluster != bo &amp; j$published == &quot;4&quot;)),
+      heuristic_ok = !is.na(bo) &amp;&amp; identical(as.character(high_cluster), bo))
+    knitr::kable(scored, caption = paste0(
+      &quot;Recomputed clusters scored against TCGA&#39;s published CNA_CLUSTER_K4. &quot;,
+      &quot;heuristic_ok = FALSE means the greatest-mean-|value| serous rule picked the wrong &quot;,
+      &quot;cluster on this cohort, which is a warning about report 07&#39;s use of the same rule.&quot;))
+  }
+}</code></pre>
+<table>
+<caption>Recomputed clusters scored against TCGA’s published
+CNA_CLUSTER_K4. heuristic_ok = FALSE means the greatest-mean-|value|
+serous rule picked the wrong cluster on this cohort, which is a warning
+about report 07’s use of the same rule.</caption>
+<colgroup>
+<col width="10%" />
+<col width="4%" />
+<col width="14%" />
+<col width="21%" />
+<col width="15%" />
+<col width="18%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">n_scored</th>
+<th align="right">ARI</th>
+<th align="left">burden_pick</th>
+<th align="right">burden_F1_vs_pub4</th>
+<th align="left">best_overlap</th>
+<th align="right">best_F1_vs_pub4</th>
+<th align="left">heuristic_ok</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">232</td>
+<td align="right">0.3</td>
+<td align="left">4</td>
+<td align="right">0.254</td>
+<td align="left">3</td>
+<td align="right">0.852</td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>if (is.null(scored)) cat(&quot;Scoring skipped — needs the clustering and CNA_CLUSTER_K4.\n&quot;)</code></pre>
+<p>The contingency behind that index: recomputed clusters as rows,
+TCGA’s published clusters as columns. A concentrated off-diagonal block
+is the recovery the ARI summarises as one number; mass spread across a
+row means that recomputed cluster has no published counterpart, which a
+single index cannot show.</p>
+<pre class="r"><code>if (!is.null(scored)) {
+  pub &lt;- tcga_clin |&gt; filter(!is.na(cn_cluster_k4)) |&gt;
+    transmute(ID, published = as.character(cn_cluster_k4))
+  j &lt;- cl$assignment |&gt; inner_join(pub, by = &quot;ID&quot;)
+  knitr::kable(as.data.frame.matrix(table(recomputed = j$cnv_cluster, published = j$published)),
+               caption = &quot;Recomputed (rows) vs TCGA&#39;s published CNA_CLUSTER_K4 (columns).&quot;)
+} else cat(&quot;Contingency skipped.\n&quot;)</code></pre>
+<table>
+<caption>Recomputed (rows) vs TCGA’s published CNA_CLUSTER_K4
+(columns).</caption>
+<thead>
+<tr class="header">
+<th align="right">1</th>
+<th align="right">2</th>
+<th align="right">3</th>
+<th align="right">4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">58</td>
+<td align="right">74</td>
+<td align="right">28</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+<td align="right">6</td>
+<td align="right">4</td>
+<td align="right">6</td>
+</tr>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">46</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">9</td>
+</tr>
+</tbody>
+</table>
+<p>The distance metric is the one thing the paper does not fix, and on
+this feature space the choice is not cosmetic — this table is why the
+pipeline uses <strong>Euclidean</strong> rather than the 1 − Pearson
+pair S2 names for its mRNA and methylation clusterings.
+<strong>Correlation distance is undefined for a flat profile</strong>,
+and a copy-number-quiet tumour is flat at every one of the 79 peaks, so
+<code>cluster_arm_matrix()</code> must drop those samples rather than
+invent a distance for them. TCGA’s published cluster 1 <em>is</em> the
+quiet cluster (mean |log2| 0.0043 against 0.216 for cluster 4), so
+correlation discards most of the one cluster it would most need to
+recover — and the heatmap loses the large pale block Fig. 1a plainly
+has. Under Euclidean a flat sample is not undefined; it sits near the
+origin, which is the correct geometry for “no alteration”. Both
+distances run on the identical matrix, each burden-ordered, so the
+choice is re-measured here on every knit instead of asserted in
+prose.</p>
+<pre class="r"><code>if (!is.null(clust_mat) &amp;&amp; nrow(clust_mat) &gt;= k_cnv &amp;&amp;
+    nrow(tcga_clin) &gt; 0 &amp;&amp; any(!is.na(tcga_clin$cn_cluster_k4)) &amp;&amp; !is.null(disp_mat)) {
+  pub_m &lt;- tcga_clin |&gt; filter(!is.na(cn_cluster_k4)) |&gt;
+    transmute(ID, published = as.character(cn_cluster_k4))
+  dmm &lt;- as.matrix(disp_mat[, setdiff(names(disp_mat), &quot;ID&quot;), drop = FALSE])
+  rownames(dmm) &lt;- disp_mat$ID
+  # Two axes, because both were choices: the configured distance against the metric it
+  # replaced, and the configured cohort against the paper&#39;s own denominator. Each cell is a
+  # full re-clustering, so the table keeps re-earning both choices on every knit rather than
+  # asserting them once in prose. unique() in case the two distances ever coincide.
+  pub_all &lt;- tcga_clin_all |&gt; filter(!is.na(cn_cluster_k4)) |&gt;
+    transmute(ID, published = as.character(cn_cluster_k4))
+  grid &lt;- expand.grid(dm = unique(c(cnv_dist, &quot;correlation&quot;)),
+                      core = c(TRUE, FALSE), stringsAsFactors = FALSE)
+  rows &lt;- lapply(seq_len(nrow(grid)), function(i) {
+    dm &lt;- grid$dm[i]; co &lt;- grid$core[i]
+    sg &lt;- if (co) tcga_seg_all |&gt; filter(ID %in% tcga_clin_all$ID[tcga_clin_all$core_sample %in% TRUE])
+          else tcga_seg_all
+    cmx &lt;- published_peak_matrix_from_seg(sg, peaks, threshold = thr_cuts)
+    if (is.null(cmx) || nrow(cmx) &lt; k_cnv) return(NULL)
+    cc &lt;- cluster_arm_matrix(cmx, k = k_cnv, method = cnv_method, dist_method = dm)
+    if (is.null(cc)) return(NULL)
+    lab &lt;- relabel_clusters_by_burden(cc$cluster, dmm)$cluster
+    jj  &lt;- tibble(ID = names(lab), new = as.character(lab)) |&gt; inner_join(pub_all, by = &quot;ID&quot;)
+    if (!nrow(jj)) return(NULL)
+    # ⚠️ NOT grepl(&quot;Serous&quot;, subtype_short). `subtype_short` holds the SHORT labels —
+    # POLE / MSI / CN-low / CN-high (attend_tcga_ref_2013$subtype_short) — so the word
+    # &quot;Serous&quot; appears in the LONG level name and never in this column. That match returned
+    # character(0) on every row, which made serous_in_top structurally 0 in all four cells
+    # of the table below whatever the data said: a column that cannot vary, sitting beside
+    # ARI and diagonal_pct as though it were evidence. Keyed off the config now, so a label
+    # edit moves both at once instead of silently emptying this one.
+    ser_lab &lt;- unname(attend_tcga_ref_2013$subtype_short[[&quot;Copy-number high (Serous-like)&quot;]])
+    # which(): 141 of 373 tumours have no subtype, so the bare comparison is a logical with
+    # NAs, and x[&lt;logical with NA&gt;] returns an NA element per NA rather than dropping it —
+    # 60 real ids padded to 201. %in% ignores NA so the count still came out right, which is
+    # exactly why it would have survived unnoticed.
+    ser &lt;- tcga_clin_all$ID[which(as.character(tcga_clin_all$subtype_short) == ser_lab)]
+    tibble(distance = dm,
+           cohort = if (co) &quot;core only&quot; else &quot;all with CN&quot;,
+           clustered = nrow(cc$matrix),
+           dropped_flat = nrow(cmx) - nrow(cc$matrix),
+           scored = nrow(jj),
+           ARI = round(adjusted_rand_index(jj$new, jj$published), 3),
+           diagonal_pct = round(100 * mean(jj$new == jj$published), 1),
+           pub_cluster1_kept = sum(jj$published == &quot;1&quot;),
+           serous_in_top = sum(jj$new == as.character(k_cnv) &amp; jj$ID %in% ser))
+  })
+  rows &lt;- rows[!vapply(rows, is.null, logical(1))]
+  if (length(rows)) knitr::kable(bind_rows(rows), caption = paste0(
+    &quot;Distance x cohort, every cell a full re-clustering, all burden-ordered. dropped_flat &quot;,
+    &quot;counts tumours a correlation metric cannot place; pub_cluster1_kept is how many of &quot;,
+    &quot;TCGA&#39;s quiet cluster survive to be scored; serous_in_top is how many published &quot;,
+    &quot;serous-like tumours land in the highest-burden cluster. diagonal_pct is interpretable &quot;,
+    &quot;only because every partition is burden-ordered — on raw cutree labels it would be &quot;,
+    &quot;meaningless. Read the `core only` rows against `all with CN`: restricting the cohort &quot;,
+    &quot;removes the unclassified annotation block but re-clusters a third fewer tumours, and &quot;,
+    &quot;that is a cost, not a free tidy-up.&quot;))
+} else cat(&quot;Metric comparison skipped — needs the peak matrix, the display matrix and CNA_CLUSTER_K4.\n&quot;)</code></pre>
+<table>
+<caption>Distance x cohort, every cell a full re-clustering, all
+burden-ordered. dropped_flat counts tumours a correlation metric cannot
+place; pub_cluster1_kept is how many of TCGA’s quiet cluster survive to
+be scored; serous_in_top is how many published serous-like tumours land
+in the highest-burden cluster. diagonal_pct is interpretable only
+because every partition is burden-ordered — on raw cutree labels it
+would be meaningless. Read the <code>core only</code> rows against
+<code>all with CN</code>: restricting the cohort removes the
+unclassified annotation block but re-clusters a third fewer tumours, and
+that is a cost, not a free tidy-up.</caption>
+<colgroup>
+<col width="11%" />
+<col width="11%" />
+<col width="9%" />
+<col width="12%" />
+<col width="6%" />
+<col width="5%" />
+<col width="12%" />
+<col width="17%" />
+<col width="13%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">distance</th>
+<th align="left">cohort</th>
+<th align="right">clustered</th>
+<th align="right">dropped_flat</th>
+<th align="right">scored</th>
+<th align="right">ARI</th>
+<th align="right">diagonal_pct</th>
+<th align="right">pub_cluster1_kept</th>
+<th align="right">serous_in_top</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">euclidean</td>
+<td align="left">core only</td>
+<td align="right">232</td>
+<td align="right">0</td>
+<td align="right">232</td>
+<td align="right">0.300</td>
+<td align="right">31.5</td>
+<td align="right">58</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">correlation</td>
+<td align="left">core only</td>
+<td align="right">172</td>
+<td align="right">60</td>
+<td align="right">172</td>
+<td align="right">0.334</td>
+<td align="right">49.4</td>
+<td align="right">2</td>
+<td align="right">55</td>
+</tr>
+<tr class="odd">
+<td align="left">euclidean</td>
+<td align="left">all with CN</td>
+<td align="right">365</td>
+<td align="right">0</td>
+<td align="right">363</td>
+<td align="right">0.423</td>
+<td align="right">64.7</td>
+<td align="right">86</td>
+<td align="right">51</td>
+</tr>
+<tr class="even">
+<td align="left">correlation</td>
+<td align="left">all with CN</td>
+<td align="right">281</td>
+<td align="right">84</td>
+<td align="right">280</td>
+<td align="right">0.222</td>
+<td align="right">41.1</td>
+<td align="right">7</td>
+<td align="right">54</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="part-4-mmr-and-aneuploidy-across-the-clusters"
+class="section level2">
+<h2>Part 4 — MMR and aneuploidy across the clusters</h2>
+<p>Aneuploidy per recomputed cluster. This is the panel the 2013 paper
+could not draw: it had no per-sample aneuploidy score, so the
+relationship between its SCNA clusters and aneuploidy was never shown.
+The value is whichever source Part 1 named, and it is
+<strong>not</strong> a clustering feature — the clustering saw only
+thresholded peak calls — so alignment between the high-burden cluster
+and the high-aneuploidy tumours is corroboration rather than
+circularity. <code>attend_box()</code> picks the mark per cluster from
+the data, box and points where a cluster holds at least ten tumours and
+a median crossbar below that, and prints n in every case.</p>
+<pre class="r"><code>aneu_cl &lt;- if (!is.null(cl) &amp;&amp; !is.null(aneu_tbl)) {
+  cl$assignment |&gt;
+    left_join(aneu_tbl, by = &quot;ID&quot;) |&gt;
+    filter(is.finite(aneuploidy_value)) |&gt;
+    mutate(cluster = factor(cnv_cluster))
+} else NULL
+
+if (!is.null(aneu_cl) &amp;&amp; nrow(aneu_cl) &gt; 0 &amp;&amp; dplyr::n_distinct(aneu_cl$cluster) &gt; 1) {
+  kw &lt;- suppressWarnings(stats::kruskal.test(aneuploidy_value ~ cluster, data = aneu_cl))
+  ggplot(aneu_cl, aes(cluster, aneuploidy_value)) +
+    attend_box(aneu_cl, x = &quot;cluster&quot;, y = &quot;aneuploidy_value&quot;) +
+    labs(title = &quot;TCGA UCEC 2013 — aneuploidy by recomputed copy-number cluster&quot;,
+         subtitle = paste0(aneu_label, &quot;; Kruskal-Wallis p = &quot;, signif(kw$p.value, 3),
+                           &quot;; cluster &quot;, high_cluster, &quot; = highest intrinsic SCNA burden&quot;),
+         x = &quot;copy-number cluster&quot;, y = attend_as_axis) +
+    attend_theme()
+} else cat(&quot;Aneuploidy-by-cluster skipped — needs clusters and aneuploidy values.\n&quot;)</code></pre>
+<p><img src="figure/09-tcga2013-fig1a.Rmd/aneu-by-cluster-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<p>MMR status across the clusters, as counts and as a test. TCGA’s MMR
+call here is its MSI (hyper-mutated) integrative cluster, so this asks
+whether the <em>copy-number</em> clustering separates MMR-deficient
+tumours — and the expected answer is that it largely does not, since MMR
+deficiency and broad copy-number change are different routes to a
+genomic extreme. Fisher is used rather than chi-square because a 4 × 2
+table on this cohort has thin cells, and it is simulated when an exact
+computation would be too large.</p>
+<pre class="r"><code>mmr_cl &lt;- if (!is.null(cl) &amp;&amp; nrow(tcga_clin) &gt; 0) {
+  cl$assignment |&gt;
+    left_join(tcga_clin |&gt; transmute(ID, mmrd, pole, subtype_short), by = &quot;ID&quot;) |&gt;
+    filter(!is.na(mmrd)) |&gt;
+    mutate(cluster = factor(cnv_cluster),
+           MMR = factor(ifelse(mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;), levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;)))
+} else NULL
+
+if (!is.null(mmr_cl) &amp;&amp; nrow(mmr_cl) &gt; 0 &amp;&amp; dplyr::n_distinct(mmr_cl$cluster) &gt; 1) {
+  tab &lt;- table(cluster = mmr_cl$cluster, MMR = mmr_cl$MMR)
+  ft  &lt;- suppressWarnings(tryCatch(stats::fisher.test(tab, simulate.p.value = TRUE, B = 1e5),
+                                   error = function(e) NULL))
+  knitr::kable(as.data.frame.matrix(tab), caption = paste0(
+    &quot;MMR status (TCGA&#39;s MSI integrative cluster) by recomputed copy-number cluster&quot;,
+    if (!is.null(ft)) paste0(&quot;. Fisher exact p = &quot;, signif(ft$p.value, 3),
+                             &quot; (simulated, B = 1e5)&quot;) else &quot;.&quot;))
+} else cat(&quot;MMR-by-cluster skipped — needs clusters and MMR calls.\n&quot;)</code></pre>
+<table>
+<caption>MMR status (TCGA’s MSI integrative cluster) by recomputed
+copy-number cluster. Fisher exact p = 1e-05 (simulated, B =
+1e5)</caption>
+<thead>
+<tr class="header">
+<th align="right">MMRp</th>
+<th align="right">MMRd</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">100</td>
+<td align="right">61</td>
+</tr>
+<tr class="even">
+<td align="right">13</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="right">46</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">8</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p>The same cross-tabulation against TCGA’s full integrative subtype,
+which is the direct statement of what the copy-number clustering does
+and does not recover: the CN-high and CN-low subtypes were
+<em>defined</em> from copy number and should separate, while the MSI and
+POLE subtypes were defined from mutation and need not. Rows are the
+recomputed clusters, so reading across a row shows what that cluster is
+made of. Tumours with no published subtype (about a third of the cohort
+— it was assigned to the core set only) appear as their own column
+rather than being dropped, so the denominators stay honest.</p>
+<pre class="r"><code>if (!is.null(mmr_cl) &amp;&amp; nrow(mmr_cl) &gt; 0) {
+  st &lt;- cl$assignment |&gt;
+    left_join(tcga_clin |&gt; transmute(ID, subtype_short), by = &quot;ID&quot;) |&gt;
+    mutate(cluster  = factor(cnv_cluster),
+           subtype  = factor(ifelse(is.na(as.character(subtype_short)), &quot;not classified&quot;,
+                                    as.character(subtype_short)),
+                             levels = c(levels(tcga_clin$subtype_short), &quot;not classified&quot;)))
+  knitr::kable(as.data.frame.matrix(table(recomputed = st$cluster, subtype = st$subtype)),
+               caption = paste0(&quot;Recomputed copy-number clusters (rows) against TCGA&#39;s &quot;,
+                                &quot;published integrative subtype (columns). CN-high and CN-low &quot;,
+                                &quot;were defined from copy number and should separate; MSI and &quot;,
+                                &quot;POLE were not and need not.&quot;))
+} else cat(&quot;Subtype cross-tabulation skipped.\n&quot;)</code></pre>
+<table>
+<caption>Recomputed copy-number clusters (rows) against TCGA’s published
+integrative subtype (columns). CN-high and CN-low were defined from copy
+number and should separate; MSI and POLE were not and need
+not.</caption>
+<thead>
+<tr class="header">
+<th align="right">POLE</th>
+<th align="right">MSI</th>
+<th align="right">CN-low</th>
+<th align="right">CN-high</th>
+<th align="right">not classified</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">17</td>
+<td align="right">61</td>
+<td align="right">82</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">8</td>
+<td align="right">5</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">46</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">8</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          here_1.0.2        lubridate_1.9.5  
+ [5] forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1       purrr_1.0.2      
+ [9] readr_2.2.0       tidyr_1.3.2       tibble_3.3.1      ggplot2_4.0.3    
+[13] tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] shape_1.4.6.1         circlize_0.4.15       gtable_0.3.6         
+ [4] rjson_0.2.23          xfun_0.58             bslib_0.9.0          
+ [7] GlobalOptions_0.1.4   tzdb_0.5.0            Cairo_1.6-2          
+[10] vctrs_0.7.3           tools_4.3.2           generics_0.1.4       
+[13] stats4_4.3.2          parallel_4.3.2        cluster_2.1.6        
+[16] pkgconfig_2.0.3       RColorBrewer_1.1-3    S4Vectors_0.40.2     
+[19] S7_0.2.2              lifecycle_1.0.5       compiler_4.3.2       
+[22] farver_2.1.2          git2r_0.33.0          codetools_0.2-19     
+[25] ComplexHeatmap_2.18.0 clue_0.3-65           httpuv_1.6.12        
+[28] htmltools_0.5.9       sass_0.4.10           yaml_2.3.12          
+[31] later_1.4.8           pillar_1.11.1         crayon_1.5.3         
+[34] jquerylib_0.1.4       whisker_0.4.1         cachem_1.1.0         
+[37] magick_2.8.1          iterators_1.0.14      foreach_1.5.2        
+[40] tidyselect_1.2.1      digest_0.6.39         stringi_1.8.7        
+[43] labeling_0.4.3        rprojroot_2.1.1       fastmap_1.2.0        
+[46] grid_4.3.2            colorspace_2.1-2      cli_3.6.6            
+[49] magrittr_2.0.5        dichromat_2.0-0.1     withr_3.0.3          
+[52] scales_1.4.0          promises_1.5.0        bit64_4.8.6          
+[55] timechange_0.4.0      rmarkdown_2.31        matrixStats_1.1.0    
+[58] bit_4.6.0             otel_0.2.0            workflowr_1.7.2      
+[61] GetoptLong_1.0.5      png_0.1-8             hms_1.1.4            
+[64] evaluate_1.0.5        knitr_1.51            IRanges_2.36.0       
+[67] doParallel_1.0.17     rlang_1.2.0           Rcpp_1.1.1-1.1       
+[70] glue_1.8.1            BiocGenerics_0.48.1   rstudioapi_0.15.0    
+[73] vroom_1.7.1           jsonlite_2.0.0        R6_2.6.1             </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          here_1.0.2        lubridate_1.9.5  
+ [5] forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1       purrr_1.0.2      
+ [9] readr_2.2.0       tidyr_1.3.2       tibble_3.3.1      ggplot2_4.0.3    
+[13] tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] shape_1.4.6.1         circlize_0.4.15       gtable_0.3.6         
+ [4] rjson_0.2.23          xfun_0.58             bslib_0.9.0          
+ [7] GlobalOptions_0.1.4   tzdb_0.5.0            Cairo_1.6-2          
+[10] vctrs_0.7.3           tools_4.3.2           generics_0.1.4       
+[13] stats4_4.3.2          parallel_4.3.2        cluster_2.1.6        
+[16] pkgconfig_2.0.3       RColorBrewer_1.1-3    S4Vectors_0.40.2     
+[19] S7_0.2.2              lifecycle_1.0.5       compiler_4.3.2       
+[22] farver_2.1.2          git2r_0.33.0          codetools_0.2-19     
+[25] ComplexHeatmap_2.18.0 clue_0.3-65           httpuv_1.6.12        
+[28] htmltools_0.5.9       sass_0.4.10           yaml_2.3.12          
+[31] later_1.4.8           pillar_1.11.1         crayon_1.5.3         
+[34] jquerylib_0.1.4       whisker_0.4.1         cachem_1.1.0         
+[37] magick_2.8.1          iterators_1.0.14      foreach_1.5.2        
+[40] tidyselect_1.2.1      digest_0.6.39         stringi_1.8.7        
+[43] labeling_0.4.3        rprojroot_2.1.1       fastmap_1.2.0        
+[46] grid_4.3.2            colorspace_2.1-2      cli_3.6.6            
+[49] magrittr_2.0.5        dichromat_2.0-0.1     withr_3.0.3          
+[52] scales_1.4.0          promises_1.5.0        bit64_4.8.6          
+[55] timechange_0.4.0      rmarkdown_2.31        matrixStats_1.1.0    
+[58] bit_4.6.0             otel_0.2.0            workflowr_1.7.2      
+[61] GetoptLong_1.0.5      png_0.1-8             hms_1.1.4            
+[64] evaluate_1.0.5        knitr_1.51            IRanges_2.36.0       
+[67] doParallel_1.0.17     rlang_1.2.0           Rcpp_1.1.1-1.1       
+[70] glue_1.8.1            BiocGenerics_0.48.1   rstudioapi_0.15.0    
+[73] vroom_1.7.1           jsonlite_2.0.0        R6_2.6.1             </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

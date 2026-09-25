@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-11" />
+
+<title>ATTEND — 07. Molecular classification: the TCGA cascade and ProMisE</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 07. Molecular classification: the
+TCGA cascade and ProMisE</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-11</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/07-molecular-classification.Rmd</code>) and HTML
+(<code>docs/07-molecular-classification.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/61b26bcd18b2e31df492b216255e9b75edad6295/analysis/07-molecular-classification.Rmd" target="_blank">61b26bc</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-21
+</td>
+<td>
+:memo: Say on the page which cut reports 07 and 10 are reporting
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/07-molecular-classification.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/d688d09c81fe66906ddcd74aee476ec5a02c0699/analysis/07-molecular-classification.Rmd" target="_blank">d688d09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: One spelling and one palette per concept, across every report
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/bc4329ea62768003e0a50edc16da23d3e1752dd6/analysis/07-molecular-classification.Rmd" target="_blank">bc4329e</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:bug: The clustering was never peak-restricted, and the page could not
+say so
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/03483253d2965a47e6ff0cb4f5fc388a94a5e62b/analysis/07-molecular-classification.Rmd" target="_blank">0348325</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: AS High / AS Low, arcsine + t-test on the score, no n=, arms back
+to red/light blue
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/8666e4c6aa9d127ab404c5d9851dc7a235a52288/analysis/07-molecular-classification.Rmd" target="_blank">8666e4c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:bug: A default is not a measurement — POLE in three tiers, mutation
+status in three states
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/07-molecular-classification.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Which copy-number cluster is the
+copy-number-high / serous-like group, and where does the 2013 TCGA
+cascade disagree with the ProMisE / WHO-ESGO classification the
+guidelines actually specify? <strong>Cohort.</strong> All patients with
+GISTIC output for the clustering; both cascades are drawn on the full
+master. <strong>Reads.</strong> GISTIC thresholded peaks in data/gistic/
+(produced per runbooks/gistic.md), ASCETS scores in data/ascets/, the
+long MAF (for the POLE hotspot screen), and attend_master_joined.
+<strong>Out of scope.</strong> Why Euclidean / Ward.D2, and how the
+serous-like call is made directional -&gt; <a
+href="00-methods.html">00-methods</a>. <em>TP53</em> and the gene panels
+themselves -&gt; <a
+href="08-tp53-and-gene-panels.html">08-tp53-and-gene-panels</a>. The
+same Fig-1a on TCGA’s own data -&gt; <a
+href="09-tcga2013-fig1a.html">09-tcga2013-fig1a</a>. Options beyond this
+reproduction -&gt; runbooks/classification_options.md.</p>
+</blockquote>
+<p>Reproduces the TCGA integrated genomic classification of endometrial
+carcinoma (Kandoth et al., <em>Nature</em> 2013, papers/nature12113.pdf)
+on the ATTEND cohort, and asks which copy-number cluster is enriched for
+aneuploidy — the hallmark of the <strong>copy-number-high /
+serous-like</strong> group. Turning an unlabelled cluster into a
+serous-like call is inferred from the copy-number data and is not part
+of TCGA’s methodology; how, and why it is directional, is in <a
+href="00-methods.html">00-methods</a>.</p>
+<div id="two-cascades-computed-and-reported-side-by-side"
+class="section level2">
+<h2>Two cascades, computed and reported side by side</h2>
+<p>This report runs <strong>both</strong> classifications on the same
+patients: the 2013 TCGA cascade it always ran, and the ProMisE /
+WHO-ESGO four-group algorithm the current guidelines specify. Neither is
+presented as the answer — the first is the historical reproduction that
+<a href="09-tcga2013-fig1a.html">09-tcga2013-fig1a</a> validates against
+TCGA’s own labels, the second is the call a reviewer will ask for. Where
+they disagree is tabulated below.</p>
+<div id="the-2013-tcga-cascade" class="section level3">
+<h3>The 2013 TCGA cascade</h3>
+<p>A priority cascade (TCGA Fig. 2b). POLE is <strong>not a tier
+here</strong> — it was removed from this cascade because ATTEND has no
+POLE-ultramutated cases — so it starts at MMRd. Note that the ProMisE
+section below now <em>screens</em> for POLE rather than assuming its
+absence, which is the difference between a tested negative and an
+untested one:</p>
+<ol style="list-style-type: decimal">
+<li><strong>MMRd</strong> — MMR-protein loss by <strong>IHC</strong>
+(gianlu__MMR_STATUS Deficient). This is the top of the cascade and
+overwrites the CN split. The split is <strong>MMRd vs MMRp by IHC
+alone</strong>; MSI-high by the NGS caller is a
+<strong>correlate</strong>, not a criterion.</li>
+<li><strong>Copy-number high (serous-like)</strong> — many broad SCNAs,
+<strong>extensive aneuploidy</strong>. How the call is made is set by
+attend_tcga_serous_rule, defaulting to the <strong>faithful TCGA rule
+“cluster_only”</strong>: serous-like = membership in the high-aneuploidy
+CNV cluster, exactly as TCGA defined it (Fig. 2b, “serous-like …
+copy-number cluster 4”). <em>TP53</em> is <strong>not</strong> required
+here — it is a <strong>property</strong> of the cluster (~90% mutant),
+which we <strong>validate</strong> below rather than gate on.
+Alternatives: “and” (also require TP53 — higher precision), “or”
+(union), “tp53_only” (portable).</li>
+<li><strong>Copy-number low (endometrioid)</strong> — MMR-proficient,
+few broad SCNAs, everything not in the high-aneuploidy cluster.</li>
+</ol>
+<p>The copy-number split comes from <strong>clustering copy-number
+profiles</strong> (their Fig. 1a; cluster 4 = serous-like), then
+resolving the serous-like call per attend_tcga_serous_rule. Because the
+default is “cluster_only”, the serous call is earned from copy number
+alone; the <strong>TP53-enrichment QC</strong> below then confirms the
+cluster is genuinely ~90% <em>TP53</em>-mutant, i.e. that it corresponds
+to TCGA’s serous-like group — a non-circular validation.</p>
+</div>
+</div>
+<div id="data" class="section level2">
+<h2>Data</h2>
+<p>The master for the cascade and its covariates, and the barcode
+crosswalk, because GISTIC and .seg sample ids are sequencing barcodes
+while the master is keyed on pid. Both are wrapped so a missing input
+degrades to a skipped section rather than an error.</p>
+<pre class="r"><code>master &lt;- get_master() |&gt; add_molecular_classes()
+
+# POLE, and therefore ProMisE, needs the LONG maf: pole_ultramutated() matches the
+# exonuclease-domain hotspots against a protein-change column, which the wide per-gene
+# status table does not carry. Both are wrapped — with no MAFs the POLE column stays absent,
+# add_promise_class() returns NA for everyone, and promise_counts() says why, rather than
+# every patient silently becoming NSMP.
+maf_long_cls &lt;- tryCatch(load_maf_long(), error = function(e) NULL)
+
+# barcode -&gt; pid crosswalk (the same derivation every other report uses)
+cw &lt;- tryCatch(
+  build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
+  error = function(e) { note_skip(&quot;crosswalk unavailable: &quot;, conditionMessage(e)); NULL }
+)
+
+have_master &lt;- !is.null(master)
+have_cw     &lt;- !is.null(cw)
+
+# TMB definitions available on the master: upstream first, then the recomputed set.
+tmb_defs &lt;- c(upstream = attend_cols$tmb, attend_cols$tmb_set)
+if (have_master) tmb_defs &lt;- tmb_defs_present(master)
+
+# ProMisE, on the master, before anything downstream reads it. POLE first (it is the top
+# tier, so it has to exist before the hierarchy is applied), then the four-group call.
+if (have_master &amp;&amp; have_cw) {
+  pole_tbl &lt;- tryCatch(
+    pole_ultramutated(maf_long = maf_long_cls, crosswalk = cw,
+                      tmb_tbl = master |&gt; transmute(pid, TMB_SCORE = .data[[attend_cols$tmb]])),
+    error = function(e) { note_skip(&quot;POLE call unavailable: &quot;, conditionMessage(e)); NULL })
+  if (!is.null(pole_tbl)) master &lt;- master |&gt; left_join(pole_tbl, by = &quot;pid&quot;)
+  master &lt;- add_promise_class(master)
+}</code></pre>
+<pre><code>NOTE: POLE call unavailable: ℹ In argument: `barcode = as.character(.data[[&quot;ID&quot;]])`.
+Caused by error in `.data[[&quot;ID&quot;]]`:
+! Column `ID` not found in `.data`.</code></pre>
+<pre class="r"><code>have_promise &lt;- have_master &amp;&amp; &quot;promise_class&quot; %in% names(master) &amp;&amp;
+                any(!is.na(master$promise_class))</code></pre>
+</div>
+<div
+id="copy-number-ingestion-two-gistic-matrices-because-the-paper-uses-two"
+class="section level2">
+<h2>Copy-number ingestion — two GISTIC matrices, because the paper uses
+two</h2>
+<p>TCGA <strong>clusters</strong> one matrix and <strong>draws</strong>
+another, and both come from the same GISTIC run. Keeping them separate
+is what makes this report’s heatmap the paper’s heatmap.</p>
+<p><strong>The clustering input</strong> is exactly what TCGA clustered
+(Kandoth et al., Suppl. Methods S2): <em>“thresholded relative copy
+number data in significantly reoccurring amplifications or deletions
+regions identified by GISTIC 2.0.”</em> There is <strong>one</strong>
+clustering feature and no fallbacks — the arm-level / bin-level proxies
+have been removed. load_gistic_thresholded() builds it from
+data/gistic/:</p>
+<ul>
+<li>input all_thresholded.by_genes.txt — genes × samples, values in
+<strong>{−2,−1,0,+1,+2}</strong>;</li>
+<li>restricted to the genes inside the <strong>significant amp/del
+peaks</strong> (amp_genes/del_genes.conf);</li>
+<li>result: a sample × peak-gene <strong>thresholded</strong> matrix —
+TCGA’s exact feature space.</li>
+</ul>
+<p><strong>The figure input</strong> is what the Fig. 1a legend
+describes: <em>“The heat map shows SCNAs in each tumour (horizontal
+axis) plotted by chromosomal location (vertical axis)”</em> — the
+<strong>whole genome</strong>, on a <strong>continuous</strong> colour
+scale. That is a different matrix, and load_gistic_continuous() reads it
+from all_data_by_genes.txt in the same data/gistic/: genome-wide,
+continuous copy number per gene, not peak-restricted. Drawing the
+<em>clustering</em> matrix instead is what previously made this heatmap
+something other than Fig. 1a — a few hundred peak genes on a five-step
+colour scale, genome-ordered but not the genomic landscape.</p>
+<p>So: <strong>cluster the peaks, display the genome.</strong> The
+columns of the heatmap are split and coloured by the peak-based
+clusters, and the body underneath them is the continuous genome-wide
+landscape those clusters were learned from a subset of.</p>
+<p><strong>Both matrices need GISTIC</strong>, on the DRAGEN .seg — the
+recipe is runbooks/gistic.md. Until data/gistic/ is populated, every
+CNV/cascade section renders as scaffolding. If all_data_by_genes.txt is
+missing but all_thresholded.by_genes.txt is present, the report says so
+and falls back to drawing the clustering matrix, which is the old,
+non-faithful figure.</p>
+<p><strong>Computational steps.</strong> (1) load_gistic_thresholded()
+reads GISTIC’s all_thresholded.by_genes.txt and keeps only genes in the
+significant peaks — the clustering feature. (2) load_gistic_continuous()
+reads all_data_by_genes.txt genome-wide with no peak filter and no
+integer coercion — the display feature. (3) The per-sample aneuploidy
+<strong>score</strong> (external, for the enrichment check only) is
+loaded separately (ASCETS if present, else the master). The clustering
+never sees the aneuploidy score — that keeps the enrichment plot
+non-circular, and the display matrix never enters the clustering
+either.</p>
+<pre class="r"><code>cnv_mat    &lt;- tryCatch(load_gistic_thresholded(), error = function(e) NULL)  # ID x peak-gene {-2..+2}
+cnv_source &lt;- &quot;GISTIC 2.0 thresholded peaks&quot;
+
+# The Fig-1a DISPLAY matrix: genome-wide, continuous, same GISTIC run. Never clustered.
+disp_mat   &lt;- tryCatch(load_gistic_continuous(), error = function(e) NULL)   # ID x gene, continuous
+
+# per-sample aneuploidy SCORE — used ONLY for the enrichment cross-check, not for clustering
+ascets_aneu &lt;- tryCatch(load_ascets_aneuploidy(), error = function(e) NULL)
+
+have_cnv &lt;- !is.null(cnv_mat) &amp;&amp; nrow(cnv_mat) &gt;= k_cnv
+# cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
+if (!have_cnv) {
+  cat(&quot;No GISTIC matrix with &gt;=&quot;, k_cnv, &quot;samples — run GISTIC (see the bottom of this&quot;,
+      &quot;report) so data/gistic/all_thresholded.by_genes.txt exists.&quot;,
+      &quot;CNV sections are scaffolding until then.\n&quot;)
+} else {
+  cat(&quot;Clustering input:&quot;, cnv_source, &quot;—&quot;, nrow(cnv_mat), &quot;samples x&quot;,
+      ncol(cnv_mat) - 1, &quot;peak genes.\n&quot;)
+}</code></pre>
+<pre><code>Clustering input: GISTIC 2.0 thresholded peaks — 247 samples x 27100 peak genes.</code></pre>
+<pre class="r"><code>if (!is.null(disp_mat)) {
+  cat(&quot;Fig-1a display input: GISTIC all_data_by_genes (continuous, genome-wide) —&quot;,
+      nrow(disp_mat), &quot;samples x&quot;, ncol(disp_mat) - 1, &quot;genes.\n&quot;)
+} else {
+  cat(&quot;Fig-1a display input: NOT AVAILABLE (no all_data_by_genes.txt under data/gistic/).&quot;,
+      &quot;The heatmaps below fall back to the peak-restricted thresholded matrix, which is&quot;,
+      &quot;genome-ORDERED but is not the paper&#39;s genome-wide continuous landscape.\n&quot;)
+}</code></pre>
+<pre><code>Fig-1a display input: GISTIC all_data_by_genes (continuous, genome-wide) — 247 samples x 27100 genes.</code></pre>
+</div>
+<div
+id="the-clustering-feature-gistic-thresholded-peaks-and-how-it-matches-tcga"
+class="section level2">
+<h2>The clustering feature — GISTIC thresholded peaks, and how it
+matches TCGA</h2>
+<p>The clustering feature is a <strong>sample × peak-gene</strong>
+matrix of <strong>thresholded</strong> GISTIC calls ({−2..+2}),
+restricted to the significantly recurrent amp/del regions —
+<strong>identical in kind to TCGA’s</strong> (Suppl. Methods S2). It is
+clustered with <strong>Euclidean distance and Ward.D2 linkage</strong>,
+the pipeline’s one configured pair. S2 names no metric for the
+<em>copy-number</em> clustering; the pipeline previously borrowed the 1
+− Pearson / Ward pair S2 names for mRNA and methylation, and <a
+href="00-methods.html">00-methods</a> sets out the measurement that
+overturned that choice — correlation distance is undefined for a flat
+profile, so it silently discards the copy-number-quiet tumours that make
+up TCGA’s own cluster 1. <a
+href="09-tcga2013-fig1a.html">09-tcga2013-fig1a</a> re-scores both
+distances against TCGA’s published partition on every knit. Instead of
+committing to one cut, the chromosome heatmap below is annotated with
+the cluster assignment at <strong>every k from 2 to 8</strong> in a
+single figure. What this gets right vs the old arm/bin proxies (now
+removed):</p>
+<ul>
+<li><strong>Thresholded, not continuous</strong> — {−2..+2} discretised
+calls, exactly S2.</li>
+<li><strong>GISTIC significant peaks, not genome-wide</strong> — the
+feature space is the recurrent amp/del peak genes (MYC 8q24, ERBB2
+17q12, CCNE1 19q12, 1q, …), exactly S2.</li>
+</ul>
+<p>Both of those are properties of the <strong>clustering</strong>, and
+neither describes the <strong>figure</strong>. The heatmap body is the
+genome-wide continuous matrix (see the ingestion section):
+peak-restricted discretised values are the right thing to cluster and
+the wrong thing to draw, because Fig. 1a is a picture of the whole
+copy-number landscape. The clusters are still the peak-based ones — they
+set the column split — so nothing about the method moves. -
+<strong>Residual differences from TCGA</strong> — platform (DRAGEN WES
+.seg vs SNP 6.0), cohort (metastatic vs primary), N, and the unspecified
+CN metric/linkage (here <strong>Euclidean / Ward.D2</strong>, chosen on
+the evidence in <a href="00-methods.html">00-methods</a> rather than
+borrowed from S2’s mRNA section; switch via cluster_arm_matrix(…,
+method=, dist_method=)).</p>
+</div>
+<div id="cnv-clustering-gistic-thresholded-peaks"
+class="section level2">
+<h2>CNV clustering (GISTIC thresholded peaks)</h2>
+<p><strong>Computational steps.</strong> (1) Cluster the sample ×
+peak-gene <strong>thresholded</strong> GISTIC matrix cnv_mat with
+cluster_arm_matrix(), taking k, method and distance from the configured
+values in attend_classes.R — <strong>Euclidean</strong> distance,
+<strong>Ward.D2</strong> linkage. (2) Label the
+<strong>copy-number-high</strong> cluster by intrinsic SCNA burden =
+mean |thresholded value| per cluster (cnv_high_cluster_burden()),
+independent of the aneuploidy score — computed on the CLUSTERING matrix,
+so the burden rule never sees the genome-wide display values. (3)
+Heatmap: the genome-wide continuous matrix, genes (rows, ordered by
+chromosomal location) × samples (columns split by the peak-based
+clusters and ordered within each by dendrogram), annotated by CN
+cluster, the <strong>integrated TCGA class</strong> (POLE [no cases]
+&gt; MMRd &gt; CN-high &gt; CN-low, from the add_tcga_class() cascade
+shown below — the same call, drawn here on the Fig-1a clustering), MMR,
+TP53, <strong>and the per-sample aneuploidy score</strong>. That
+aneuploidy bar is the external ASCETS aneuploidy value (data/ascets/,
+load_ascets_aneuploidy()) or — when ASCETS is absent — the master’s
+aneu__aneuploidy_score (from data/aneu_scores.csv via report 1) mapped
+from pid back onto sequencing barcodes through the report-01 crosswalk.
+It is a <strong>continuous annotation, not a clustering
+feature</strong>: the clustering never sees it, so visible alignment
+between the high-burden cluster and the high-aneuploidy samples is
+corroboration, not circularity. The binary high/low bar beside it splits
+at the <strong>primary</strong> cut 0.1; nothing in this report is keyed
+on the aneuploidy class — the clusters are learned from copy number — so
+it is an annotation here rather than a grouping, and the same tumours
+split at both configured cuts are in <a
+href="12-aneuploidy-immune.html">12-aneuploidy-immune</a>.</p>
+<pre class="r"><code>cl &lt;- if (have_cnv) cluster_arm_matrix(cnv_mat, k = k_cnv,
+                                       method = cnv_method, dist_method = cnv_dist) else NULL
+
+if (!is.null(cl)) {
+  # Copy-number-high cluster from the matrix&#39;s OWN SCNA burden — derived only from the
+  # clustering features, so the aneuploidy-by-cluster boxplot below is an independent check,
+  # not a tautology.
+  #
+  # ⚠️ DIRECTIONAL (this is the ONLY change from the sibling report). The burden is scored
+  # over CONCORDANT events only — gains at GISTIC amplification peaks, losses at deletion
+  # peaks — instead of mean |value|. On thresholded GISTIC calls the two disagree: |value|
+  # rewards a deletion-dominated cluster as strongly as an amplification-dominated one, and
+  # on thresholded features it can pick the wrong cluster outright. `direction`
+  # comes from this run&#39;s own amp_genes/del_genes lists; if they are unavailable the helper
+  # falls back to |value| and says so, i.e. this report degrades to the sibling&#39;s behaviour.
+  feat_dir     &lt;- gistic_feature_direction()
+  high_cluster &lt;- cnv_high_cluster_burden(cl, direction = feat_dir)
+  burden_tbl   &lt;- cluster_scna_burden(cl, direction = feat_dir)
+  high_absolute &lt;- cnv_high_cluster_burden(cl)          # the undirected call, for comparison
+  # cat(), not message() — see note_skip() in attend_plots.R for why (message = FALSE).
+  cat(&quot;\nSerous-like call, on the PEAK matrix, BEFORE any relabelling:&quot;,
+      &quot;\n  directional burden (concordant events only) picks cluster:&quot;, high_cluster,
+      &quot;\n  undirected mean |value| would pick cluster              :&quot;, high_absolute,
+      &quot;\n  -&gt;&quot;, if (identical(high_cluster, high_absolute)) &quot;[agree] the directional correction changed nothing here&quot;
+                 else &quot;[DISAGREE] the two rules pick different clusters — read 00-methods before using the label&quot;,
+      &quot;\n&quot;)
+
+  # ORDER THE CLUSTERS BY SCNA BURDEN — the paper&#39;s x-axis. Kandoth et al. Fig. 1a runs quiet
+  # -&gt; copy-number-high, left -&gt; right: on TCGA&#39;s own published clusters, mean |log2| is
+  # 0.0043 / 0.052 / 0.099 / 0.216, monotonic over a 50x range. cutree() numbers clusters by
+  # order of first appearance in the dendrogram instead, which is a merge-order artefact, so
+  # the heatmap blocks came out in a sequence that means nothing. Relabelling is presentation
+  # only — the partition is untouched and ARI is label-invariant — but it is what makes the
+  # figure read as the paper&#39;s, and it makes ATTEND&#39;s cluster numbers comparable to TCGA&#39;s
+  # published 1..4 and to report 09&#39;s.
+  #
+  # DONE HERE, before `ann` and the cascade join are built, because everything downstream keys
+  # on these labels: relabelling after `ann` would leave the top annotation on old labels and
+  # the bottom cluster bar on new ones. Burden is measured on the genome-wide display matrix,
+  # the quantity the paper&#39;s own ordering tracks. high_cluster is TRANSLATED, not assumed to be
+  # k — it comes from cnv_high_cluster_burden() on the PEAK matrix, and whether that rule
+  # agrees with the display ordering is a fact worth printing, not one to assume.
+  if (!is.null(disp_mat)) {
+    dm0 &lt;- as.matrix(disp_mat[, setdiff(names(disp_mat), &quot;ID&quot;), drop = FALSE])
+    rownames(dm0) &lt;- disp_mat$ID
+    rl &lt;- relabel_clusters_by_burden(cl$cluster, dm0)
+    cl$cluster &lt;- rl$cluster
+    cl$assignment$cnv_cluster &lt;- unname(rl$map[as.character(cl$assignment$cnv_cluster)])
+    if (!is.na(high_cluster))  high_cluster  &lt;- unname(rl$map[as.character(high_cluster)])
+    if (!is.na(high_absolute)) high_absolute &lt;- unname(rl$map[as.character(high_absolute)])
+    # rl$burden is keyed by the ORIGINAL cutree labels, and everything downstream uses the
+    # NEW ones — printing the bare vector put four numbers on the page under names that no
+    # other line referred to, which read as though the relabelling had failed. Print the
+    # MAP instead: which cutree cluster became which display cluster, and on what burden.
+    ord &lt;- order(rl$burden, na.last = TRUE)
+    cat(&quot;\nCluster relabelling — cutree&#39;s numbering is a merge-order artefact, so clusters are&quot;,
+        &quot;\nrenumbered by ascending SCNA burden (mean |value| on the display matrix), which is&quot;,
+        &quot;\nthe paper&#39;s left-to-right axis: cluster 1 = quietest, cluster&quot;, k_cnv, &quot;= most altered.\n\n&quot;)
+    print(data.frame(
+      cutree_cluster  = names(rl$burden)[ord],
+      display_cluster = unname(rl$map[names(rl$burden)[ord]]),
+      mean_abs_value  = round(unname(rl$burden)[ord], 4),
+      row.names = NULL))
+    cat(&quot;\nSerous-like (copy-number-high) cluster, in DISPLAY numbering: &quot;, high_cluster, &quot;\n&quot;,
+        &quot;  chosen by the DIRECTIONAL burden rule on the peak matrix, then translated through\n&quot;,
+        &quot;  the map above — not assumed to be k.\n  &quot;,
+        if (identical(as.character(high_cluster), as.character(k_cnv)))
+          paste0(&quot;[= k = &quot;, k_cnv, &quot;] the peak-based directional rule and the display-matrix &quot;,
+                 &quot;burden ordering agree, which is the expected case.&quot;)
+        else
+          paste0(&quot;[NOT k] the peak-based directional rule picked a cluster that is NOT the &quot;,
+                 &quot;most-altered one on the display matrix. These are two different matrices &quot;,
+                 &quot;and two different rules; when they disagree, prefer the directional call &quot;,
+                 &quot;and say so in the text.&quot;), &quot;\n&quot;, sep = &quot;&quot;)
+  } else {
+    cat(&quot;\nClusters NOT burden-ordered — no display matrix, so the heatmap blocks keep&quot;,
+        &quot;cutree&#39;s arbitrary order and will not read like the paper&#39;s Fig. 1a.\n&quot;)
+  }
+
+  # Per-barcode aneuploidy, kept ONLY for the enrichment check + heatmap annotation:
+  # prefer ASCETS, else map the master&#39;s aneuploidy score back onto barcodes via the crosswalk.
+  aneu_id &lt;- NULL
+  if (!is.null(ascets_aneu)) {
+    aneu_id &lt;- ascets_aneu |&gt; rename(aneuploidy_value = ascets_aneuploidy)
+  } else if (have_master &amp;&amp; have_cw) {
+    aneu_id &lt;- cw |&gt;
+      left_join(master |&gt; transmute(pid, aneuploidy_value =
+                  suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]]))), by = &quot;pid&quot;) |&gt;
+      transmute(ID = barcode, aneuploidy_value)
+  }
+
+  # Heatmap of the GISTIC thresholded peak matrix (TCGA Fig. 1a). Peak genes (rows) x
+  # samples (columns by dendrogram), annotated by CN cluster + INTEGRATED TCGA class + MMR +
+  # TP53 + the external aneuploidy SCORE. The integrated-class and MMR/TP53 bars show the
+  # molecular class distributing ACROSS the copy-number clusters — these are the *copy-number*
+  # clusters (Fig. 1a), NOT the integrated four groups (the cascade sits on top). The
+  # aneuploidy bar (aneu_id, built above from ASCETS or the master) is a CONTINUOUS annotation
+  # only — never a clustering feature.
+  ids &lt;- rownames(cl$matrix)
+  ann &lt;- data.frame(CN_cluster = factor(cl$cluster[ids]), row.names = ids)
+  if (have_master &amp;&amp; have_cw) {
+    pid_v &lt;- cw$pid[match(ids, cw$barcode)]
+    grab  &lt;- function(col) if (col %in% names(master)) master[[col]][match(pid_v, master$pid)] else rep(NA, length(ids))
+
+    # Integrated TCGA class per column (barcode), from the SAME cascade as the &quot;Integrated
+    # classification&quot; section below (add_tcga_class): POLE omitted (no cases) &gt; MMRd (MSI-high
+    # NGS OR MMR-loss IHC) &gt; CN-high (serous-like) &gt; CN-low. Derived from each patient&#39;s
+    # dominant CN cluster, so the Fig-1a heatmap shows where the integrated call lands on the
+    # copy-number clustering. POLE is kept as an (empty) legend level to document &quot;no cases&quot;.
+    if (!is.na(high_cluster)) {
+      cnv_pid_hm &lt;- cl$assignment |&gt;
+        inner_join(cw, by = c(&quot;ID&quot; = &quot;barcode&quot;)) |&gt;
+        count(pid, cnv_cluster) |&gt;
+        group_by(pid) |&gt; slice_max(n, n = 1, with_ties = FALSE) |&gt; ungroup() |&gt;
+        transmute(pid, cnv_high = cnv_cluster == high_cluster)
+      tcga_hm  &lt;- master |&gt; left_join(cnv_pid_hm, by = &quot;pid&quot;) |&gt; add_tcga_class()
+      tcga_lab &lt;- setNames(as.character(tcga_hm$tcga_class), tcga_hm$pid)[pid_v]
+      ann$TCGA_class &lt;- factor(tcga_lab,
+        levels = c(&quot;POLE (ultramutated)&quot;, attend_tcga_levels$msi,
+                   attend_tcga_levels$cn_high, attend_tcga_levels$cn_low))
+    }
+
+    # ProMisE bar, directly beside the TCGA one. The two answer the same question by
+    # different rules — TCGA&#39;s CN-high is a copy-number CLUSTER, ProMisE&#39;s p53abn is a per-
+    # patient marker — so drawing them adjacent makes every disagreement a visible vertical
+    # mismatch instead of a number in a table. Read off the master, which already carries
+    # promise_class from the data chunk, so this bar and the cascade below cannot diverge.
+    pr &lt;- grab(&quot;promise_class&quot;)
+    if (!all(is.na(pr)))
+      ann$ProMisE &lt;- factor(as.character(pr), levels = attend_promise_levels)
+
+    mmrd  &lt;- is_mmrd(grab(&quot;MMR_class&quot;))   # MMRd = MMR IHC loss ONLY (shared is_mmrd; MSI not a criterion)
+    ann$MMR &lt;- factor(ifelse(is.na(mmrd), NA, ifelse(mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;)), levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;))
+    tp &lt;- grab(&quot;TP53_pathogenic&quot;)
+    if (!all(is.na(tp))) ann$TP53 &lt;- factor(ifelse(as.logical(tp), &quot;mut&quot;, &quot;wt&quot;), levels = c(&quot;wt&quot;, &quot;mut&quot;))
+  }
+  # Aneuploidy score as a continuous annotation bar (same aneu_id used by the enrichment
+  # boxplot below; keyed by barcode ID = heatmap column). Kept out of the clustering.
+  if (!is.null(aneu_id))
+    ann$Aneuploidy &lt;- aneu_id$aneuploidy_value[match(ids, aneu_id$ID)]
+
+  # THE DISPLAY MATRIX, which is not the clustering matrix. Fig. 1a shows the whole genome on
+  # a continuous scale; the clustering ran on peak-restricted {-2..+2} calls. Prefer the
+  # genome-wide continuous matrix and fall back to the clustering matrix only if GISTIC&#39;s
+  # all_data_by_genes.txt is absent — in which case the figure is the old, non-faithful one and
+  # hm_label says so on the page rather than leaving the reader to guess.
+  to_sample_matrix &lt;- function(tb) {
+    m &lt;- as.matrix(tb[, setdiff(names(tb), &quot;ID&quot;), drop = FALSE])
+    rownames(m) &lt;- tb$ID
+    m
+  }
+  hm_mat &lt;- NULL
+  if (!is.null(disp_mat)) {
+    dm &lt;- to_sample_matrix(disp_mat)
+    dm &lt;- dm[rownames(dm) %in% names(cl$cluster), , drop = FALSE]   # only clustered tumours
+    if (nrow(dm) &gt;= 2) hm_mat &lt;- dm else
+      cat(&quot;all_data_by_genes.txt shares&quot;, nrow(dm), &quot;samples with the clustering —&quot;,
+          &quot;falling back to the thresholded matrix.\n&quot;)
+  }
+  if (!is.null(hm_mat)) {
+    hm_src   &lt;- disp_mat
+    hm_vtype &lt;- &quot;continuous&quot;
+    hm_label &lt;- &quot;genome-wide continuous SCNA (all_data_by_genes) — the Fig-1a display&quot;
+  } else {
+    hm_mat   &lt;- cl$matrix
+    hm_src   &lt;- cnv_mat
+    hm_vtype &lt;- &quot;thresholded&quot;
+    hm_label &lt;- &quot;FALLBACK: peak-restricted thresholded calls (no all_data_by_genes.txt)&quot;
+  }
+
+  # Feature positions: GISTIC genes -&gt; cytoband, from whichever matrix is being DISPLAYED.
+  # Taking it from the display matrix matters: the two files carry different gene sets, and
+  # cytoband keys looked up from the wrong one resolve to nothing and drop every row.
+  fpos &lt;- attr(hm_src, &quot;feature_pos&quot;)
+  cyto &lt;- if (!is.null(fpos)) setNames(fpos$cytoband, fpos$feature) else NULL
+  feat_pos &lt;- feature_positions(colnames(hm_mat), cytoband = cyto)
+
+  # WHY-IS-THERE-NO-HEATMAP gate. fig1a_heatmap() returns invisible(NULL) on four different
+  # conditions, each announced only with message() — which opts_chunk (message = FALSE)
+  # swallows, so the figure just silently fails to appear. Print the preconditions instead:
+  # whichever line below reads FALSE / 0 is the reason the heatmap is missing.
+  # The clustering feature count is NOT labelled &quot;peak genes&quot; on faith any more. The loader
+  # returns whether the peak restriction actually applied, and this prints that — an
+  # unrestricted run is TCGA&#39;s method only in the thresholding, not in the feature space,
+  # and it used to be indistinguishable on the page from a restricted one.
+  rstr &lt;- attr(cnv_mat, &quot;restriction&quot;)
+  cat(&quot;Fig-1a heatmap preconditions&quot;,
+      &quot;\n  displaying               :&quot;, hm_label,
+      &quot;\n  ComplexHeatmap installed :&quot;, requireNamespace(&quot;ComplexHeatmap&quot;, quietly = TRUE),
+      &quot;\n  circlize installed       :&quot;, requireNamespace(&quot;circlize&quot;, quietly = TRUE),
+      &quot;\n  display (samples x feat) :&quot;, nrow(hm_mat), &quot;x&quot;, ncol(hm_mat),
+      &quot;\n  clustered on             :&quot;, nrow(cl$matrix), &quot;samples x&quot;, ncol(cl$matrix), &quot;features&quot;,
+      &quot;\n  samples with a cluster   :&quot;, sum(rownames(hm_mat) %in% names(cl$cluster)),
+      &quot;\n  feature positions mapped :&quot;, sum(feat_pos$feature %in% colnames(hm_mat)),
+      &quot;\n  annotation bars          :&quot;, if (is.null(ann)) 0L else ncol(ann), &quot;\n&quot;)
+  if (is.null(rstr)) {
+    cat(&quot;\n  ⚠️ PEAK RESTRICTION: status unknown — this clustering matrix predates the&quot;,
+        &quot;\n     restriction attribute. Re-run load_gistic_thresholded().\n&quot;)
+  } else if (isTRUE(rstr$applied)) {
+    cat(&quot;\n  PEAK RESTRICTION: APPLIED — &quot;, rstr$n_kept, &quot; of &quot;, rstr$n_total,
+        &quot; genes kept, from &quot;, rstr$n_peak_genes, &quot; genes named in the GISTIC\n&quot;,
+        &quot;     significant amp/del peaks. This is TCGA Suppl. Methods S2&#39;s feature space.\n&quot;, sep = &quot;&quot;)
+  } else {
+    cat(&quot;\n  ⚠️ PEAK RESTRICTION: **NOT APPLIED** — clustering ALL &quot;, rstr$n_total,
+        &quot; thresholded genes.\n&quot;,
+        &quot;     The values are still thresholded, but the FEATURE SPACE is genome-wide, which is\n&quot;,
+        &quot;     NOT Suppl. Methods S2 (\&quot;...in significantly reoccurring amplification or deletion\n&quot;,
+        &quot;     regions...\&quot;). Every cluster label below is from an unrestricted clustering.\n&quot;,
+        &quot;     What is missing, under &quot;, attr(cnv_mat, &quot;gistic_folder&quot;), &quot;:\n&quot;,
+        paste0(&quot;       - &quot;, rstr$missing, collapse = &quot;\n&quot;), &quot;\n&quot;,
+        &quot;     Fix: re-run GISTIC so amp_genes/del_genes are written, or point\n&quot;,
+        &quot;     attend_cnv$gistic$amp_genes_glob / del_genes_glob at the files that exist.\n&quot;, sep = &quot;&quot;)
+  }
+
+  fig1a_heatmap(hm_mat, feat_pos, cl$cluster, ann_col = ann,
+                value_type = hm_vtype,
+                main = paste0(&quot;TCGA Fig. 1a — SCNAs by tumour x chromosomal location; &quot;,
+                              &quot;columns split by the GISTIC-peak clusters (Suppl. S2), cluster &quot;,
+                              high_cluster, &quot; = copy-number high&quot;))
+} else {
+  cat(&quot;CNV clustering skipped — run GISTIC so data/gistic/ exists (see bottom of report).\n&quot;)
+  high_cluster &lt;- NA_integer_
+}</code></pre>
+<pre><code>
+Serous-like call, on the PEAK matrix, BEFORE any relabelling: 
+  directional burden (concordant events only) picks cluster: 3 
+  undirected mean |value| would pick cluster              : 3 
+  -&gt; [agree] the directional correction changed nothing here 
+
+Cluster relabelling — cutree&#39;s numbering is a merge-order artefact, so clusters are 
+renumbered by ascending SCNA burden (mean |value| on the display matrix), which is 
+the paper&#39;s left-to-right axis: cluster 1 = quietest, cluster 4 = most altered.
+
+  cutree_cluster display_cluster mean_abs_value
+1              1               1         0.1585
+2              4               2         0.1766
+3              2               3         0.2078
+4              3               4         0.3437
+
+Serous-like (copy-number-high) cluster, in DISPLAY numbering: 4
+  chosen by the DIRECTIONAL burden rule on the peak matrix, then translated through
+  the map above — not assumed to be k.
+  [= k = 4] the peak-based directional rule and the display-matrix burden ordering agree, which is the expected case.
+Fig-1a heatmap preconditions 
+  displaying               : genome-wide continuous SCNA (all_data_by_genes) — the Fig-1a display 
+  ComplexHeatmap installed : TRUE 
+  circlize installed       : TRUE 
+  display (samples x feat) : 247 x 27100 
+  clustered on             : 247 samples x 27100 features 
+  samples with a cluster   : 247 
+  feature positions mapped : 27100 
+  annotation bars          : 5 
+
+  ⚠️ PEAK RESTRICTION: **NOT APPLIED** — clustering ALL 27100 thresholded genes.
+     The values are still thresholded, but the FEATURE SPACE is genome-wide, which is
+     NOT Suppl. Methods S2 (&quot;...in significantly reoccurring amplification or deletion
+     regions...&quot;). Every cluster label below is from an unrestricted clustering.
+     What is missing, under /hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic:
+       - amp_genes.conf_99.txt (found, 0 gene symbols parsed)
+       - del_genes.conf_99.txt (found, 0 gene symbols parsed)
+     Fix: re-run GISTIC so amp_genes/del_genes are written, or point
+     attend_cnv$gistic$amp_genes_glob / del_genes_glob at the files that exist.</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-cluster-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="the-k-sweep-k-28-on-one-chromosome-heatmap"
+class="section level2">
+<h2>The k-sweep — k = 2…8 on one chromosome heatmap</h2>
+<p>This is the headline of this variant. The <strong>Euclidean/Ward
+dendrogram is computed once</strong>, then <strong>cut at every k from 2
+to 8</strong>. Because a single hierarchical tree is cut repeatedly, the
+partitions are <strong>nested</strong> (k = 8 is a refinement of k = 2),
+so they can share one figure: the display matrix is drawn once —
+genome-wide genes (rows) grouped by chromosome, tumours (columns)
+ordered by the <strong>actual Euclidean/Ward dendrogram</strong> — with
+a <strong>stack of cluster bars beneath, one per k</strong>. Reading a
+column downward shows how that tumour’s cluster label subdivides as k
+grows; reading a bar left-to-right shows the k-cluster partition against
+the same chromosomal SCNA background. This makes the choice of k a
+<strong>visual question</strong> — at which k do the chromosome blocks
+stop corresponding to coherent SCNA patterns — rather than a number
+fixed in advance.</p>
+<p><strong>Computational steps.</strong> (1) Reuse the Euclidean/Ward
+cl<span class="math inline">\(hclust from the clustering chunk. (2)
+fig1a_heatmap_ksweep(cl\)</span>matrix, feat_pos, cl$hclust, k_range =
+2:8) draws the matrix once (columns in dendrogram order, no per-k
+re-clustering) and adds one cutree(hc, k) cluster bar per k, plus the
+same top annotation bars (integrated class, MMR, TP53, aneuploidy score)
+as the single-k Fig-1a heatmap above. (3) The average silhouette across
+k (next chunk) is the quantitative companion to this visual sweep.</p>
+<pre class="r"><code>if (!is.null(cl) &amp;&amp; exists(&quot;hm_mat&quot;) &amp;&amp; exists(&quot;feat_pos&quot;) &amp;&amp; exists(&quot;ann&quot;)) {
+  # Same display matrix as the single-k panel, same peak-based dendrogram. ksweep intersects
+  # rownames(mat) with hc$labels itself, so the genome-wide matrix and the peak-learned tree
+  # line up without any extra handling here.
+  fig1a_heatmap_ksweep(hm_mat, feat_pos, cl$hclust, k_range = k_sweep, ann_col = ann,
+                       value_type = hm_vtype,
+                       main = paste0(&quot;Fig-1a canvas (&quot;, hm_label, &quot;) — k = &quot;,
+                                     min(k_sweep), &quot;..&quot;, max(k_sweep),
+                                     &quot; Euclidean/Ward cluster bars&quot;))
+} else cat(&quot;k-sweep heatmap skipped — need the Euclidean/Ward clustering (run GISTIC first).\n&quot;)</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-ksweep-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>Average silhouette width against k over the same Euclidean/Ward
+dendrogram, which is the quantitative companion to the visual sweep
+above: a peak flags the most internally coherent cut, and the cascade’s
+configured cut k_cnv is marked for reference. Needs the optional cluster
+package.</p>
+<pre class="r"><code># Average silhouette width vs k over the SAME Euclidean/Ward dendrogram — the quantitative
+# read on &quot;how many clusters&quot;. Peaks flag the most internally-coherent cut(s); the cascade&#39;s
+# the cascade&#39;s configured cut k_cnv is marked for reference. Optional dependency `cluster`.
+if (!is.null(cl) &amp;&amp; requireNamespace(&quot;cluster&quot;, quietly = TRUE)) {
+  D  &lt;- if (identical(cnv_dist, &quot;correlation&quot;))
+          stats::as.dist(1 - stats::cor(t(cl$matrix), use = &quot;pairwise.complete.obs&quot;))
+        else stats::dist(cl$matrix, method = cnv_dist)
+  ks &lt;- k_sweep[k_sweep &gt;= 2 &amp; k_sweep &lt;= (nrow(cl$matrix) - 1)]
+  avg_sil &lt;- vapply(ks, function(k) {
+    s &lt;- cluster::silhouette(stats::cutree(cl$hclust, k = k), D)
+    if (is.matrix(s)) mean(s[, &quot;sil_width&quot;]) else NA_real_
+  }, numeric(1))
+  sil_df &lt;- data.frame(k = ks, avg_sil = avg_sil)
+  ggplot(sil_df, aes(k, avg_sil)) +
+    geom_line(colour = &quot;grey50&quot;) + geom_point(size = 2) +
+    geom_vline(xintercept = k_cnv, linetype = 2,
+               colour = unname(ATTEND_PALETTE[&quot;red&quot;])) +
+    scale_x_continuous(breaks = ks) +
+    labs(title = &quot;Average silhouette width vs k (Euclidean/Ward)&quot;,
+         subtitle = paste0(&quot;dashed = cascade cut k = &quot;, k_cnv, &quot;; higher = more coherent partition&quot;),
+         x = &quot;number of clusters (k)&quot;, y = &quot;mean silhouette width&quot;) +
+    attend_theme()
+} else note_skip(&quot;Silhouette-vs-k skipped — install the optional `cluster` package.&quot;)</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-ksweep-silhouette-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>TCGA Fig. 1b — progression-free survival by copy-number
+cluster.</strong> KM of clinical PFS (gianlu__PFS_MONTHS/_EVENT via
+recode_event()) for the raw copy-number clusters, barcodes mapped to pid
+through the report-01 crosswalk. Log-rank P as in the paper.</p>
+<pre class="r"><code>if (!is.null(cl) &amp;&amp; have_master &amp;&amp; have_cw) {
+  km_by_cluster(cl$assignment, cw, master)
+} else note_skip(&quot;KM skipped — need CNV clusters + master + crosswalk.&quot;)</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-km-pfs-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>Per-sample silhouette at the cascade cut k_cnv, computed on the same
+Euclidean distance the clustering used rather than Euclidean, so the
+widths are consistent with the tree the clusters came from.</p>
+<pre class="r"><code># Per-sample silhouette at the cascade cut k = k_cnv, using the SAME distance the clustering
+# used, so the widths are consistent with the tree rather than describing a different geometry.
+if (!is.null(cl) &amp;&amp; requireNamespace(&quot;cluster&quot;, quietly = TRUE)) {
+  D_sil &lt;- if (identical(cnv_dist, &quot;correlation&quot;))
+             stats::as.dist(1 - stats::cor(t(cl$matrix), use = &quot;pairwise.complete.obs&quot;))
+           else stats::dist(cl$matrix, method = cnv_dist)
+  # cl$cluster is a FACTOR after relabel_clusters_by_burden() (levels &quot;1&quot;..&quot;k&quot;), and
+  # cluster::silhouette() validates its codes with `all(x == round(x))` — round() on a factor
+  # is an error, not a coercion, so the knit dies here with &quot;&#39;round&#39; not meaningful for
+  # factors&quot;. The k-sweep chunk above never hit it because cutree() hands back a plain
+  # integer. Coerce through as.character(): as.integer() on a factor returns LEVEL CODES, so
+  # a level set that is ever not in sorted order would silently renumber the burden-ordered
+  # clusters — the one property relabel_clusters_by_burden() exists to guarantee.
+  sil &lt;- cluster::silhouette(as.integer(as.character(cl$cluster[rownames(cl$matrix)])), D_sil)
+  plot(sil, main = paste0(&quot;Silhouette (Euclidean/Ward), k = &quot;, k_cnv), col = &quot;grey40&quot;)
+}</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-silhouette-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>These are the <em>copy-number</em> clusters, not the four
+integrated molecular groups.</strong> The heatmap above is Fig. 1a —
+unsupervised clustering of <em>copy number alone</em>, cluster 4 =
+serous-like. The four <em>integrated groups</em> (Fig. 2b: POLE → MMRd →
+CN-high → CN-low) are a <strong>separate object</strong> — a cascade
+layered on top, where MMRd is set by MMR IHC (not copy number) and the
+SCNA clusters collapse to high (cluster 4) vs low (1–3). The
+integrated-class, MMR and TP53 annotation bars show exactly this: the
+molecular class distributes <em>across</em> the CN clusters rather than
+defining them — the integrated-class bar is the cascade’s per-patient
+call painted onto the copy-number clustering, not a re-clustering.</p>
+</div>
+<div id="aneuploidy-enrichment-across-clusters" class="section level2">
+<h2>Aneuploidy enrichment across clusters</h2>
+<p>The copy-number-high cluster was labelled <strong>above</strong> from
+the arm matrix’s own <strong>SCNA burden</strong> (mean |arm copy
+number|) — a signal built only from the clustering features. This
+section is therefore an <strong>independent check</strong>: does that
+same cluster also carry the highest <strong>external aneuploidy
+score</strong>? Because the label and the plotted score come from
+<em>different</em> signals, a positive result here is genuine
+enrichment, not the tautology you’d get by labelling the cluster with
+the very score you then plot. The burden table shows why the cluster was
+chosen; the boxplot (Kruskal–Wallis, red/turquoise palette) is the
+cross-check.</p>
+<p><strong>Computational steps.</strong> (1) cluster_scna_burden() —
+mean |arm log2| per sample, averaged per cluster (the table). (2) Join
+the <strong>external</strong> per-sample aneuploidy score (ASCETS if
+present, else the master’s aneu__aneuploidy_score via the crosswalk) to
+the cluster assignment. (3) Boxplot aneuploidy by cluster;
+<strong>Kruskal–Wallis</strong> across clusters.</p>
+<pre class="r"><code>if (!is.null(cl) &amp;&amp; !is.null(burden_tbl)) {
+  knitr::kable(burden_tbl, digits = 3,
+    caption = paste0(&quot;Intrinsic SCNA burden per cluster (mean |arm copy number|) — &quot;,
+                     &quot;cluster &quot;, high_cluster, &quot; is copy-number-high. This is the label &quot;,
+                     &quot;signal; the aneuploidy boxplot below is the independent check.&quot;))
+}</code></pre>
+<table>
+<caption>Intrinsic SCNA burden per cluster (mean |arm copy number|) —
+cluster 4 is copy-number-high. This is the label signal; the aneuploidy
+boxplot below is the independent check.</caption>
+<thead>
+<tr class="header">
+<th align="right">cnv_cluster</th>
+<th align="right">mean_burden</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">0.488</td>
+<td align="right">49</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">0.313</td>
+<td align="right">39</td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="right">0.312</td>
+<td align="right">37</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">0.185</td>
+<td align="right">122</td>
+</tr>
+</tbody>
+</table>
+<p>The independent check on that label: the external per-sample
+aneuploidy score (data/ascets/ when present, else the master’s
+aneu__aneuploidy_score) by cluster. The clustering never saw this value,
+so alignment between the high-burden cluster and the high-aneuploidy
+samples is corroboration rather than circularity.</p>
+<pre class="r"><code>if (!is.null(cl) &amp;&amp; exists(&quot;aneu_id&quot;) &amp;&amp; !is.null(aneu_id)) {
+  d &lt;- cl$assignment |&gt;
+    inner_join(aneu_id, by = &quot;ID&quot;) |&gt;
+    filter(!is.na(aneuploidy_value)) |&gt;
+    mutate(cluster = factor(cnv_cluster),
+           is_high = cnv_cluster == high_cluster)
+  if (exists(&quot;cw&quot;) &amp;&amp; !is.null(cw)) d &lt;- dplyr::left_join(d, cw, by = c(&quot;ID&quot; = &quot;barcode&quot;))
+
+  if (nrow(d) &gt; 0) {
+    ggplot(d, aes(cluster, aneuploidy_value)) +
+      # fill kept (is_high names which cluster is serous-like — the x tick does not), but
+      # alpha dropped: blending the fill against white means the rendered box never matches
+      # its own legend swatch. CN-high takes the aneuploidy-high red, since that is
+      # the same &quot;altered&quot; end of the same biology one panel over.
+      geom_boxplot(outlier.shape = NA, aes(fill = is_high), width = 0.6) +
+      aneu_point_layers(d, value_col = &quot;aneuploidy_value&quot;) +
+      stat_compare_means(label = &quot;p.format&quot;, size = 3) +
+      scale_fill_manual(values = c(`TRUE` = attend_aneu_high, `FALSE` = attend_neutral),
+                        name = &quot;copy-number high&quot;, labels = c(&quot;other&quot;, &quot;serous-like&quot;)) +
+      labs(title = &quot;Aneuploidy score by CNV cluster (independent check)&quot;,
+           subtitle = paste0(&quot;source: &quot;, cnv_source, &quot;; cluster &quot;, high_cluster,
+                             &quot; = copy-number high (labelled by SCNA burden, not this score)&quot;),
+           x = &quot;CNV cluster&quot;, y = attend_as_axis) +
+      attend_theme()
+  }
+}</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cnv-aneu-enrich-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="integrated-classification-cascade" class="section level2">
+<h2>Integrated classification cascade</h2>
+<p><strong>Computational steps.</strong> (1) Per patient, collapse
+barcode → pid and take the <strong>dominant</strong> CNV cluster
+(multi-sample patients), then flag cnv_high = membership in the CN-high
+cluster. (2) Join to the master and apply add_tcga_class(), a
+<strong>priority cascade</strong>: <strong>MMRd</strong> (MSI-high by
+NGS <strong>OR</strong> MMR-protein loss by IHC) &gt;
+<strong>CN-high</strong> (serous rule = cluster_only) &gt;
+<strong>CN-low</strong>; the first positive test wins. (3) Tabulate
+patients per class.</p>
+<pre class="r"><code>tcga_summary &lt;- NULL
+
+if (have_master &amp;&amp; have_cw) {
+  # Cascade (POLE removed): MMRd (MMR IHC) &gt; CN-high (serous-like) &gt; CN-low. MMRd = MMR-IHC-deficient
+  # (MMR IHC only; MSI-high is a correlate); the serous-like call follows attend_tcga_serous_rule (default
+  # &quot;cluster_only&quot;: high-aneuploidy CNV cluster membership = TCGA&#39;s serous-like cluster 4,
+  # TP53 NOT required — validated separately below). add_tcga_class(), attend_classes.R §12.
+
+  # CNV cluster per patient (barcode -&gt; pid; dominant cluster if multi-sample),
+  # then the copy-number-high flag.
+  if (!is.null(cl) &amp;&amp; !is.na(high_cluster)) {
+    cnv_pid &lt;- cl$assignment |&gt;
+      inner_join(cw, by = c(&quot;ID&quot; = &quot;barcode&quot;)) |&gt;
+      count(pid, cnv_cluster) |&gt;
+      group_by(pid) |&gt; slice_max(n, n = 1, with_ties = FALSE) |&gt; ungroup() |&gt;
+      transmute(pid, cnv_high = cnv_cluster == high_cluster)
+  } else {
+    cnv_pid &lt;- tibble(pid = character(), cnv_high = logical())
+  }
+
+  classed &lt;- master |&gt;
+    left_join(cnv_pid, by = &quot;pid&quot;) |&gt;
+    add_tcga_class()   # serous = high-aneuploidy cluster (&quot;cluster_only&quot;); TP53 validated, not gated
+
+  tcga_summary &lt;- classed |&gt;
+    count(tcga_class, .drop = FALSE) |&gt;
+    mutate(pct = round(100 * n / sum(n), 1))
+  knitr::kable(tcga_summary, caption = paste0(&quot;Patients per TCGA integrated class (MMRd &gt; serous-like &gt; endometrioid; serous rule = &#39;&quot;, attend_tcga_serous_rule, &quot;&#39;)&quot;))
+}</code></pre>
+<table>
+<caption>Patients per TCGA integrated class (MMRd &gt; serous-like &gt;
+endometrioid; serous rule = ‘cluster_only’)</caption>
+<thead>
+<tr class="header">
+<th align="left">tcga_class</th>
+<th align="right">n</th>
+<th align="right">pct</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">MMRd</td>
+<td align="right">110</td>
+<td align="right">44.9</td>
+</tr>
+<tr class="even">
+<td align="left">Copy-number low (endometrioid)</td>
+<td align="right">80</td>
+<td align="right">32.7</td>
+</tr>
+<tr class="odd">
+<td align="left">Copy-number high (serous-like)</td>
+<td align="right">44</td>
+<td align="right">18.0</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="right">11</td>
+<td align="right">4.5</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="the-promise-who-esgo-classification-beside-it"
+class="section level2">
+<h2>The ProMisE / WHO-ESGO classification, beside it</h2>
+<p>The cascade above reproduces Kandoth et al. (<em>Nature</em> 2013),
+where the copy-number-high group <strong>is a cluster</strong>. That is
+faithful to the paper and it is what <a
+href="09-tcga2013-fig1a.html">09-tcga2013-fig1a</a> measures against
+TCGA’s own published labels. It is not what any current guideline asks
+for.</p>
+<p>Since Talhouk et al. (<em>Br J Cancer</em> 2015; <em>Cancer</em>
+2017) the field runs a <strong>surrogate</strong> algorithm — ProMisE —
+in which <strong>p53 IHC replaces the copy-number clustering</strong>
+and <strong>POLE exonuclease-domain sequencing</strong> replaces the
+ultramutated cluster. That is the algorithm specified by WHO 5th
+ed. (2020), ESGO/ESTRO/ESP (2021, updated 2025), NCCN, and <strong>FIGO
+2023 staging</strong>, which makes the subtype a stage <em>modifier</em>
+rather than a descriptive label. No guideline recognises a
+clustering-derived call as the p53-abnormal group.</p>
+<p>So both are computed and drawn side by side, in the annotation stack
+above and in the concordance table below. Neither is presented as the
+answer: the TCGA cascade is the historical reproduction, ProMisE is the
+call a reviewer will ask for.</p>
+<p><strong>The hierarchy is strict, and the order is the point.</strong>
+POLEmut &gt; MMRd &gt; p53abn &gt; NSMP, first match wins. A tumour
+carrying two markers is assigned to the <em>earlier</em> tier, never to
+the more altered one — León-Castillo et al. (<em>J Pathol</em> 2020)
+showed MMRd–p53abn tumours behave like MMRd (20/23) and POLEmut–p53abn
+like POLEmut (12/13). <code>add_promise_class()</code> (attend_classes.R
+§12b) applies the tiers in that order and nowhere else.</p>
+<p>⚠️ <strong>Two of the three inputs are surrogates, and the page says
+so rather than the caption.</strong> p53-abnormal is called from a TP53
+pathogenic variant in the MAF, not from p53 IHC. The guideline criterion
+is IHC; concordance is ~91-94% (Leon-Castillo et al., Mod Pathol 2022).
+POLE is called by exonuclease-domain hotspot match in the long MAF. A
+hit confirms a POLEmut case; the absence of hits does NOT establish that
+the cohort has none, which needs exon 9/13/14 sequencing. MMRd is the
+exception — that is MMR protein loss by IHC, the real criterion.</p>
+<p><strong>Why POLE is called on a variant list and not on the whole
+domain.</strong> The exonuclease domain is residues 268–471 (exons
+9–14), and it would be easy to call every variant in it. That
+over-calls. Most EDM variants are of unknown significance, and
+León-Castillo et al. (<em>J Pathol</em> 2020) exists precisely because
+clinical use “requires systematic evaluation of the pathogenicity of
+POLE mutations”. A domain-wide rule is not more sensitive in any useful
+sense — it is less specific, and it would put a VUS carrier into the
+<strong>top</strong> tier of the hierarchy, above MMRd and p53abn, which
+under FIGO 2023 changes that patient’s stage. So the call has three
+tiers, not two:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tier</th>
+<th>Rule</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>POLEmut</strong></td>
+<td>one of the 11 established pathogenic variants</td>
+<td>enters the hierarchy at the top</td>
+</tr>
+<tr class="even">
+<td><strong>EDM VUS</strong></td>
+<td>a variant inside 268–471 that is <em>not</em> on that list</td>
+<td><strong>flagged, not called</strong> — listed below for review</td>
+</tr>
+<tr class="odd">
+<td><strong>no EDM</strong></td>
+<td>nothing in the domain</td>
+<td>a real negative</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Computational steps.</strong> (1)
+<code>pole_ultramutated()</code> matches the established variant list
+against the long MAF’s protein-change column, in either annotator
+spelling (<code>P286R</code> and <code>Pro286Arg</code> both resolve),
+and parses the codon to flag non-list EDM variants as VUS (data chunk,
+above). (2) <code>add_promise_class()</code> applies the four tiers in
+order. (3) A patient missing any tier’s input is returned <strong>NA,
+not NSMP</strong> — coding missing data as “no marker altered” would
+turn an unsequenced patient into a negative finding, the same failure
+<code>add_response_class()</code> refuses for its landmark. A patient
+with <strong>no MAF at all is NA for POLE</strong>, not FALSE: an
+unscreened cohort is not a POLE-negative cohort, and that distinction is
+the whole reason this report can no longer say “ATTEND has no POLE
+cases” for free. (4) <code>promise_counts()</code> prints the partition,
+including why each unclassified patient could not be called.</p>
+<pre class="r"><code>if (have_promise) {
+  knitr::kable(promise_counts(master),
+               caption = &quot;ProMisE class assignment, and the reason for every patient it cannot classify&quot;)
+} else {
+  cat(&quot;**ProMisE not built in this build.** It needs the long MAF (for the POLE hotspot&quot;,
+      &quot;screen) and the barcode crosswalk. Absent those, every patient would be NA, which&quot;,
+      &quot;is reported as a skip rather than drawn as an empty four-group figure.\n&quot;)
+}</code></pre>
+<pre><code>**ProMisE not built in this build.** It needs the long MAF (for the POLE hotspot screen) and the barcode crosswalk. Absent those, every patient would be NA, which is reported as a skip rather than drawn as an empty four-group figure.</code></pre>
+<div id="pole-variants-seen-and-the-ones-needing-a-decision"
+class="section level3">
+<h3>POLE variants seen, and the ones needing a decision</h3>
+<p>Every POLE variant observed in the exonuclease domain, with the tier
+it was assigned. The <strong>EDM VUS</strong> rows are the ones a person
+has to adjudicate: they are not called POLEmut here, and they are not a
+clean negative either. <code>attend_pole$signature</code> carries
+León-Castillo’s genomic criteria for making that call from the data
+(C&gt;A &gt; 20%, T&gt;G &gt; 4%, C&gt;G &lt; 0.6%, indels &lt; 5%, TMB
+&gt; 100 mut/Mb) — every input is present in the long MAF and the
+master, so it is computable, but adjudicating a VUS is a decision that
+should be made explicitly rather than by a default buried in a
+helper.</p>
+<pre class="r"><code>if (have_master &amp;&amp; &quot;POLE_class&quot; %in% names(master)) {
+  pv &lt;- master |&gt;
+    dplyr::filter(!is.na(POLE_variant)) |&gt;
+    dplyr::select(pid, POLE_class, POLE_variant) |&gt;
+    dplyr::arrange(POLE_class, pid)
+  if (nrow(pv) &gt; 0) {
+    print(knitr::kable(pv, caption = &quot;POLE exonuclease-domain variants observed, by tier&quot;))
+  } else {
+    cat(&quot;No POLE exonuclease-domain variants observed in the screened patients.\n\n&quot;)
+  }
+  scr &lt;- sum(!is.na(master$POLE_class))
+  cat(&quot;POLE was screenable in &quot;, scr, &quot; of &quot;, nrow(master), &quot; patients. The remaining &quot;,
+      nrow(master) - scr, &quot; have no MAF and are **NA, not POLE-negative** — a cohort-level &quot;,
+      &quot;claim of \&quot;no POLE cases\&quot; cannot be made over them.\n&quot;, sep = &quot;&quot;)
+} else if (have_master) {
+  cat(&quot;POLE not screened in this build — no long MAF. Every patient is NA rather than&quot;,
+      &quot;POLE-negative.\n&quot;)
+}</code></pre>
+<pre><code>POLE not screened in this build — no long MAF. Every patient is NA rather than POLE-negative.</code></pre>
+</div>
+<div id="where-the-two-classifications-disagree" class="section level3">
+<h3>Where the two classifications disagree</h3>
+<p>The cross-tabulation of the 2013 cascade against ProMisE on the same
+patients. The MMRd row should agree almost perfectly — both read the
+same MMR IHC — so it is the diagonal check that the two are wired to the
+same data. The interesting cells are off-diagonal in the CN-high /
+p53abn row: a tumour in the copy-number-high cluster with no
+<em>TP53</em> variant, or a <em>TP53</em>-mutant tumour that clustered
+copy-number-low. Those are the patients whose molecular class, and under
+FIGO 2023 whose <strong>stage</strong>, depends on which algorithm is
+used.</p>
+<pre class="r"><code>if (have_promise &amp;&amp; exists(&quot;classed&quot;) &amp;&amp; &quot;tcga_class&quot; %in% names(classed)) {
+  cmp &lt;- classed |&gt;
+    dplyr::select(pid, tcga_class) |&gt;
+    dplyr::left_join(master |&gt; dplyr::select(pid, promise_class), by = &quot;pid&quot;) |&gt;
+    dplyr::filter(!is.na(tcga_class) | !is.na(promise_class))
+
+  if (nrow(cmp) &gt; 0) {
+    # addNA on BOTH margins: a patient the 2013 cascade classified and ProMisE could not is
+    # exactly the comparison this table exists to show, and table() would drop them silently.
+    tab_pr &lt;- table(`TCGA 2013 cascade` = addNA(cmp$tcga_class, ifany = TRUE),
+                    `ProMisE`           = addNA(cmp$promise_class, ifany = TRUE))
+    print(knitr::kable(tab_pr,
+      caption = &quot;TCGA 2013 cascade vs ProMisE, same patients (NA = the algorithm could not classify)&quot;))
+    agree &lt;- sum(cmp$tcga_class == attend_tcga_levels$msi &amp;
+                 cmp$promise_class == &quot;MMRd&quot;, na.rm = TRUE)
+    n_mmrd_tcga &lt;- sum(cmp$tcga_class == attend_tcga_levels$msi, na.rm = TRUE)
+    cat(&quot;\nMMRd agreement (the wiring check): &quot;, agree, &quot; / &quot;, n_mmrd_tcga,
+        &quot; patients the 2013 cascade calls MMRd are also MMRd under ProMisE.\n&quot;, sep = &quot;&quot;)
+  }
+} else if (have_master) {
+  cat(&quot;Concordance table skipped — needs both the TCGA cascade and a ProMisE call.\n&quot;)
+}</code></pre>
+<pre><code>Concordance table skipped — needs both the TCGA cascade and a ProMisE call.</code></pre>
+</div>
+<div id="tp53-enrichment-qc-is-the-cn-high-cluster-really-serous-like"
+class="section level3">
+<h3>TP53-enrichment QC — is the CN-high cluster really serous-like?</h3>
+<p>With the faithful “cluster_only” rule, the serous-like call is made
+<strong>from copy number alone</strong>. TCGA’s serous-like cluster 4
+was <strong>~90% <em>TP53</em>-mutant</strong> — so if our CN-high
+cluster genuinely corresponds to it, it should come out
+<strong>independently</strong> enriched for <em>TP53</em> pathogenic
+mutations. This is the validation that replaces the TP53 <em>gate</em>:
+TP53 is checked as a <strong>property</strong>, not required as a
+<strong>criterion</strong>. A high fraction here confirms the cluster is
+serous-like; a low fraction is a red flag that the copy-number cluster
+does <strong>not</strong> map to TCGA’s group (reconsider k_cnv, the CNV
+input, or purity).</p>
+<p><strong>Computational steps.</strong> (1) Split patients by cnv_high
+(CN-high cluster vs the rest). (2) Per group, count TP53_pathogenic and
+compute the mutant fraction. (3) <strong>Fisher exact test</strong> on
+the 2×2 (cluster × TP53) for enrichment; stacked bar with a dashed
+<strong>90%</strong> line.</p>
+<pre class="r"><code>if (exists(&quot;classed&quot;) &amp;&amp; all(c(&quot;cnv_high&quot;, &quot;TP53_pathogenic&quot;) %in% names(classed))) {
+  tp &lt;- classed |&gt;
+    filter(!is.na(cnv_high)) |&gt;
+    mutate(cluster = ifelse(cnv_high, &quot;CN-high cluster&quot;, &quot;other clusters&quot;),
+           tp53    = suppressWarnings(as.logical(TP53_pathogenic))) |&gt;
+    filter(!is.na(tp53))
+
+  if (nrow(tp) &gt; 0 &amp;&amp; dplyr::n_distinct(tp$cluster) &gt;= 1) {
+    tab &lt;- tp |&gt;
+      group_by(cluster) |&gt;
+      # na.rm plus an explicit n_called: TP53_pathogenic is now three-valued (TRUE /
+      # sequenced-and-clean FALSE / not-sequenced NA), so a bare sum() returns NA for any
+      # group containing one unsequenced patient and the whole QC table goes blank. The
+      # percentage is taken over the patients TP53 could be called in, which is the only
+      # denominator that means anything here.
+      summarise(n = dplyr::n(), n_called = sum(!is.na(tp53)), TP53_mut = sum(tp53, na.rm = TRUE),
+                pct_TP53 = ifelse(sum(!is.na(tp53)) &gt; 0,
+                                  round(100 * mean(tp53, na.rm = TRUE), 1), NA_real_),
+                .groups = &quot;drop&quot;)
+    knitr::kable(tab, caption = &quot;TP53-pathogenic fraction: CN-high cluster vs the rest (TCGA serous-like cluster 4 was ~90% TP53-mut)&quot;)
+
+    ct &lt;- table(factor(tp$cluster, levels = c(&quot;other clusters&quot;, &quot;CN-high cluster&quot;)), tp$tp53)
+    if (all(dim(ct) == c(2, 2)) &amp;&amp; min(rowSums(ct)) &gt; 0) {
+      ft &lt;- fisher.test(ct)
+      # cat(), not message(): this IS the QC that replaces the TP53 gate, and message = FALSE
+      # meant the report printed the percentage table and silently withheld the test.
+      cat(&quot;\nTP53 enrichment in the CN-high cluster: Fisher p = &quot;, signif(ft$p.value, 3),
+          &quot;, OR = &quot;, signif(unname(ft$estimate), 3),
+          if (is.finite(ft$p.value) &amp;&amp; ft$p.value &lt; 0.05)
+            &quot;\n  -&gt; enriched: the cluster behaves like TCGA&#39;s serous-like group.&quot;
+          else
+            &quot;\n  -&gt; NOT clearly enriched: the cluster may not map to TCGA serous-like. Reconsider\n     k_cnv, the CNV input, or tumour purity before quoting the label.&quot;,
+          &quot;\n&quot;, sep = &quot;&quot;)
+    }
+
+    ggplot(tp, aes(cluster, fill = tp53)) +
+      geom_bar(position = &quot;fill&quot;, width = 0.6) +
+      scale_y_continuous(labels = scales::percent) +
+      # labels/name through the shared vocabulary: this legend said &quot;wild-type&quot;/&quot;mutant&quot;
+      # under the title &quot;TP53 pathogenic&quot; while the Fig-1a bar on the SAME PAGE said
+      # &quot;wt&quot;/&quot;mut&quot; under &quot;TP53&quot;, for one variable. as_label() maps both onto one pair.
+      scale_fill_manual(values = c(`TRUE` = unname(attend_tp53_cols[[&quot;mut&quot;]]),
+                                   `FALSE` = unname(attend_tp53_cols[[&quot;wt&quot;]])),
+                        name = attend_tp53_legend,
+                        labels = as_label(c(&quot;wt&quot;, &quot;mut&quot;))) +
+      geom_hline(yintercept = 0.90, linetype = 2, colour = &quot;grey30&quot;) +
+      labs(title = &quot;TP53 mutation fraction by copy-number cluster&quot;,
+           subtitle = &quot;dashed = TCGA serous-like ~90% TP53-mut benchmark&quot;,
+           x = NULL, y = &quot;% TP53 pathogenic&quot;) +
+      attend_theme()
+  } else note_skip(&quot;TP53-enrichment QC: no CN-high assignments with TP53 status yet.&quot;)
+} else {
+  note_skip(&quot;TP53-enrichment QC skipped — needs cnv_high (from clustering) + TP53_pathogenic on the master.&quot;)
+}</code></pre>
+<pre><code>
+TP53 enrichment in the CN-high cluster: Fisher p = 8.95e-09, OR = 7.32
+  -&gt; enriched: the cluster behaves like TCGA&#39;s serous-like group.</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/tp53-enrichment-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>Computational steps (next two panels).</strong> (1) Take the
+per-patient tcga_class from the cascade. (2) <strong>Aneuploidy
+panel:</strong> aneuploidy score by class, Kruskal–Wallis. (3)
+<strong>TMB panel:</strong> loop over every TMB definition on the master
+(tmb_defs_present() — baseline tmb__TMB_SCORE and the ancestry-corrected
+column) and box TMB by class, one facet per definition.</p>
+<pre class="r"><code># Aneuploidy by class (paper-style panel).
+if (exists(&quot;classed&quot;)) {
+  pd &lt;- classed |&gt;
+    mutate(tcga_class = forcats::fct_na_value_to_level(tcga_class, &quot;unclassified&quot;),
+           aneuploidy_value = suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]])))
+
+  ggplot(filter(pd, !is.na(aneuploidy_value)), aes(tcga_class, aneuploidy_value)) +
+    # Was filled #A6CEE3 = attend_aneu_low, i.e. this figure told the reader every class was
+    # aneuploidy-low. The integrated classes are the smallest strata in the cascade, so the
+    # mark is chosen per class; points come from aneu_point_layers().
+    attend_box(filter(pd, !is.na(aneuploidy_value)), x = &quot;tcga_class&quot;, y = &quot;aneuploidy_value&quot;,
+               points = FALSE) +
+    aneu_point_layers(filter(pd, !is.na(aneuploidy_value)), value_col = &quot;aneuploidy_value&quot;) +
+    stat_compare_means(label = &quot;p.format&quot;, size = 3) +
+    labs(title = &quot;Aneuploidy by integrated class&quot;, x = NULL, y = attend_as_axis) +
+    attend_theme() + theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cascade-panels-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>TMB by integrated class, under both TMB definitions</strong>
+— <strong>TMB (normal)</strong>, the upstream tumour-only score, and
+<strong>TMB (ancestry corrected)</strong>, the same score after the
+ancestry recalibration explained in the “Ancestry-corrected TMB” section
+below. One panel per definition, so each class’s TMB can be read under
+both. The dashed line is the 10 mut/Mb TMB-high cutoff.</p>
+<pre class="r"><code>if (exists(&quot;classed&quot;) &amp;&amp; length(tmb_defs) &gt; 0) {
+  tl &lt;- classed |&gt;
+    mutate(tcga_class = forcats::fct_na_value_to_level(tcga_class, &quot;unclassified&quot;)) |&gt;
+    select(pid, tcga_class, all_of(unname(tmb_defs))) |&gt;
+    pivot_longer(all_of(unname(tmb_defs)), names_to = &quot;tmb_col&quot;, values_to = &quot;tmb_value&quot;) |&gt;
+    mutate(tmb_def   = factor(tmb_def_labels(tmb_defs)[match(tmb_col, tmb_defs)],
+                              levels = tmb_def_labels(tmb_defs)),
+           tmb_value = suppressWarnings(as.numeric(tmb_value))) |&gt;
+    filter(!is.na(tmb_value))
+
+  ggplot(tl, aes(tcga_class, tmb_value)) +
+    attend_box(tl, x = &quot;tcga_class&quot;, y = &quot;tmb_value&quot;, by = &quot;tmb_def&quot;, points = FALSE) +
+    highlight_points(tl, &quot;tcga_class&quot;, &quot;tmb_value&quot;, base_size = 0.9, base_alpha = 0.5,
+                     base_const = &quot;black&quot;) +
+    geom_hline(yintercept = attend_thresholds$tmb, linetype = 2, colour = &quot;grey50&quot;) +
+    facet_wrap(~ tmb_def, scales = &quot;free_y&quot;, nrow = 1) +
+    labs(title = &quot;TMB by integrated class, per TMB definition&quot;,
+         subtitle = paste0(&quot;dashed line = TMB-high cutoff (&quot;, attend_thresholds$tmb, &quot; mut/Mb)&quot;),
+         x = NULL, y = &quot;TMB (mut/Mb)&quot;) +
+    attend_theme() + theme(axis.text.x = element_text(angle = 25, hjust = 1))
+}</code></pre>
+<p><img src="figure/07-molecular-classification.Rmd/cascade-panels-tmb-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      ggpubr_0.6.0     
+ [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
+ [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
+[13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1      farver_2.1.2          S7_0.2.2             
+ [4] fastmap_1.2.0         promises_1.5.0        digest_0.6.39        
+ [7] timechange_0.4.0      lifecycle_1.0.5       cluster_2.1.6        
+[10] Cairo_1.6-2           survival_3.8-11       magrittr_2.0.5       
+[13] compiler_4.3.2        rlang_1.2.0           sass_0.4.10          
+[16] tools_4.3.2           yaml_2.3.12           knitr_1.51           
+[19] ggsignif_0.6.4        labeling_0.4.3        bit_4.6.0            
+[22] RColorBrewer_1.1-3    abind_1.4-5           workflowr_1.7.2      
+[25] withr_3.0.3           BiocGenerics_0.48.1   grid_4.3.2           
+[28] stats4_4.3.2          git2r_0.33.0          colorspace_2.1-2     
+[31] scales_1.4.0          iterators_1.0.14      dichromat_2.0-0.1    
+[34] cli_3.6.6             rmarkdown_2.31        crayon_1.5.3         
+[37] generics_0.1.4        otel_0.2.0            rstudioapi_0.15.0    
+[40] tzdb_0.5.0            rjson_0.2.23          cachem_1.1.0         
+[43] splines_4.3.2         parallel_4.3.2        cellranger_1.1.0     
+[46] matrixStats_1.1.0     vctrs_0.7.3           Matrix_1.6-4         
+[49] jsonlite_2.0.0        carData_3.0-5         car_3.1-2            
+[52] IRanges_2.36.0        hms_1.1.4             GetoptLong_1.0.5     
+[55] S4Vectors_0.40.2      bit64_4.8.6           rstatix_1.1.0        
+[58] clue_0.3-65           magick_2.8.1          foreach_1.5.2        
+[61] jquerylib_0.1.4       glue_1.8.1            codetools_0.2-19     
+[64] shape_1.4.6.1         stringi_1.8.7         gtable_0.3.6         
+[67] later_1.4.8           ComplexHeatmap_2.18.0 pillar_1.11.1        
+[70] htmltools_0.5.9       circlize_0.4.15       R6_2.6.1             
+[73] doParallel_1.0.17     rprojroot_2.1.1       lattice_0.22-5       
+[76] vroom_1.7.1           evaluate_1.0.5        png_0.1-8            
+[79] backports_1.4.1       broom_1.0.13          httpuv_1.6.12        
+[82] bslib_0.9.0           Rcpp_1.1.1-1.1        whisker_0.4.1        
+[85] xfun_0.58             pkgconfig_2.0.3       GlobalOptions_0.1.4  </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      ggpubr_0.6.0     
+ [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
+ [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
+[13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1      farver_2.1.2          S7_0.2.2             
+ [4] fastmap_1.2.0         promises_1.5.0        digest_0.6.39        
+ [7] timechange_0.4.0      lifecycle_1.0.5       cluster_2.1.6        
+[10] Cairo_1.6-2           survival_3.8-11       magrittr_2.0.5       
+[13] compiler_4.3.2        rlang_1.2.0           sass_0.4.10          
+[16] tools_4.3.2           yaml_2.3.12           knitr_1.51           
+[19] ggsignif_0.6.4        labeling_0.4.3        bit_4.6.0            
+[22] RColorBrewer_1.1-3    abind_1.4-5           workflowr_1.7.2      
+[25] withr_3.0.3           BiocGenerics_0.48.1   grid_4.3.2           
+[28] stats4_4.3.2          git2r_0.33.0          colorspace_2.1-2     
+[31] scales_1.4.0          iterators_1.0.14      dichromat_2.0-0.1    
+[34] cli_3.6.6             rmarkdown_2.31        crayon_1.5.3         
+[37] generics_0.1.4        otel_0.2.0            rstudioapi_0.15.0    
+[40] tzdb_0.5.0            rjson_0.2.23          cachem_1.1.0         
+[43] splines_4.3.2         parallel_4.3.2        cellranger_1.1.0     
+[46] matrixStats_1.1.0     vctrs_0.7.3           Matrix_1.6-4         
+[49] jsonlite_2.0.0        carData_3.0-5         car_3.1-2            
+[52] IRanges_2.36.0        hms_1.1.4             GetoptLong_1.0.5     
+[55] S4Vectors_0.40.2      bit64_4.8.6           rstatix_1.1.0        
+[58] clue_0.3-65           magick_2.8.1          foreach_1.5.2        
+[61] jquerylib_0.1.4       glue_1.8.1            codetools_0.2-19     
+[64] shape_1.4.6.1         stringi_1.8.7         gtable_0.3.6         
+[67] later_1.4.8           ComplexHeatmap_2.18.0 pillar_1.11.1        
+[70] htmltools_0.5.9       circlize_0.4.15       R6_2.6.1             
+[73] doParallel_1.0.17     rprojroot_2.1.1       lattice_0.22-5       
+[76] vroom_1.7.1           evaluate_1.0.5        png_0.1-8            
+[79] backports_1.4.1       broom_1.0.13          httpuv_1.6.12        
+[82] bslib_0.9.0           Rcpp_1.1.1-1.1        whisker_0.4.1        
+[85] xfun_0.58             pkgconfig_2.0.3       GlobalOptions_0.1.4  </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

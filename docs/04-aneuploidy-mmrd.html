@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-13" />
+
+<title>ATTEND — 04. Aneuploidy in MMR-deficient tumours</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 04. Aneuploidy in MMR-deficient
+tumours</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-13</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/04-aneuploidy-mmrd.Rmd</code>)
+and HTML (<code>docs/04-aneuploidy-mmrd.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0f67d88f2e51aea57deca0f17c3937956579e5de/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">0f67d88</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-21
+</td>
+<td>
+:art: Every aneuploidy-keyed figure, at both cuts
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/35342b0e2e12f2dfe2ee03ca68c8ef60cd5091b5/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">35342b0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: The fill scale was there, the fill mapping was not, so the boxes
+drew white
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/d688d09c81fe66906ddcd74aee476ec5a02c0699/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">d688d09</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: One spelling and one palette per concept, across every report
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/bc4329ea62768003e0a50edc16da23d3e1752dd6/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">bc4329e</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:bug: The clustering was never peak-restricted, and the page could not
+say so
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/03483253d2965a47e6ff0cb4f5fc388a94a5e62b/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">0348325</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-13
+</td>
+<td>
+:art: AS High / AS Low, arcsine + t-test on the score, no n=, arms back
+to red/light blue
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/05bf03549dbcd97ee633cc6a5d7a9e0a0957456a/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">05bf035</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:sparkles: PD-L1+ per unit of tumour in the mixed panel; both transforms
+drawn
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/e9aba6103d1be4ccd79120eaa7eac1e90c1b0210/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">e9aba61</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:sparkles: PD-L1+ as a third tissue-content column, and both
+denominators like CD45+
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/8666e4c6aa9d127ab404c5d9851dc7a235a52288/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">8666e4c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:bug: A default is not a measurement — POLE in three tiers, mutation
+status in three states
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/04-aneuploidy-mmrd.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Within MMR-deficient tumours, what does
+aneuploidy track — mutation status, or cell-type composition — and does
+either answer move when the aneuploidy cut does?
+<strong>Cohort.</strong> MMR-deficient only (n = 110), every
+aneuploidy-class figure drawn at both cuts (0.1 and 0.2), with one
+marked exception: the interaction model, which cannot be estimated
+inside a single stratum. <strong>Reads.</strong> The master (built on
+demand by get_master()), the long MAF, and the FlowPath annotation tree.
+<strong>Out of scope.</strong> Anything on the full cohort. Aneuploidy
+against TMB across both MMR strata -&gt; <a
+href="06-tmb.html">06-tmb</a>. The same composition panels keyed on
+treatment response -&gt; <a href="05-response.html">05-response</a>. Why
+there are two cuts and why both are reported -&gt; <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<p>The restriction is the point. MMR deficiency is itself a route to
+genomic instability, so in the whole cohort any variable that tracks MMR
+status will also appear to track aneuploidy. Conditioning on MMRd
+removes that shortcut. The outcome in every figure is the same
+continuous aneuploidy score; what changes is the grouping on the x-axis
+— mutation status in Part 1, cell-type composition in Part 2. The cohort
+definition, the two aneuploidy cuts and the highlight colours are in <a
+href="00-methods.html">00-methods</a>.</p>
+<p>The two cuts, 0.1 and 0.2, split this report in two ways. Part 1 puts
+the <strong>score</strong> on the y axis and mutation status on the x
+axis, so its panels are the same at either cut and both cuts are drawn
+as dashed lines across them. Part 2 puts the <strong>class</strong> on
+the x axis, so every one of its figures is drawn at both cuts — the two
+cuts are the columns of each figure, and each column carries its own
+test. Raising the cut can only move a patient from the high box to the
+low box, so the columns are nested rather than independent: only
+patients scoring between the cuts move.</p>
+<div id="part-1-aneuploidy-by-mutation-status" class="section level2">
+<h2>Part 1 — aneuploidy by mutation status</h2>
+<p>The restriction is the point. MMR deficiency is itself a route to
+genomic instability, so in the whole cohort any mutation that tracks MMR
+status will also appear to track aneuploidy. Conditioning on MMRd
+removes that shortcut. The outcome variable in every figure is the same
+continuous aneuploidy score; what changes is the grouping on the
+x-axis.</p>
+<div id="the-gene-panel-spelled-out" class="section level4">
+<h4>The gene panel, spelled out</h4>
+<p>Genes are tested one at a time, each in its own panel, so a signal is
+attributable to a specific gene rather than to a union that could be
+driven by whichever gene is most frequently mutated. Two groups, kept
+deliberately separate:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Group</th>
+<th>Genes</th>
+<th>Why they are grouped this way</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>MMR panel</strong></td>
+<td>PMS2, MLH1, MSH2, MSH6, MSH3</td>
+<td>Loss of any of these causes mismatch-repair deficiency. MSH3 pairs
+with MSH2 to form MutSb.</td>
+</tr>
+<tr class="even">
+<td><strong>Wnt / b-catenin</strong></td>
+<td>CTNNB1, APC</td>
+<td>An independent oncogenic pathway, not an MMR mechanism.</td>
+</tr>
+<tr class="odd">
+<td><strong>TP53</strong></td>
+<td>TP53</td>
+<td>Handled separately: it is already a first-class column on the
+master.</td>
+</tr>
+</tbody>
+</table>
+<p>The MMR union (panel-altered = at least one pathogenic variant in any
+MMR panel gene) is shown last, after the per-gene panels. CTNNB1 and APC
+are deliberately excluded from that union, because folding them in would
+change what “panel-altered” means everywhere else in the pipeline. There
+is no Wnt union: with two genes the per-gene panels already show
+everything a union would.</p>
+<p>P-values come from stat_compare_means(), Wilcoxon rank-sum for two
+groups and Kruskal-Wallis for more, uncorrected across panels. With one
+test per gene, treat them as descriptive.</p>
+</div>
+<div id="data" class="section level3">
+<h3>Data</h3>
+<p>Two sources, joined on pid. The aneuploidy score and its derived
+classes come from attend_master_joined. The mutation status is
+recomputed here directly from the long MAF rather than taken from the
+master’s collapsed columns, because the average of a variant row is
+meaningless; pathogenic_by_patient() and mutation_status_long() are the
+same helpers <a href="01-data-integration.html">01-data-integration</a>
+used, so the two cannot drift. Crossing the crosswalk against the full
+gene list guarantees every gene gets a column even when it never appears
+in the MAF, with unmutated patients FALSE rather than NA.</p>
+<pre class="r"><code>cw  &lt;- build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg())
+maf &lt;- read_intermediate(&quot;maf_data&quot;)
+
+mut &lt;- pathogenic_by_patient(maf, cw)   # pid, TP53_pathogenic, panel_pathogenic (MMR union)
+
+# Per-gene status for the one-gene-at-a-time panels: MMR panel + Wnt genes.
+#
+# ⚠️ NO replace_na(mutated, FALSE) HERE. It used to sit on the line below, and it turned
+# every patient the MAF never reached — and every gene that was never statused — into
+# &quot;&lt;GENE&gt;-wt&quot;. Combined with the loader statusing only TP53, that made all five MMR panels
+# and both Wnt panels a single wild-type box, captioned as though the comparison had been
+# made. An uncalled gene is NOT a wild-type gene; the class stays NA so the panel drops the
+# patient, and gene_called below reports how many were dropped and why.
+gene_long &lt;- cw |&gt; distinct(pid) |&gt;
+  tidyr::crossing(gene = attend_genes_per_gene) |&gt;
+  left_join(mutation_status_long(maf, cw), by = c(&quot;pid&quot;, &quot;gene&quot;)) |&gt;
+  mutate(class = if_else(mutated, paste0(gene, &quot;-mut&quot;), paste0(gene, &quot;-wt&quot;)))  # NA stays NA
+
+gene_status &lt;- gene_long |&gt;
+  select(pid, gene, class) |&gt;
+  pivot_wider(names_from = gene, values_from = class, names_glue = &quot;{gene}_class&quot;)
+
+# The denominator behind every per-gene panel below: how many patients this gene could
+# actually be called in. A gene with 0 called is reported as a skip, never drawn.
+gene_called &lt;- gene_long |&gt;
+  group_by(gene) |&gt;
+  summarise(called    = sum(!is.na(class)),
+            uncalled  = sum(is.na(class)),
+            mutated_n = sum(class == paste0(gene, &quot;-mut&quot;), na.rm = TRUE),
+            .groups = &quot;drop&quot;)
+
+dat_all &lt;- master |&gt;
+  select(-any_of(c(&quot;TP53_pathogenic&quot;, &quot;panel_pathogenic&quot;))) |&gt;  # recompute here
+  left_join(mut, by = &quot;pid&quot;) |&gt;
+  left_join(gene_status, by = &quot;pid&quot;) |&gt;
+  mutate(
+    aneuploidy_value = suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]])),
+    TP53_class  = if_else(TP53_pathogenic,  &quot;TP53-mut&quot;,     &quot;TP53-wt&quot;),
+    panel_class = if_else(panel_pathogenic, &quot;MMR-panel-altered&quot;, &quot;MMR-panel-wt&quot;)
+  )</code></pre>
+<div id="restricting-to-mmr-deficient" class="section level4">
+<h4>Restricting to MMR-deficient</h4>
+<p>The single filter the whole report rests on. The counts below are the
+cohort every figure that follows is drawn from — if the MMRd group is
+small, every p-value in this report inherits that.</p>
+<pre class="r"><code>have_mmr &lt;- have_cols(dat_all, &quot;MMR_class&quot;, &quot;aneuploidy_value&quot;)
+
+dat &lt;- if (have_mmr) dat_all |&gt; filter(MMR_class == attend_levels$mmr_deficient) else dat_all[0, ]
+
+cat(&quot;Whole cohort              :&quot;, nrow(dat_all), &quot;patients\n&quot;)</code></pre>
+<pre><code>Whole cohort              : 245 patients</code></pre>
+<pre class="r"><code>cat(&quot;MMR-deficient (this report):&quot;, nrow(dat), &quot;patients\n&quot;)</code></pre>
+<pre><code>MMR-deficient (this report): 110 patients</code></pre>
+<pre class="r"><code>if (nrow(dat) &gt; 0)
+  cat(&quot;  with an aneuploidy score :&quot;, sum(!is.na(dat$aneuploidy_value)), &quot;patients\n&quot;)</code></pre>
+<pre><code>  with an aneuploidy score : 109 patients</code></pre>
+<pre class="r"><code>if (have_mmr &amp;&amp; nrow(dat) == 0)
+  note_skip(&quot;No MMR-deficient patients (MMR_class == &#39;&quot;, attend_levels$mmr_deficient,
+          &quot;&#39;) — every figure below is skipped.&quot;)</code></pre>
+<p>Coverage of the manual highlight overlay on this report’s cohort.
+<code>attend_highlight</code> holds one group, <code>polipo</code>
+(sample 21S188, blue), and 21S188 is a sequencing barcode while
+<code>dat</code> is keyed on <code>pid</code>;
+<code>highlight_coverage()</code> scores the match after resolving the
+id through the barcode -&gt; pid crosswalk, so <code>1/1 matched</code>
+means the point really is drawn below and not that the string happened
+to appear somewhere. <code>0/1</code> means the patient is outside the
+MMRd restriction, which is a fact about this cohort, not a broken
+overlay.</p>
+<pre class="r"><code>if (nrow(dat) &gt; 0) cat(highlight_coverage(dat))</code></pre>
+<pre><code>highlight coverage (id cols: pid)
+  polipo: MATCHED (as 21S188, 21_5_188)</code></pre>
+</div>
+</div>
+<div id="aneuploidy-by-gene-mmr-panel-one-gene-at-a-time"
+class="section level3">
+<h3>1. Aneuploidy by gene — MMR panel, one gene at a time</h3>
+<p>Each panel is one MMR gene: patients carrying a pathogenic variant in
+that gene (<GENE>-mut) versus those who do not (<GENE>-wt), within the
+MMRd cohort only. Pathogenicity is decided by attend_pathogenic_classes
+on the MAF’s Variant_Classification.</p>
+<p>Read the group sizes first. Some of these genes are mutated in very
+few patients, and a panel with a handful of -mut patients will show a
+wide box and an unstable p-value.</p>
+<pre class="r"><code>mmr_gene_vars &lt;- paste0(attend_gene_panel, &quot;_class&quot;)
+if (nrow(dat) &gt; 0) {
+  # Called vs uncalled FIRST, because it is the denominator the group counts sit inside.
+  # A gene with 0 called produces no panel at all, and that has to be visible as an absent
+  # measurement rather than inferred from a missing figure.
+  print(knitr::kable(
+    gene_called |&gt; dplyr::filter(gene %in% attend_gene_panel),
+    caption = paste(&quot;Patients in whom each MMR panel gene could be called at all.&quot;,
+                    &quot;`uncalled` = no MAF for that patient, or the gene was never statused —&quot;,
+                    &quot;these are DROPPED from the panels below, not counted as wild-type&quot;)))
+  print(knitr::kable(group_counts(dat, mmr_gene_vars),
+               caption = &quot;Patients per group, MMR panel genes (MMR-deficient cohort)&quot;))
+}</code></pre>
+<pre><code>
+
+Table: Patients in whom each MMR panel gene could be called at all. `uncalled` = no MAF for that patient, or the gene was never statused — these are DROPPED from the panels below, not counted as wild-type
+
+|gene | called| uncalled| mutated_n|
+|:----|------:|--------:|---------:|
+|MLH1 |    234|        0|         8|
+|MSH2 |    234|        0|         8|
+|MSH3 |    234|        0|        35|
+|MSH6 |    234|        0|         8|
+|PMS2 |    234|        0|         3|
+
+
+Table: Patients per group, MMR panel genes (MMR-deficient cohort)
+
+|comparison | MLH1-mut| MLH1-wt| MSH2-mut| MSH2-wt| MSH3-mut| MSH3-wt| MSH6-mut| MSH6-wt| PMS2-mut| PMS2-wt|
+|:----------|--------:|-------:|--------:|-------:|--------:|-------:|--------:|-------:|--------:|-------:|
+|MLH1_class |        7|     102|        0|       0|        0|       0|        0|       0|        0|       0|
+|MSH2_class |        0|       0|        7|     102|        0|       0|        0|       0|        0|       0|
+|MSH3_class |        0|       0|        0|       0|       32|      77|        0|       0|        0|       0|
+|MSH6_class |        0|       0|        0|       0|        0|       0|        7|     102|        0|       0|
+|PMS2_class |        0|       0|        0|       0|        0|       0|        0|       0|        3|     106|</code></pre>
+<p>Aneuploidy score (aneu__aneuploidy_score, ASCETS arm-level burden
+from data/ascets/) in mutated versus wild-type patients, one panel per
+MMR gene, over the dat cohort above. The score is the outcome and the
+class is not the grouping, so this figure is the same at either cut and
+is drawn once: the two dashed lines are 0.1 and 0.2, and moving the cut
+moves only the point colours, never a box or a p-value.</p>
+<pre class="r"><code>if (nrow(dat) &gt; 0)
+  aneu_box(dat, mmr_gene_vars,
+           &quot;Aneuploidy score by MMR panel gene (MMR-deficient only)&quot;,
+           paste0(&quot;One panel per gene; pathogenic vs wild-type. n = &quot;, nrow(dat),
+                  &quot; MMR-deficient patients&quot;))</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/mmr-gene-box-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-by-gene-wnt-β-catenin-pathway"
+class="section level3">
+<h3>2. Aneuploidy by gene — Wnt / β-catenin pathway</h3>
+<p>The same comparison for CTNNB1 and APC. These are shown apart from
+the MMR panel because they are a different mechanism: they are not a
+cause of mismatch-repair deficiency, so a signal here would mean
+something biologically different from a signal in the MMR panel
+above.</p>
+<pre class="r"><code>wnt_gene_vars &lt;- paste0(attend_gene_panel_wnt, &quot;_class&quot;)
+if (nrow(dat) &gt; 0)
+  knitr::kable(group_counts(dat, wnt_gene_vars),
+               caption = &quot;Patients per group, Wnt pathway genes (MMR-deficient cohort)&quot;)</code></pre>
+<table>
+<caption>Patients per group, Wnt pathway genes (MMR-deficient
+cohort)</caption>
+<thead>
+<tr class="header">
+<th align="left">comparison</th>
+<th align="right">APC-mut</th>
+<th align="right">APC-wt</th>
+<th align="right">CTNNB1-mut</th>
+<th align="right">CTNNB1-wt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">APC_class</td>
+<td align="right">40</td>
+<td align="right">69</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">CTNNB1_class</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">19</td>
+<td align="right">90</td>
+</tr>
+</tbody>
+</table>
+<p>The same aneuploidy score against Wnt-pathway mutation status, two
+panels. Cut-independent for the same reason as the MMR panels above —
+the dashed lines carry both cuts.</p>
+<pre class="r"><code>if (nrow(dat) &gt; 0)
+  aneu_box(dat, wnt_gene_vars,
+           &quot;Aneuploidy score by Wnt pathway gene (MMR-deficient only)&quot;,
+           &quot;CTNNB1 and APC — shown separately from the MMR panel; not part of the MMR union&quot;,
+           ncol = 2)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/wnt-gene-box-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="tp53-and-the-mmr-union" class="section level3">
+<h3>3. TP53 and the MMR union</h3>
+<p>TP53 on its own, then the MMR panel <strong>union</strong> — at least
+one pathogenic variant in any of PMS2, MLH1, MSH2, MSH6, MSH3. The union
+is the last mutation view rather than the first: it is the least
+specific, and the per-gene panels above are what say which gene any
+union signal came from.</p>
+<pre class="r"><code>summary_vars &lt;- c(&quot;TP53_class&quot;, &quot;panel_class&quot;)
+if (nrow(dat) &gt; 0)
+  knitr::kable(group_counts(dat, summary_vars),
+               caption = &quot;Patients per group, TP53 and the MMR union (MMR-deficient cohort)&quot;)</code></pre>
+<table>
+<caption>Patients per group, TP53 and the MMR union (MMR-deficient
+cohort)</caption>
+<thead>
+<tr class="header">
+<th align="left">comparison</th>
+<th align="right">TP53-mut</th>
+<th align="right">TP53-wt</th>
+<th align="right">MMR-panel-altered</th>
+<th align="right">MMR-panel-wt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TP53_class</td>
+<td align="right">19</td>
+<td align="right">90</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">panel_class</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">43</td>
+<td align="right">66</td>
+</tr>
+</tbody>
+</table>
+<p>Aneuploidy score by TP53 status and by the MMR union, side by side,
+so a union signal can be read against the per-gene panels above that
+would have to explain it. Both dashed lines are the two cuts; neither
+box nor test depends on which one is chosen.</p>
+<pre class="r"><code>if (nrow(dat) &gt; 0)
+  aneu_box(dat, summary_vars,
+           &quot;Aneuploidy score by TP53 status and by the MMR panel union (MMR-deficient only)&quot;,
+           ncol = 2)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/tp53-union-box-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-by-the-other-molecular-classes"
+class="section level3">
+<h3>4. Aneuploidy by the other molecular classes</h3>
+<p>The non-mutation axes, still within MMRd: TMB, HRD, and MSI status.
+MMR_class is omitted because it is constant here by construction — every
+patient in this report is MMR-deficient.</p>
+<p>MSI is worth reading carefully: MMR loss is the usual <em>cause</em>
+of microsatellite instability, so within an MMRd cohort the MSI-stable
+group is both small and unusual. None of these three classes is derived
+from the aneuploidy score, so the figure is again one figure with the
+two cuts drawn as dashed lines across it.</p>
+<pre class="r"><code>other_vars &lt;- c(&quot;TMB_class&quot;, &quot;HRD_class&quot;, &quot;MSI_class&quot;)
+if (nrow(dat) &gt; 0) {
+  knitr::kable(group_counts(dat, other_vars),
+               caption = &quot;Patients per group, score-derived classes (MMR-deficient cohort)&quot;)
+  aneu_box(dat, other_vars,
+           &quot;Aneuploidy score by TMB / HRD / MSI class (MMR-deficient only)&quot;,
+           ncol = 3)
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/other-classes-box-1.svg" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="part-2-aneuploidy-by-cell-type-composition"
+class="section level2">
+<h2>Part 2 — aneuploidy by cell-type composition</h2>
+<div id="cell-types-and-normalization" class="section level4">
+<h4>Cell types and normalization</h4>
+<p>“Cell type” is phenotype_clean, the parenthetical phenotype label in
+the FlowPath export (changeable in code/load_phenotypes.R). Every count
+is taken inside the annotated region and expressed as a fraction, but
+the denominator changes the question, so all three are shown:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Normalization</th>
+<th>Denominator</th>
+<th>The question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>all cells inside</strong></td>
+<td>every cell in the annotation</td>
+<td>what fraction of the tissue is this cell type?</td>
+</tr>
+<tr class="even">
+<td><strong>tumour cells inside</strong></td>
+<td>tumour cells only</td>
+<td>how much of this cell type per unit of tumour?</td>
+</tr>
+<tr class="odd">
+<td><strong>CD45+ cells inside</strong></td>
+<td>leukocytes only</td>
+<td>what is the composition <em>of the immune compartment</em>?</td>
+</tr>
+</tbody>
+</table>
+<p>Each is drawn twice: the raw fraction with a Wilcoxon test, and the
+arcsine-square-root-transformed fraction with a two-sample t-test.
+Agreement between the two is reassurance; disagreement means the result
+depends on the test rather than the data. No multiple-testing correction
+is applied anywhere in this report, and with one test per cell type per
+normalization that is many comparisons, so every p-value here is
+descriptive.</p>
+</div>
+<div id="building-the-restricted-cohort" class="section level3">
+<h3>Building the restricted cohort</h3>
+<p>Three things are joined on pid: the aneuploidy class from the master,
+the per-patient cell-type composition read from the FlowPath tree by
+ihc_celltype_metrics(), and the continuous covariates. MMR status comes
+from add_scna_group(), so it is the same is_mmrd() call the copy-number
+and classification reports use. The class is joined from the LONG frame,
+so every patient appears once per cut carrying the class that cut gives
+them — the table below prints how many patients each cut calls high, and
+the difference between its two rows is exactly the patients the higher
+cut demotes.</p>
+<pre class="r"><code>master_grp &lt;- add_scna_group(master)        # adds mmr_group (&quot;MMRd&quot;/&quot;MMRp&quot;) + scna_group
+
+# One row per patient PER CUT, carrying the class that cut derives. Every cut-dependent
+# figure in Part 2 joins against this rather than re-deriving a class locally, which is how
+# aneuploidy_class came to read in two directions on one site (see add_molecular_classes()).
+cuts_pt &lt;- master_cuts |&gt; select(pid, as_cut, as_cut_lab, aneuploidy_class)
+
+# many-to-many is DECLARED, not silenced by accident: one metric row per patient meets two
+# cut rows per patient, and doubling the frame is exactly the intended shape.
+with_cuts &lt;- function(d)
+  d |&gt;
+    left_join(cuts_pt, by = &quot;pid&quot;, relationship = &quot;many-to-many&quot;) |&gt;
+    filter(!is.na(aneuploidy_class))
+
+# per-patient cell-type composition inside the annotation (reads the FlowPath tree)
+ct_base &lt;- ihc_celltype_metrics(load_ihc_celltypes(), load_imaging_data())
+ct_all  &lt;- with_cuts(ct_base)
+ct      &lt;- ct_all |&gt; filter(pid %in% mmrd_pids)          # &lt;- the MMRd restriction
+# The SINGLE-ROW MMRd frame. ihc_series_metrics() builds the content panels from raw counts
+# and unique()s its constants, so it must see each patient once — handing it the long frame
+# would double every celltype- and immune-sourced series.
+ct_pt   &lt;- ct_base |&gt; filter(pid %in% mmrd_pids)
+
+# The leukocyte metrics are built HERE, beside ct, not in the immune section further down:
+# the tissue-content panels above that section need imm_metrics, and a chunk that reads a
+# variable a LATER chunk assigns knits fine in an interactive session (where it is already
+# in the global env) and dies on a clean build with &quot;object not found&quot;.
+imm_base    &lt;- ihc_immune_metrics(load_ihc_celltypes(), load_imaging_data())
+imm_all     &lt;- with_cuts(imm_base)
+imm_metrics &lt;- imm_all |&gt; filter(pid %in% mmrd_pids)      # &lt;- the MMRd restriction
+imm_pt      &lt;- imm_base |&gt; filter(pid %in% mmrd_pids)
+
+# per-patient continuous covariates + TP53 status, restricted the same way
+numcol &lt;- function(col) if (col %in% names(master)) suppressWarnings(as.numeric(master[[col]])) else NA_real_
+pt_all &lt;- tibble(
+  pid              = master$pid,
+  aneuploidy_class = master$aneuploidy_class,
+  aneuploidy_score = numcol(attend_cols$aneuploidy),
+  HRD              = numcol(attend_cols$hrd),
+  MSI              = numcol(&quot;msi__MSI_SCORE&quot;),
+  TP53             = if (&quot;TP53_pathogenic&quot; %in% names(master))
+                       if_else(master$TP53_pathogenic, &quot;TP53-abnormal&quot;, &quot;TP53-normal&quot;) else NA_character_
+)
+
+# The two TMB definitions, added under their reader-facing names so every facet reads
+# &quot;TMB (normal)&quot; / &quot;TMB (ancestry corrected)&quot; rather than an internal column name.
+tmb_defs04 &lt;- tmb_defs_present(master)
+tmb_labs04 &lt;- tmb_def_labels(tmb_defs04)
+for (i in seq_along(tmb_defs04)) pt_all[[tmb_labs04[i]]] &lt;- numcol(tmb_defs04[[i]])
+covar_cols04 &lt;- c(tmb_labs04, &quot;HRD&quot;, &quot;MSI&quot;)
+
+pt &lt;- pt_all |&gt; filter(pid %in% mmrd_pids)          # &lt;- the MMRd restriction
+
+# The same covariates once per cut, for the binarised panel further down. The scatter and
+# the TP53 panel plot the raw score and stay on the single-row frame above, or every patient
+# would be drawn twice at the same coordinates.
+pt_cuts &lt;- pt_all |&gt; select(-aneuploidy_class) |&gt; with_cuts() |&gt; filter(pid %in% mmrd_pids)
+
+cat(&quot;MMR-deficient patients                       :&quot;, length(mmrd_pids), &quot;\n&quot;)</code></pre>
+<pre><code>MMR-deficient patients                       : 110 </code></pre>
+<pre class="r"><code>cat(&quot;  ... with cell-type metrics + aneuploidy class:&quot;, n_distinct(ct$pid), &quot;\n&quot;)</code></pre>
+<pre><code>  ... with cell-type metrics + aneuploidy class: 39 </code></pre>
+<pre class="r"><code>cat(&quot;  ... cell types measured                      :&quot;, n_distinct(ct$cell_type), &quot;\n&quot;)</code></pre>
+<pre><code>  ... cell types measured                      : 13 </code></pre>
+<pre class="r"><code>cat(&quot;TMB definitions plotted:&quot;, paste(tmb_labs04, collapse = &quot; | &quot;), &quot;\n&quot;)</code></pre>
+<pre><code>TMB definitions plotted: TMB (normal) | TMB (ancestry corrected) </code></pre>
+<pre class="r"><code>cat(&quot;aneuploidy cuts drawn side by side:&quot;, paste(cuts, collapse = &quot; and &quot;), &quot;\n\n&quot;)</code></pre>
+<pre><code>aneuploidy cuts drawn side by side: 0.1 and 0.2 </code></pre>
+<pre class="r"><code>if (nrow(ct) &gt; 0) {
+  cls_by_cut &lt;- ct |&gt; distinct(pid, as_cut_lab, aneuploidy_class)
+  print(table(cut        = droplevels(cls_by_cut$as_cut_lab),
+              aneuploidy = droplevels(factor(cls_by_cut$aneuploidy_class))))
+}</code></pre>
+<pre><code>            aneuploidy
+cut          aneuploidy-low aneuploidy-high
+  AS cut 0.1             34               5
+  AS cut 0.2             37               2</code></pre>
+</div>
+<div id="cell-type-composition-by-aneuploidy-class"
+class="section level3">
+<h3>Cell-type composition by aneuploidy class</h3>
+<p>One row per cell type and <strong>one column per aneuploidy
+cut</strong>, aneuploidy-high vs -low within each, over MMRd only, from
+the ct table built above. Each normalization is shown as a
+raw-fraction/Wilcoxon figure followed by its arcsine/t-test companion,
+and every test is computed inside its own panel, so the left and right
+columns are separate tests and are never pooled. Moving the cut moves
+patients from the high box to the low box and nothing else: the
+fractions on the y axis are the same numbers in both columns, so a
+contrast that survives the move is one the threshold is not making.</p>
+<p>Each normalization is drawn <strong>twice</strong>: first the cell
+types in <code>attend_ihc_focus</code> (<code>T cytotoxic</code>,
+<code>T helper</code>, <code>Macrophages</code>, <code>M1</code>) on an
+axis of their own, then every cell type on one axis. The focus figure
+exists because <code>Tumor</code> reaches ~1.0 on the arcsine scale
+while all four of these sit under ~0.6, so an axis wide enough for
+<code>Tumor</code> leaves them unreadable — and these four are what the
+figure is for.</p>
+<p>Every cell type is drawn in <strong>one figure per normalization, on
+a single shared y axis</strong>. A panel’s height therefore reads as
+that cell type’s abundance relative to every other one, which is the
+comparison the figure exists to support: <code>Macrophages</code> is
+read against <code>T cytotoxic</code> on the same scale, not against a
+rescaled axis of its own. <code>scales = "free_y"</code> would give each
+panel its own range and make a cell type at a fraction of a percent of
+the tissue draw the same box, in the same place, as one at half the
+tissue. The cost is accepted deliberately — on the tumour-cell
+denominator these cell types span orders of magnitude, so the rarest
+panels sit low against a scale set by the most abundant.</p>
+<p>The two figures differ in one respect on purpose: the <strong>focus
+set shares one y axis</strong>, so those four cell types are directly
+comparable, while the <strong>overview gives each cell-type row its
+own</strong> — a row, not a panel, so the two cut columns of one cell
+type always stay on one axis and the only difference between them is
+which patients sit in which box. Over every measured cell type a single
+abundant one sets a ceiling the rest never approach, and panels that are
+boxes in the focus figure flatten to lines. Abundance is still readable
+from each overview panel’s own axis, and the content panels below carry
+it directly. The policy is <code>attend_ihc_all_free_y</code>.</p>
+<p>The <strong>tumour phenotypes are excluded</strong> from that figure.
+The export carries them separately (<code>PanCK+ Tumor</code>,
+<code>VIM+ Tumor</code>), and on one shared axis a tumour phenotype near
+1.0 on the arcsine scale compresses every immune panel under 0.35 into a
+flat line. Tumour content is reported on its own panel below, against
+the same denominator, so nothing is lost.</p>
+<p>The axis stops at the <strong>largest upper whisker</strong> in the
+figure (Q3 + 1.5 IQR over every class x cell-type cell), not at the
+largest value, and the p-value label is placed inside that range by the
+same call. Both follow from one measurement: ggpubr derives its default
+label height from the plot-wide maximum, so a single extreme patient
+simultaneously flattened every box and parked every p-value at the
+ceiling, where it read as no p-value at all. The range is a
+<strong>zoom</strong> (<code>coord_cartesian()</code>), so every patient
+is still in the box statistics and in the test — nothing is dropped, and
+a point above the axis is counted in the subtitle. Groups smaller than
+<code>attend_min_box_n</code> still show a median crossbar instead of a
+box.</p>
+<div id="normalized-by-all-cells-inside" class="section level4">
+<h4>Normalized by all cells inside</h4>
+<p>Each cell type as a fraction of every cell in the annotation, so a
+panel reads “how much of the tissue is this”. Raw fractions,
+Wilcoxon.</p>
+<pre class="r"><code>draw_composition(&quot;frac_inside&quot;, &quot;all cells inside&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-inside-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-inside-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<p>The same panels on the arcsine-square-root scale with a two-sample
+t-test, which is the variance-stabilised companion rather than an
+alternative answer.</p>
+<pre class="r"><code>draw_composition(&quot;frac_inside&quot;, &quot;all cells inside&quot;, arcsin = TRUE)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-inside-arcsin-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-inside-arcsin-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="normalized-by-tumour-cells-inside" class="section level4">
+<h4>Normalized by tumour cells inside</h4>
+<p>Each cell type per unit of tumour: the denominator is tumour cells
+only, so a shift here survives a change in how much tumour the
+annotation caught. Raw fractions, Wilcoxon.</p>
+<pre class="r"><code>draw_composition(&quot;frac_tumor&quot;, &quot;tumour cells inside&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-tumor-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-tumor-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<p>The arcsine/t-test companion of the panels above.</p>
+<pre class="r"><code>draw_composition(&quot;frac_tumor&quot;, &quot;tumour cells inside&quot;, arcsin = TRUE)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-tumor-arcsin-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-tumor-arcsin-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="normalized-by-cd45-cells-inside" class="section level4">
+<h4>Normalized by CD45+ cells inside</h4>
+<p>Composition <em>of the immune compartment</em>: the denominator is
+leukocytes, so tumour-content differences between patients cannot drive
+the contrast. Raw fractions, Wilcoxon.</p>
+<pre class="r"><code>draw_composition(&quot;frac_cd45&quot;, &quot;CD45+ cells inside&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-cd45-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-cd45-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<p>The arcsine/t-test companion of the panels above.</p>
+<pre class="r"><code>draw_composition(&quot;frac_cd45&quot;, &quot;CD45+ cells inside&quot;, arcsin = TRUE)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-cd45-arcsin-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-cd45-arcsin-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="tissue-content-tumour-leukocyte-and-pd-l1-on-one-axis"
+class="section level4">
+<h4>Tissue content: tumour, leukocyte and PD-L1+, on one axis</h4>
+<p>How much of the annotation is tumour, how much is leukocyte, and how
+much is PD-L1-positive, as fractions of <strong>the same
+denominator</strong> so the three are directly comparable. All three are
+per-image constants pooled per patient by
+<code>ihc_celltype_metrics()</code> — <code>n_tumor_inside</code>,
+<code>n_cd45_inside</code> and <code>n_pdl1_inside</code>, each a count
+of cells inside the annotation in the raw FlowPath per-cell export, over
+<code>n_inside</code>. They are read as constants rather than as
+cell-type rows because the export splits tumour across several
+phenotypes (<code>PanCK+ Tumor</code>, <code>VIM+ Tumor</code>, …) and
+carries no <code>PD-L1</code> phenotype at all, so there is no single
+row to select. <strong><code>all cells inside</code> is the only
+denominator on which all three are meaningful</strong> —
+<code>Tumor</code> over tumour cells and CD45+ over CD45+ cells are both
+identically 1 — so this panel is drawn once, not once per normalization.
+Raw fractions with a Wilcoxon, then the arcsine/t-test companion, each
+with the two aneuploidy cuts as its columns and its own Wilcoxon per
+column — raising the cut cannot change any of these three fractions,
+only which box a patient’s fraction is counted in.</p>
+<p>⚠️ <strong>The PD-L1 column has a smaller cohort than the other
+two.</strong> PD-L1 was stained in only some batches, so a patient from
+an unstained batch is NA for PD-L1 and present in tumour and CD45+.
+Those patients drop out of the third box only, which means the three
+boxes on this one axis are not all drawn from the same patients.
+<strong>Read the n printed under each box before comparing their
+heights.</strong> PD-L1+ per unit of tumour, the other denominator, is
+in the immune-content section below.</p>
+<pre class="r"><code># Built from the SINGLE-ROW frames: ihc_series_metrics() reads raw counts, and a patient
+# arriving twice (once per cut) would be counted twice in every series. The cuts are joined
+# on afterwards, which is what makes the two columns of the figure.
+ct_content &lt;- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content) |&gt; with_cuts()
+
+for (asin in c(FALSE, TRUE)) {
+  d &lt;- ct_content |&gt; mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+  p &lt;- box_by_aneu(d, &quot;all cells inside&quot;, asin, scope = &quot;tissue content&quot;,
+                   width_in = 9, height_in = 10, unit_override = &quot;&quot;)
+  if (!is.null(p)) print(p)
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-content-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-content-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="tumour-burden-beside-immune-infiltration-per-unit-of-tumour"
+class="section level4">
+<h4>Tumour burden beside immune infiltration per unit of tumour</h4>
+<p>Three populations against <strong>different</strong> denominators:
+<code>Tumor</code> over all cells inside (how much of the tissue is
+tumour) beside CD45+ and PD-L1+ over tumour cells inside (how many
+leukocytes, and how many PD-L1-positive cells, per tumour cell). Each
+panel strip names its own denominator, because the y axis carries one
+unit and cannot. The two right-hand columns share a denominator, so they
+<strong>are</strong> directly comparable to each other; neither is
+comparable to the tumour-content column on the left.</p>
+<p>Counts come from the raw FlowPath per-cell export as per-image
+constants pooled per patient (<code>n_tumor_inside</code>,
+<code>n_cd45_inside</code>, <code>n_pdl1_inside</code> over
+<code>n_inside</code> / <code>n_tumor_inside</code>). As in the panel
+above, PD-L1 was stained in only some batches, so the PD-L1 column is
+drawn from fewer patients than the other two — read the n under each
+box.</p>
+<p>CD45+ / tumour cells and PD-L1+ / tumour cells are <strong>ratios,
+not proportions</strong> — they exceed 1 wherever those cells outnumber
+tumour cells — and <code>arcsin_sqrt()</code> clamps its input to [0,
+1]. Both versions are drawn, and the count of values above 1 is printed
+above the figures <strong>and</strong> in the transformed figure’s own
+subtitle: those patients all land on the same value there, so a clamped
+group is a wall of identical numbers and its t-test is not
+interpretable. Read the raw/Wilcoxon panel whenever that count is
+non-zero; when it is zero the transform is exact and the two panels are
+the usual pair. The two aneuploidy cuts are again the columns, and the
+clamp count is a property of the ratios, so it is identical in both.</p>
+<pre class="r"><code># Same single-row input as the panel above, and the clamp count is taken BEFORE the cut join
+# so it counts patients, not patient-cut rows — the two cuts do not change a ratio.
+mix_pt &lt;- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content_mixed)
+mix    &lt;- mix_pt |&gt; with_cuts() |&gt; mutate(.v = frac)
+
+n_over &lt;- sum(mix_pt$frac &gt; 1, na.rm = TRUE)
+cat(&quot;patients:&quot;, n_distinct(mix$pid), &quot;| series:&quot;,
+    paste(gsub(&quot;\n&quot;, &quot; &quot;, levels(mix$cell_type)), collapse = &quot; | &quot;),
+    &quot;\nvalues above 1 (a ratio, not a proportion):&quot;, n_over,
+    if (n_over &gt; 0) &quot; &lt;- clamped by arcsin_sqrt() in the transformed figure below&quot; else &quot;&quot;, &quot;\n&quot;)</code></pre>
+<pre><code>patients: 39 | series: Tumor cells / all cells inside | CD45+ cells / tumour cells inside | PD-L1+ cells / tumour cells inside 
+values above 1 (a ratio, not a proportion): 5  &lt;- clamped by arcsin_sqrt() in the transformed figure below </code></pre>
+<pre class="r"><code># Raw, then the arcsine/t-test companion. The companion carries a CLAMP COUNT because
+# arcsin_sqrt() bounds its input to [0, 1] and BOTH per-tumour columns are ratios that can exceed it:
+# every value above 1 lands on pi/2, so a clamped group is a wall of identical numbers and
+# its t-test is not interpretable. When the count is 0 the transform is exact and the note
+# does not appear, which is the case this figure is drawn for.
+for (asin in c(FALSE, TRUE)) {
+  note &lt;- if (asin &amp;&amp; n_over &gt; 0)
+            sprintf(&quot;; %d value%s &gt; 1 CLAMPED to pi/2 by arcsin(sqrt()) — read the raw panel&quot;,
+                    n_over, if (n_over == 1L) &quot;&quot; else &quot;s&quot;) else &quot;&quot;
+  d &lt;- mix |&gt; mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
+  p &lt;- box_by_aneu(d, &quot;the denominator in each panel&quot;, arcsin = asin,
+                   scope = &quot;tissue content, mixed denominators&quot;,
+                   width_in = 9, height_in = 10, unit_override = &quot;&quot;, extra_note = note)
+  if (!is.null(p)) print(p)
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/box-content-mixed-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/box-content-mixed-2.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="immune-content-the-headline-contrast" class="section level3">
+<h3>Immune content — the headline contrast</h3>
+<p>The question this report exists for: among MMR-deficient tumours, is
+aneuploidy-high associated with an immune-cold phenotype?</p>
+<p>Two leukocyte metrics counted inside the annotation — <strong>CD45+
+total</strong> (all leukocytes) and <strong>CD3+CD45+</strong>
+(double-positive T cells) — under each normalization. CD3+CD45+ requires
+a CD3_sign column in the FlowPath export; without it those rows are NA
+and their facets drop out on their own.</p>
+<pre class="r"><code>cat(&quot;MMR-deficient patients with immune metrics:&quot;, n_distinct(imm_metrics$pid),
+    &quot;| metrics present:&quot;, paste(sort(unique(imm_metrics$metric)), collapse = &quot;, &quot;), &quot;\n&quot;)</code></pre>
+<pre><code>MMR-deficient patients with immune metrics: 39 | metrics present: CD3+CD45+, CD45+, PD-L1+ </code></pre>
+<p>CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy
+class, one row per metric and one column per aneuploidy cut, within
+MMRd. One figure per denominator rather than one figure with all three:
+a shared axis is only honest between panels that are fractions of the
+same thing, and CD3+CD45+ over CD45+ sits an order of magnitude above
+the same numerator over all cells inside. The denominator is named in
+each subtitle. Each column carries its own test on the same fractions,
+so a contrast present in only one of them is one the threshold is
+producing.</p>
+<pre class="r"><code>if (nrow(filter(imm_metrics, is.finite(frac))) &gt; 2) {
+  # Denominator order is the order ihc_immune_metrics() declares its specs in, so the
+  # figures come out widest-denominator first however the table happened to be sorted.
+  for (dn in unique(imm_metrics$denom_label))
+    for (asin in c(FALSE, TRUE)) {
+      p &lt;- box_immune(imm_metrics, dn, asin, width_in = 10, height_in = 9)
+      if (!is.null(p)) print(p)
+    }
+} else note_skip(&quot;No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-1.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-2.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-3.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-4.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-5.svg" alt="" width="100%" style="display: block; margin: auto;" /><img src="figure/04-aneuploidy-mmrd.Rmd/immune-box-6.svg" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<div id="the-pre-specified-primary-contrast" class="section level4">
+<h4>The pre-specified primary contrast</h4>
+<p>Of everything above, one comparison is designated
+<strong>primary</strong>: <strong>CD45+ / all cells inside</strong>,
+tested with the <strong>arcsine-square-root transform and a two-sample
+t-test</strong>. The Wilcoxon on the raw fraction is reported next to it
+as a companion, not a substitute. The other two normalizations, and
+CD3+CD45+, are <strong>secondary</strong> — they can and do degrade to a
+skip when counts are missing.</p>
+<p>Naming one primary endpoint in advance is what keeps this from being
+a search across six panels for the smallest p-value. The endpoint is
+named once and tested <strong>once per cut</strong>: two cuts is two
+tests of one pre-specified contrast, not two chances at it, and a
+primary that holds at one cut and not the other is reported as exactly
+that.</p>
+<pre class="r"><code>mmrd_arcsin_t_wilcox &lt;- function(df, metric_, denom_) {
+  base &lt;- df |&gt; dplyr::filter(metric == metric_, denom_label == denom_, is.finite(frac))
+  rows &lt;- list()
+  # One test per cut, never pooled: the two blocks hold the same patients under two
+  # classifications, so a test across both would count every patient twice.
+  for (lab in levels(droplevels(base$as_cut_lab))) {
+    d   &lt;- base |&gt; dplyr::filter(as_cut_lab == lab)
+    tab &lt;- table(d$aneuploidy_class)   # a factor, so an empty arm is a 0, not a dropped name
+    if (length(tab) &lt; 2 || any(tab &lt; 2)) {
+      note_skip(&quot;MMRd &quot;, metric_, &quot; / &quot;, denom_, &quot; at &quot;, lab,
+                &quot;: insufficient n per aneuploidy arm — no test at this cut.&quot;)
+      next
+    }
+    t_res &lt;- t.test(arcsin_sqrt(frac) ~ aneuploidy_class, data = d)     # primary
+    w_res &lt;- wilcox.test(frac ~ aneuploidy_class, data = d)             # companion
+    cat(sprintf(paste0(&quot;MMRd %-10s / %-20s %-11s n=%d (high=%d, low=%d)  &quot;,
+                       &quot;arcsin-t p=%.3g  Wilcoxon p=%.3g\n&quot;),
+        metric_, denom_, lab, nrow(d), tab[[&quot;aneuploidy-high&quot;]], tab[[&quot;aneuploidy-low&quot;]],
+        t_res$p.value, w_res$p.value))
+    rows[[lab]] &lt;- data.frame(as_cut_lab = lab, n = nrow(d),
+                              n_high = tab[[&quot;aneuploidy-high&quot;]],
+                              n_low  = tab[[&quot;aneuploidy-low&quot;]],
+                              t_p = t_res$p.value, w_p = w_res$p.value,
+                              stringsAsFactors = FALSE)
+  }
+  if (!length(rows)) return(invisible(NULL))
+  list(d = base, stats = do.call(rbind, rows))
+}
+res_primary &lt;- mmrd_arcsin_t_wilcox(imm_metrics, &quot;CD45+&quot;, &quot;all cells inside&quot;)      # PRIMARY</code></pre>
+<pre><code>MMRd CD45+      / all cells inside     AS cut 0.1  n=39 (high=5, low=34)  arcsin-t p=0.143  Wilcoxon p=0.192
+MMRd CD45+      / all cells inside     AS cut 0.2  n=39 (high=2, low=37)  arcsin-t p=0.905  Wilcoxon p=1</code></pre>
+<pre class="r"><code>res_tumor   &lt;- mmrd_arcsin_t_wilcox(imm_metrics, &quot;CD45+&quot;, &quot;tumour cells inside&quot;)   # secondary</code></pre>
+<pre><code>MMRd CD45+      / tumour cells inside  AS cut 0.1  n=39 (high=5, low=34)  arcsin-t p=0.0283  Wilcoxon p=0.152
+MMRd CD45+      / tumour cells inside  AS cut 0.2  n=39 (high=2, low=37)  arcsin-t p=0.382  Wilcoxon p=1</code></pre>
+<pre class="r"><code>res_cd45n   &lt;- mmrd_arcsin_t_wilcox(imm_metrics, &quot;CD3+CD45+&quot;, &quot;CD45+ cells inside&quot;) # secondary</code></pre>
+<pre><code>MMRd CD3+CD45+  / CD45+ cells inside   AS cut 0.1  n=39 (high=5, low=34)  arcsin-t p=0.457  Wilcoxon p=0.314
+MMRd CD3+CD45+  / CD45+ cells inside   AS cut 0.2  n=39 (high=2, low=37)  arcsin-t p=0.934  Wilcoxon p=0.874</code></pre>
+<p>The primary contrast on its own, one panel per cut. The subtitle
+carries each cut’s two p-values and its group size — at this n a single
+patient moving between groups can change the result, and moving the cut
+is precisely what moves patients between these two groups, so both
+counts are on the figure rather than in a caption.</p>
+<pre class="r"><code>if (!is.null(res_primary)) {
+  d  &lt;- res_primary$d
+  st &lt;- res_primary$stats
+  ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
+    attend_box(d, x = &quot;aneuploidy_class&quot;, y = &quot;frac&quot;, by = &quot;as_cut_lab&quot;,
+               fill = NULL, points = FALSE) +
+    highlight_points(d, &quot;aneuploidy_class&quot;, &quot;frac&quot;, base_size = 1.2, base_alpha = 0.5, base_const = &quot;black&quot;) +
+    # Per panel, so the Wilcoxon on the figure is the one from that cut&#39;s own test above.
+    stat_compare_means(method = &quot;wilcox.test&quot;, label = &quot;p.format&quot;, size = 3) +
+    facet_wrap(~ as_cut_lab) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
+    labs(title = &quot;PRIMARY: CD45+ immune fraction (all cells inside) — MMR-deficient only&quot;,
+         subtitle = paste(sprintf(&quot;%s: arcsin(sqrt) t p = %s | Wilcoxon p = %s (n = %d)&quot;,
+                                  st$as_cut_lab, signif(st$t_p, 3), signif(st$w_p, 3), st$n),
+                          collapse = &quot;   &quot;),
+         x = NULL, y = &quot;CD45+ fraction of all cells inside&quot;) +
+    attend_theme() + theme(legend.position = &quot;none&quot;)
+} else note_skip(&quot;Primary within-MMRd immune contrast skipped at every cut — see above.&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/immune-mmrd-box-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="the-one-model-that-needs-mmr-proficient-patients"
+class="section level4">
+<h4>The one model that needs MMR-proficient patients</h4>
+<p>The single exception to this report’s MMRd restriction, and it has to
+be: an interaction asks whether the aneuploidy effect <em>differs
+between</em> MMRd and MMRp, which cannot be estimated inside one
+stratum. The model is arcsin(sqrt(CD45+/all cells inside)) ~
+aneuploidy_class * mmr_group, fitted on both groups from imm_all. The
+interaction row is the one of interest: a large coefficient there is
+what justifies restricting everything else to MMRd. The model has
+aneuploidy_class as a term, so it is <strong>fitted once per
+cut</strong> and the table gains a cut column — a single fit over the
+stacked frame would use every patient twice under two contradictory
+labels. No correction is applied, and nothing is pooled across the two
+fits.</p>
+<pre class="r"><code>imm_int &lt;- imm_all |&gt;
+  dplyr::filter(metric == &quot;CD45+&quot;, denom_label == &quot;all cells inside&quot;, is.finite(frac)) |&gt;
+  dplyr::left_join(master_grp |&gt; dplyr::select(pid, mmr_group), by = &quot;pid&quot;) |&gt;
+  dplyr::filter(!is.na(mmr_group), !is.na(aneuploidy_class)) |&gt;
+  dplyr::mutate(y = arcsin_sqrt(frac))
+
+fit_one_cut &lt;- function(d) {
+  if (!(nrow(d) &gt; 4 &amp;&amp; dplyr::n_distinct(d$aneuploidy_class) == 2 &amp;&amp;
+        dplyr::n_distinct(d$mmr_group) == 2)) {
+    note_skip(&quot;AS cut &quot;, d$as_cut[1], &quot;: not enough patients across both MMR groups and &quot;,
+              &quot;both aneuploidy classes for the interaction model.&quot;)
+    return(NULL)
+  }
+  fit &lt;- lm(y ~ aneuploidy_class * mmr_group, data = d)
+  tb  &lt;- if (requireNamespace(&quot;broom&quot;, quietly = TRUE)) broom::tidy(fit) else {
+    m &lt;- as.data.frame(summary(fit)$coefficients); m$term &lt;- rownames(m); m
+  }
+  cbind(`AS cut` = as.character(d$as_cut_lab[1]), tb)
+}
+
+coef_tbl &lt;- if (nrow(imm_int) &gt; 0)
+  do.call(rbind, lapply(split(imm_int, droplevels(imm_int$as_cut_lab)), fit_one_cut)) else NULL
+
+if (!is.null(coef_tbl)) {
+  print(knitr::kable(coef_tbl, digits = 3, row.names = FALSE,
+        caption = paste(&quot;arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group&quot;,
+                        &quot;— BOTH MMR groups, fitted separately at each aneuploidy cut,&quot;,
+                        &quot;no correction&quot;)))
+} else note_skip(&quot;The interaction model could not be fitted at either aneuploidy cut.&quot;)</code></pre>
+<pre><code>
+
+Table: arcsin(sqrt(CD45+/all-cells-inside)) ~ aneuploidy_class * mmr_group — BOTH MMR groups, fitted separately at each aneuploidy cut, no correction
+
+|AS cut     |term                                          | estimate| std.error| statistic| p.value|
+|:----------|:---------------------------------------------|--------:|---------:|---------:|-------:|
+|AS cut 0.1 |(Intercept)                                   |    0.465|     0.139|     3.343|   0.002|
+|AS cut 0.1 |aneuploidy_classaneuploidy-high               |   -0.060|     0.152|    -0.392|   0.697|
+|AS cut 0.1 |mmr_groupMMRd                                 |   -0.010|     0.141|    -0.068|   0.946|
+|AS cut 0.1 |aneuploidy_classaneuploidy-high:mmr_groupMMRd |   -0.037|     0.166|    -0.224|   0.824|
+|AS cut 0.2 |(Intercept)                                   |    0.393|     0.071|     5.525|   0.000|
+|AS cut 0.2 |aneuploidy_classaneuploidy-high               |    0.066|     0.123|     0.533|   0.597|
+|AS cut 0.2 |mmr_groupMMRd                                 |    0.049|     0.075|     0.658|   0.514|
+|AS cut 0.2 |aneuploidy_classaneuploidy-high:mmr_groupMMRd |   -0.059|     0.161|    -0.370|   0.713|</code></pre>
+</div>
+</div>
+<div id="aneuploidy-against-the-continuous-covariates"
+class="section level3">
+<h3>Aneuploidy against the continuous covariates</h3>
+<p>Aneuploidy score against TMB (both definitions), HRD, and MSI, within
+MMRd. One point per patient, coloured by aneuploidy class, with
+Spearman’s rho per panel. Spearman rather than Pearson because these
+scores are bounded and skewed.</p>
+<p>The two TMB panels are the same patients under the two definitions,
+so a visible difference between them is the germline correction moving
+values, not new data. This figure is <strong>not</strong> faceted by
+cut: x is the raw score and rho is computed on it, so both cuts give the
+identical panel. They appear as the two dashed vertical lines instead,
+which is what lets a reader judge whether either falls anywhere the
+points suggest a break.</p>
+<pre class="r"><code>scat &lt;- pt |&gt;
+  pivot_longer(all_of(covar_cols04), names_to = &quot;covariate&quot;, values_to = &quot;value&quot;) |&gt;
+  filter(!is.na(aneuploidy_score), !is.na(value)) |&gt;
+  mutate(covariate = factor(covariate, levels = covar_cols04))
+
+if (nrow(scat) &gt; 2) {
+  rho &lt;- scat |&gt;
+    group_by(covariate) |&gt;
+    summarise(label = paste0(&quot;rho = &quot;,
+                round(suppressWarnings(cor(aneuploidy_score, value, method = &quot;spearman&quot;,
+                                           use = &quot;complete.obs&quot;)), 2)), .groups = &quot;drop&quot;)
+  ggplot(scat, aes(aneuploidy_score, value, colour = aneuploidy_class)) +
+    # Both cuts, on a figure that is otherwise cut-independent: the points, the fit and rho
+    # are the same at either, and the point colour is the primary cut.
+    geom_vline(xintercept = cuts, linetype = 2, colour = &quot;grey40&quot;) +
+    highlight_points(scat, &quot;aneuploidy_score&quot;, &quot;value&quot;, base_colour = &quot;aneuploidy_class&quot;,
+                     base_palette = attend_aneu_cols,
+                     base_name = attend_as_legend, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = &quot;grey40&quot;, linewidth = 0.6) +
+    geom_text(data = rho, aes(x = Inf, y = Inf, label = label),
+              inherit.aes = FALSE, hjust = 1.05, vjust = 1.5, size = 3) +
+    facet_wrap(~ covariate, scales = &quot;free_y&quot;, ncol = 3) +
+    labs(title = &quot;Aneuploidy score vs continuous covariates (MMR-deficient only)&quot;,
+         subtitle = paste(&quot;Dashed lines: the two AS cuts,&quot;, paste(cuts, collapse = &quot; and &quot;)),
+         x = &quot;aneuploidy score&quot;, y = &quot;covariate value&quot;, colour = NULL) +
+    attend_theme() + theme(legend.position = &quot;top&quot;)
+} else note_skip(&quot;Not enough MMR-deficient patients with aneuploidy score + a covariate.&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/aneu-scatter-1.svg" alt="" width="1152" style="display: block; margin: auto;" /></p>
+<p>The same covariates against the <strong>binarised</strong> aneuploidy
+class rather than the continuous score — the categorical counterpart to
+the scatter above, with a Wilcoxon per covariate and per cut. Rows are
+the covariates, columns the two cuts (0.1 and 0.2), drawn from pt_cuts
+so each patient carries the class its column’s cut gives them. Comparing
+the two columns is what the scatter above cannot show: a correlation
+visible there but absent in both columns is being discarded by
+binarising at all, while one that appears in a single column is being
+produced by that cutpoint.</p>
+<pre class="r"><code>cb &lt;- pt_cuts |&gt;
+  pivot_longer(all_of(covar_cols04), names_to = &quot;covariate&quot;, values_to = &quot;value&quot;) |&gt;
+  filter(!is.na(aneuploidy_class), !is.na(value)) |&gt;
+  mutate(covariate = factor(covariate, levels = covar_cols04))
+
+if (nrow(cb) &gt; 2) {
+  ggplot(cb, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
+    attend_box(cb, x = &quot;aneuploidy_class&quot;, y = &quot;value&quot;, by = c(&quot;covariate&quot;, &quot;as_cut_lab&quot;),
+               fill = NULL, points = FALSE) +
+    highlight_points(cb, &quot;aneuploidy_class&quot;, &quot;value&quot;, base_size = 0.6, base_alpha = 0.4,
+                     base_const = &quot;black&quot;) +
+    stat_compare_means(method = &quot;wilcox.test&quot;, label = &quot;p.format&quot;, size = 3) +
+    # Cut on the COLUMNS so &quot;free_y&quot; stays free per covariate: a covariate must keep one
+    # axis across the two cuts, or the columns cannot be read against each other.
+    facet_grid(covariate ~ as_cut_lab, scales = &quot;free_y&quot;) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
+    labs(title = &quot;Continuous covariates by aneuploidy class (MMR-deficient only, both AS cuts)&quot;,
+         x = NULL, y = &quot;covariate value&quot;) +
+    attend_theme() + theme(legend.position = &quot;none&quot;)
+} else note_skip(&quot;Not enough MMR-deficient patients with aneuploidy class + a covariate.&quot;)</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/aneu-class-box-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-by-tp53-status" class="section level3">
+<h3>Aneuploidy by TP53 status</h3>
+<p>Within MMRd, aneuploidy score in TP53-abnormal versus TP53-normal
+tumours. TP53 status is TP53_pathogenic from the master, derived from
+the MAF in report 01. TP53 loss is the canonical driver of chromosomal
+instability, so this is the expected-positive control for the aneuploidy
+score itself: if aneuploidy does not separate on TP53 here, the score is
+suspect before any of the immune results are interpreted. The control is
+on the raw score and TP53 status does not depend on the cut, so this is
+one figure with both cuts drawn across it as dashed lines — where they
+fall relative to the two boxes is how much of this separation either cut
+can capture.</p>
+<pre class="r"><code>tp &lt;- pt |&gt; filter(!is.na(TP53), !is.na(aneuploidy_score))
+
+if (nrow(tp) &gt; 2 &amp;&amp; dplyr::n_distinct(tp$TP53) == 2) {
+  ggplot(tp, aes(TP53, aneuploidy_score, fill = TP53)) +
+    attend_box(tp, x = &quot;TP53&quot;, y = &quot;aneuploidy_score&quot;, fill = NULL, points = FALSE) +
+    highlight_points(tp, &quot;TP53&quot;, &quot;aneuploidy_score&quot;, base_size = 1.5, base_alpha = 0.5,
+                     base_const = &quot;black&quot;) +
+    stat_compare_means(method = &quot;wilcox.test&quot;, label = &quot;p.format&quot;) +
+    geom_hline(yintercept = cuts, linetype = 2, colour = &quot;grey40&quot;) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_tp53_cols, labels = as_label,
+                      name = attend_tp53_legend) +
+    labs(title = &quot;Aneuploidy by TP53 status (MMR-deficient only)&quot;,
+         subtitle = paste(&quot;Dashed lines: the two AS cuts,&quot;, paste(cuts, collapse = &quot; and &quot;)),
+         x = NULL, y = attend_as_axis) +
+    attend_theme() + theme(legend.position = &quot;none&quot;)
+} else {
+  note_skip(&quot;Not enough MMR-deficient patients with both TP53 classes, or TP53_pathogenic &quot;,
+          &quot;is missing from the master (rebuild report 01).&quot;)
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/mmrd-tp53-1.svg" alt="" width="480" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-against-the-pathologists-imaging-calls"
+class="section level3">
+<h3>Aneuploidy against the pathologist’s imaging calls</h3>
+<p>The pathologist’s per-patient scores compared between aneuploidy high
+and low, within MMRd. These come from the imaging sheet keyed by image →
+pid, averaged over a patient’s images for the continuous measures and
+taking the first non-missing value for the categorical calls. Both
+figures below are keyed on the aneuploidy class, so the frame is built
+once per cut here and each patient appears twice — once under each
+classification.</p>
+<pre class="r"><code>first_nonNA &lt;- function(x) { x &lt;- x[!is.na(x)]; if (length(x)) x[1] else NA }
+
+imaging_pt &lt;- load_imaging_data() |&gt;
+  filter(!is.na(ID)) |&gt;
+  group_by(pid = as.character(ID)) |&gt;
+  summarise(
+    Immune_infiltrate      = mean(suppressWarnings(as.numeric(Immune_infiltrate)),     na.rm = TRUE),
+    Immune_infiltrate_PD1  = mean(suppressWarnings(as.numeric(Immune_infiltrate_PD1)), na.rm = TRUE),
+    ARID1A                 = first_nonNA(ARID1A),
+    Tumor_cells_PDL1       = first_nonNA(Tumor_cells_PDL1),
+    Immune_infiltrate_PDL1 = first_nonNA(Immune_infiltrate_PDL1),
+    .groups = &quot;drop&quot;
+  ) |&gt;
+  filter(pid %in% mmrd_pids) |&gt;   # &lt;- the MMRd restriction
+  with_cuts()                     # &lt;- one row per patient per aneuploidy cut
+
+cat(&quot;MMR-deficient patients with imaging covariates:&quot;, n_distinct(imaging_pt$pid), &quot;\n&quot;)</code></pre>
+<pre><code>MMR-deficient patients with imaging covariates: 40 </code></pre>
+<pre class="r"><code>cat(&quot;  ... drawn once per aneuploidy cut:&quot;, paste(cuts, collapse = &quot; and &quot;), &quot;\n&quot;)</code></pre>
+<pre><code>  ... drawn once per aneuploidy cut: 0.1 and 0.2 </code></pre>
+<p>Continuous pathologist scores (immune infiltrate and PD-1 infiltrate,
+as percentages) by aneuploidy class, one row per score and one column
+per cut, with its own Wilcoxon in each panel. These are the
+pathologist’s independent read of the same immune question the FlowPath
+contrast above asked; the pathologist’s numbers do not move with the
+cut, so the only thing that differs between the two columns is which
+patients are in which box.</p>
+<pre class="r"><code>icc &lt;- imaging_pt |&gt;
+  pivot_longer(c(Immune_infiltrate, Immune_infiltrate_PD1),
+               names_to = &quot;covariate&quot;, values_to = &quot;value&quot;) |&gt;
+  filter(is.finite(value))
+
+if (nrow(icc) &gt; 2) {
+  ggplot(icc, aes(aneuploidy_class, value, fill = aneuploidy_class)) +
+    attend_box(icc, x = &quot;aneuploidy_class&quot;, y = &quot;value&quot;, by = c(&quot;covariate&quot;, &quot;as_cut_lab&quot;),
+               fill = NULL, points = FALSE) +
+    highlight_points(icc, &quot;aneuploidy_class&quot;, &quot;value&quot;, base_size = 0.6, base_alpha = 0.4,
+                     base_const = &quot;black&quot;) +
+    stat_compare_means(method = &quot;wilcox.test&quot;, label = &quot;p.format&quot;, size = 3) +
+    # Cut on the columns, so &quot;free_y&quot; stays free per pathologist score rather than per cut.
+    facet_grid(covariate ~ as_cut_lab, scales = &quot;free_y&quot;) +
+    scale_x_discrete(labels = as_label) +
+    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
+                      name = attend_as_legend) +
+    labs(title = &quot;Pathologist immune scores by aneuploidy class (MMR-deficient only, both AS cuts)&quot;,
+         x = NULL, y = &quot;pathologist %&quot;) +
+    attend_theme() + theme(legend.position = &quot;none&quot;)
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/imaging-covars-cont-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+<p>Categorical calls as stacked proportions — how each call distributes
+within aneuploidy high vs low, one row per call and one column per cut.
+Bars are proportions, so the <strong>group sizes are not visible in this
+figure</strong>; read them from the count printed above, and read them
+per column, because moving the cut is exactly what changes how many
+patients each bar is drawn from. MMR_Status is omitted because it is
+constant here by construction.</p>
+<pre class="r"><code>icat &lt;- imaging_pt |&gt;
+  select(as_cut_lab, aneuploidy_class, ARID1A, Tumor_cells_PDL1, Immune_infiltrate_PDL1) |&gt;
+  pivot_longer(-c(as_cut_lab, aneuploidy_class), names_to = &quot;covariate&quot;, values_to = &quot;level&quot;) |&gt;
+  filter(!is.na(level), level != &quot;&quot;)
+
+if (nrow(icat) &gt; 0) {
+  ggplot(icat, aes(aneuploidy_class, fill = level)) +
+    geom_bar(position = &quot;fill&quot;) +
+    # The pathologist&#39;s category sets differ per covariate and have no semantic palette of
+    # their own, so they take the project&#39;s qualitative one POSITIONALLY. Without it these
+    # bars used ggplot&#39;s default hue wheel. A stacked bar carries no per-patient highlight
+    # point, so the reserved blue at attend_pal()[1] cannot hide one here (rule [C], the
+    # same exemption the KM and ECDF palettes take).
+    scale_fill_manual(values = attend_pal(dplyr::n_distinct(icat$level))) +
+    facet_grid(covariate ~ as_cut_lab) +
+    labs(title = &quot;Pathologist categorical calls by aneuploidy class (MMR-deficient only, both AS cuts)&quot;,
+         x = NULL, y = &quot;proportion of patients&quot;, fill = NULL) +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}</code></pre>
+<p><img src="figure/04-aneuploidy-mmrd.Rmd/imaging-covars-cat-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      ggpubr_0.6.0     
+ [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
+ [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
+[13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        rstatix_1.1.0     
+ [5] lattice_0.22-5     tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2       
+ [9] generics_0.1.4     parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4      
+[13] RColorBrewer_1.1-3 S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2    
+[17] farver_2.1.2       git2r_0.33.0       carData_3.0-5      httpuv_1.6.12     
+[21] htmltools_0.5.9    sass_0.4.10        yaml_2.3.12        crayon_1.5.3      
+[25] later_1.4.8        pillar_1.11.1      car_3.1-2          jquerylib_0.1.4   
+[29] whisker_0.4.1      cachem_1.1.0       abind_1.4-5        nlme_3.1-164      
+[33] tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7      splines_4.3.2     
+[37] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
+[41] cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1  broom_1.0.13      
+[45] withr_3.0.3        scales_1.4.0       promises_1.5.0     backports_1.4.1   
+[49] bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
+[53] otel_0.2.0         ggsignif_0.6.4     workflowr_1.7.2    cellranger_1.1.0  
+[57] hms_1.1.4          evaluate_1.0.5     knitr_1.51         mgcv_1.9-0        
+[61] rlang_1.2.0        Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0 
+[65] vroom_1.7.1        jsonlite_2.0.0     R6_2.6.1          </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      ggpubr_0.6.0     
+ [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
+ [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
+[13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        rstatix_1.1.0     
+ [5] lattice_0.22-5     tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2       
+ [9] generics_0.1.4     parallel_4.3.2     pkgconfig_2.0.3    Matrix_1.6-4      
+[13] RColorBrewer_1.1-3 S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2    
+[17] farver_2.1.2       git2r_0.33.0       carData_3.0-5      httpuv_1.6.12     
+[21] htmltools_0.5.9    sass_0.4.10        yaml_2.3.12        crayon_1.5.3      
+[25] later_1.4.8        pillar_1.11.1      car_3.1-2          jquerylib_0.1.4   
+[29] whisker_0.4.1      cachem_1.1.0       abind_1.4-5        nlme_3.1-164      
+[33] tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7      splines_4.3.2     
+[37] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
+[41] cli_3.6.6          magrittr_2.0.5     dichromat_2.0-0.1  broom_1.0.13      
+[45] withr_3.0.3        scales_1.4.0       promises_1.5.0     backports_1.4.1   
+[49] bit64_4.8.6        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
+[53] otel_0.2.0         ggsignif_0.6.4     workflowr_1.7.2    cellranger_1.1.0  
+[57] hms_1.1.4          evaluate_1.0.5     knitr_1.51         mgcv_1.9-0        
+[61] rlang_1.2.0        Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0 
+[65] vroom_1.7.1        jsonlite_2.0.0     R6_2.6.1          </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

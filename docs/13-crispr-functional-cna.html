@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-09-24" />
+
+<title>ATTEND — 13. Recurrent copy number and immune-evasion gene function</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 13. Recurrent copy number and
+immune-evasion gene function</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-09-24</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree395a71cee11825004d0f299df82ee6bbc457bfa0targetblank395a71ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/395a71cee11825004d0f299df82ee6bbc457bfa0" target="_blank">395a71c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/13-crispr-functional-cna.Rmd</code>) and HTML
+(<code>docs/13-crispr-functional-cna.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/395a71cee11825004d0f299df82ee6bbc457bfa0/analysis/13-crispr-functional-cna.Rmd" target="_blank">395a71c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-24
+</td>
+<td>
+:sparkles: Report 13 — recurrent copy number against immune-evasion gene
+function
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> Are the loci GISTIC calls recurrent inside
+a stratum enriched for genes that CRISPR screens show control
+tumour-cell killing by T cells — losses of resisters, gains of
+sensitizers? <strong>Cohort.</strong> MMRd aneuploidy-high first, the
+target of <a href="10-recurrent-cna.html">10-recurrent-cna</a>’s
+Question 1, then all four MMR × aneuploidy strata side by side. Peaks
+come from each stratum’s own GISTIC run at the primary aneuploidy cut.
+<strong>Reads.</strong> data/crispr_t_cell_screens_wu2025.tsv
+(code/fetch_crispr_screens.R, from Wu et al. Table S3), the
+amp_genes/del_genes/all_data_by_genes files of each run in data/gistic/
+(runbooks/gistic.md), and attend_master_joined. <strong>Out of
+scope.</strong> Whether a locus recurs at all, and whether the same loci
+recur in MMRp → <a href="10-recurrent-cna.html">10-recurrent-cna</a>.
+Immune infiltrate and PD-L1 as measured phenotypes → <a
+href="12-aneuploidy-immune.html">12-aneuploidy-immune</a>. The
+aneuploidy classes and the two cuts → <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<div id="what-this-report-does-and-does-not-claim"
+class="section level2">
+<h2>What this report does and does not claim</h2>
+<p>Wu et al. (<em>Immunity</em> 58:2864–2877, 2025) intersect
+recurrently altered genes with a pooled CRISPR catalogue of
+T-cell-killing <strong>resisters</strong> and
+<strong>sensitizers</strong>, direction-matched. That filter is what
+this report borrows. Three differences from their analysis are
+load-bearing and are stated here rather than left for a reader to
+infer.</p>
+<p><strong>Their recurrence is a within-patient subtraction; this one is
+not.</strong> Wu et al. compare each patient’s progression tumour
+against that patient’s own pre-treatment baseline and call a gene
+recurrent when it changed in at least three patients. ATTEND has one
+tumour per patient and <code>collapse_pid()</code> averages to one row
+per patient, so there is no baseline to subtract. Nothing in this report
+is evidence about what a tumour acquired under treatment, and the phrase
+they use for that axis is deliberately absent below.</p>
+<p><strong>The two recurrence definitions are different
+constructs.</strong> Theirs is a count with no background model, which
+on their cohort returns about a quarter of the exome. This report’s is
+GISTIC’s background-corrected q, 0.25, on the stratum’s own run. A count
+and a peak statistic are not comparable, and no number here is compared
+to one of theirs.</p>
+<p><strong>The catalogue is melanoma- and ICI-derived.</strong> It was
+assembled from screens of tumour-cell killing by T cells, pooled across
+mouse and human models. Applying it to endometrial carcinoma is an
+assumption this report makes, not a result it establishes.</p>
+</div>
+<div id="the-catalogue" class="section level2">
+<h2>The catalogue</h2>
+<p><code>load_crispr_screens()</code> reads the tracked TSV and applies
+the evidence cutoff as an argument,
+<code>attend_crispr$min_measurements</code> = 2 — Wu et al.’s own
+“concordant evidence in ≥ two independent measurements”, which
+reproduces their reported 519 resisters and 877 sensitizers exactly. The
+unfiltered blocks stay in the file so the cutoff is a choice that can be
+varied, not a property of the data. Symbols that qualify as
+<strong>both</strong> a resister and a sensitizer carry no direction, so
+they are dropped and counted here rather than resolved by whichever row
+a join kept.</p>
+<pre class="r"><code>if (!have_cat) {
+  note_skip(&quot;no &quot;, attend_crispr$file, &quot; under data/ — run `Rscript code/fetch_crispr_screens.R`.&quot;)
+} else {
+  print(knitr::kable(crispr_counts(crispr), row.names = FALSE,
+                     caption = paste0(&quot;The CRISPR T-cell-killing catalogue at the configured &quot;,
+                                      &quot;evidence cutoff (Wu et al., Table S3)&quot;)))
+}</code></pre>
+<pre><code>
+
+Table: The CRISPR T-cell-killing catalogue at the configured evidence cutoff (Wu et al., Table S3)
+
+|quantity                                       |    n|
+|:----------------------------------------------|----:|
+|catalogue rows, unfiltered                     | 5789|
+|kept at &gt;= 2 measurements                      | 1186|
+|of which resisters (lost -&gt; immune escape)     |  414|
+|of which sensitizers (gained -&gt; immune escape) |  772|
+|dropped: symbol in BOTH lists, no direction    |  105|</code></pre>
+<p>The direction map is the method in one line, and it is not symmetric:
+a <strong>resister</strong> matters when it is <strong>lost</strong>, a
+<strong>sensitizer</strong> when it is <strong>gained</strong>. Both
+moves push a tumour towards immune escape, and swapping either entry
+would invert every statement below while leaving all the counts
+unchanged — which is why it is configuration
+(<code>attend_crispr$direction_of</code>) and not an argument at a call
+site.</p>
+<pre class="r"><code>print(knitr::kable(
+  data.frame(role = names(attend_crispr$direction_of),
+             `alteration that promotes escape` = unname(attend_crispr$direction_of),
+             check.names = FALSE),
+  row.names = FALSE, caption = &quot;attend_crispr$direction_of — the whole method&quot;))</code></pre>
+<pre><code>
+
+Table: attend_crispr$direction_of — the whole method
+
+|role       |alteration that promotes escape |
+|:----------|:-------------------------------|
+|resister   |del                             |
+|sensitizer |amp                             |</code></pre>
+</div>
+<div id="part-1-mmrd-aneuploidy-high" class="section level2">
+<h2>Part 1 — MMRd aneuploidy-high</h2>
+<div id="what-was-measured-and-what-could-not-be"
+class="section level3">
+<h3>What was measured, and what could not be</h3>
+<p>The partition below is the denominator, printed before any test. Two
+of its lines exist because an absence must not read as a negative
+result. A peak gene that the 23 pooled screens never covered is
+<strong>unscreened</strong>, not “not a resister”: the screens do not
+tile the genome, so scoring an unscreened gene as a measured negative
+would inflate every p-value on the page.
+<code>attend_crispr$universe</code> is therefore screened — the genes
+this GISTIC run assayed <strong>intersected with</strong> the genes the
+catalogue screened. Genes sitting in both an amplification and a
+deletion peak carry no direction either, and are dropped on the same
+rule <code>gistic_feature_direction()</code> already applies.</p>
+<pre class="r"><code>ov1 &lt;- NULL
+if (!have_gistic) {
+  note_skip(&quot;no MMRd-high GISTIC run under &quot;, run_dirs[[&quot;mmrd_high&quot;]],
+            &quot; — run `MODE=groups Rscript code/prep_gistic_group_segs.R`, then &quot;,
+            &quot;`MODE=groups bash code/run_gistic.sh`.&quot;)
+} else if (!have_cat) {
+  note_skip(&quot;the catalogue is absent, so no overlap can be computed — see above.&quot;)
+} else {
+  ov1 &lt;- crispr_peak_overlap(run_dirs[[&quot;mmrd_high&quot;]], crispr = crispr,
+                             assayed = if (have_order) gene_order else NULL)
+  if (is.null(ov1$partition)) {
+    note_skip(&quot;the MMRd-high run has no amp_genes/del_genes peak lists to read.&quot;)
+  } else {
+    print(knitr::kable(ov1$partition, row.names = FALSE,
+                       caption = &quot;MMRd aneuploidy-high: what entered the overlap, and what was excluded&quot;))
+  }
+}</code></pre>
+<pre><code>NOTE: no MMRd-high GISTIC run under /hpcnfs/home/ieo7660/workflowR/attend_aneuploidy/data/gistic/mmrd_high — run `MODE=groups Rscript code/prep_gistic_group_segs.R`, then `MODE=groups bash code/run_gistic.sh`.</code></pre>
+</div>
+<div id="the-direction-matched-hits" class="section level3">
+<h3>The direction-matched hits</h3>
+<p>Every row is a gene that sits inside a significant peak of the
+MMRd-high run <strong>and</strong> is a catalogue member <strong>in the
+matching direction</strong> — a resister inside a deletion peak, or a
+sensitizer inside an amplification peak. <code>n_measurements</code> is
+the screen support behind the functional call, from the catalogue, and
+carries no information about this cohort. <code>wu_overlap</code> is Wu
+et al.’s <strong>own</strong> result on their melanoma patients, carried
+for provenance: it says the gene was in their recurrent set, and says
+nothing whatever about ATTEND. It must never be joined on.</p>
+<pre class="r"><code>if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip(&quot;no direction-matched hits to list — see the partition above for why.&quot;)
+} else {
+  h &lt;- ov1$hits[order(ov1$hits$role, -ov1$hits$n_measurements, ov1$hits$gene), ]
+  cat(&quot;**&quot;, nrow(h), &quot; direction-matched gene(s)**: &quot;,
+      sum(h$role == &quot;resister&quot;), &quot; resister(s) inside deletion peaks, &quot;,
+      sum(h$role == &quot;sensitizer&quot;), &quot; sensitizer(s) inside amplification peaks.\n\n&quot;, sep = &quot;&quot;)
+  print(knitr::kable(utils::head(h, 40), row.names = FALSE, digits = 3,
+                     caption = &quot;MMRd aneuploidy-high: peak genes with a matching functional call&quot;))
+}</code></pre>
+<pre><code>NOTE: no direction-matched hits to list — see the partition above for why.</code></pre>
+</div>
+<div id="is-that-more-overlap-than-chance" class="section level3">
+<h3>Is that more overlap than chance?</h3>
+<p>A count of hits is not a result until it is read against what chance
+produces, and the null here has to respect two kinds of clustering at
+once. GISTIC peaks are contiguous blocks — an amplicon spanning 300
+genes is one event, not 300 independent successes — and the catalogue is
+<strong>also</strong> positionally clustered, because immune genes sit
+in families: <em>TAP1</em>, <em>TAP2</em>, <em>PSMB8</em> and
+<em>TAPBP</em> across the MHC region, the <em>IFNA</em> cluster on 9p21
+immediately beside <em>CDKN2A</em>, a classic deletion peak. So the
+peaks are slid to random positions along the genomically ordered
+universe while the catalogue is held exactly where it is. Measured on
+simulated null data with both kinds of clustering, a hypergeometric test
+runs at roughly five times its nominal type-I rate and so does a test
+that holds the peaks and reshuffles the gene labels; the block shift is
+calibrated. The three measured type-I rates, and why each alternative
+fails, are in <a
+href="00-methods.html#why-the-peaks-move-and-the-catalogue-stays-put">00-methods</a>;
+the calibration that pins them is
+<code>code/tests/test_crispr_overlap.R</code>. This is <strong>Family
+B</strong>, corrected with BH: the catalogue is external and fixed in
+advance, but the peaks come from ATTEND’s own group labels, so no result
+here can be promoted to a confirmatory one.</p>
+<pre class="r"><code>t1 &lt;- NULL
+if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip(&quot;no overlap to test.&quot;)
+} else if (!have_order) {
+  note_skip(&quot;the MMRd-high run has no all_data_by_genes.txt, so genes cannot be put in &quot;,
+            &quot;genomic order and the block-shift null is not defined. No p-value is reported &quot;,
+            &quot;rather than one computed on an arbitrary ordering.&quot;)
+} else {
+  blocks1 &lt;- run_peak_blocks(run_dirs[[&quot;mmrd_high&quot;]])
+  t1 &lt;- crispr_overlap_test(ov1, blocks1, gene_order = gene_order, crispr = crispr)
+  if (is.null(t1)) {
+    note_skip(&quot;too few genes survive the universe restriction for a resampling test.&quot;)
+  } else {
+    print(knitr::kable(t1, row.names = FALSE, digits = c(0, 0, 2, 4, 4, 0),
+                       caption = paste0(&quot;MMRd aneuploidy-high: block-shift permutation, B = &quot;,
+                                        t1$B[1], &quot;, Family B (&quot;, attend_scna$fdr_method, &quot;)&quot;)))
+  }
+}</code></pre>
+<pre><code>NOTE: no overlap to test.</code></pre>
+<p>The observed and expected counts are the two numbers to read
+together: <code>expected</code> is the mean of the null, so a hit count
+close to it is the answer “no more than the genome’s layout already
+predicts”, whatever the catalogue membership looks like gene by gene.
+The combined row adds the two directional rows and is a summary, not a
+third question, so it carries no adjusted p.</p>
+</div>
+<div id="how-much-of-this-rests-on-one-patient" class="section level3">
+<h3>How much of this rests on one patient</h3>
+<p>Report 10 reports, for each recurrent locus, the fraction of
+leave-one-out MMRd-high GISTIC re-runs that retain it. That column
+qualifies this one too: the peak set is the input here, so a functional
+enrichment computed on peaks that turn over when a single tumour is
+dropped inherits exactly that instability. The table below re-reads the
+leave-one-out runs and reports how many of them retain each gene’s peak,
+so the enrichment above can be read against the stability of the thing
+it was computed on rather than separately from it.</p>
+<pre class="r"><code>if (is.null(ov1) || is.null(ov1$hits)) {
+  note_skip(&quot;no hits whose stability could be reported.&quot;)
+} else {
+  loo_dirs &lt;- { d &lt;- file.path(gx_dir, &quot;loo&quot;)
+                if (dir.exists(d)) list.dirs(d, full.names = TRUE, recursive = FALSE)
+                else character(0) }
+  if (!length(loo_dirs)) {
+    note_skip(&quot;no leave-one-out runs under &quot;, file.path(gx_dir, &quot;loo&quot;),
+              &quot; — run `MODE=loo Rscript code/prep_gistic_group_segs.R`, then &quot;,
+              &quot;`MODE=loo bash code/run_gistic.sh`. Without them the hits above have no &quot;,
+              &quot;stability column, and at this n that is the column that decides whether a &quot;,
+              &quot;hit is a finding.&quot;)
+  } else {
+    keep &lt;- vapply(loo_dirs, function(d) {
+      pg &lt;- tryCatch(run_peak_genes(d), error = function(e) character(0))
+      if (!length(pg)) return(rep(NA_real_, nrow(ov1$hits)))
+      as.numeric(ov1$hits$gene %in% names(pg)[pg == ov1$hits$peak_dir])
+    }, numeric(nrow(ov1$hits)))
+    st &lt;- data.frame(gene = ov1$hits$gene, role = ov1$hits$role,
+                     peak_dir = ov1$hits$peak_dir,
+                     loo_retained_frac = rowMeans(matrix(keep, nrow = nrow(ov1$hits)),
+                                                  na.rm = TRUE),
+                     stringsAsFactors = FALSE)
+    st &lt;- st[order(-st$loo_retained_frac, st$gene), ]
+    cat(&quot;Leave-one-out re-runs read: &quot;, length(loo_dirs), &quot;.\n\n&quot;, sep = &quot;&quot;)
+    print(knitr::kable(utils::head(st, 40), row.names = FALSE, digits = 3,
+                       caption = paste0(&quot;Each hit&#39;s peak, across the leave-one-out MMRd-high &quot;,
+                                        &quot;re-runs that retain it&quot;)))
+  }
+}</code></pre>
+<pre><code>NOTE: no hits whose stability could be reported.</code></pre>
+</div>
+</div>
+<div id="part-2-the-same-question-in-all-four-strata"
+class="section level2">
+<h2>Part 2 — the same question in all four strata</h2>
+<p>The four MMR × aneuploidy strata answered side by side, each on its
+<strong>own</strong> GISTIC run, so a stratum with more peaks is not
+being compared against another stratum’s peak list. The universe is
+rebuilt per run for the same reason: a run that assayed fewer genes has
+a smaller denominator, and sharing one denominator across runs would
+move hits between strata without any of them changing. Strata whose
+GISTIC run is missing are listed as such rather than dropped silently,
+because an absent row and a null row are different statements.</p>
+<pre class="r"><code>if (!have_cat) {
+  note_skip(&quot;the catalogue is absent, so no stratum can be scored.&quot;)
+} else {
+  rows &lt;- lapply(scna_group_token(attend_scna$group_levels), function(tok) {
+    d &lt;- run_dirs[[tok]]
+    if (!dir.exists(d))
+      return(data.frame(stratum = tok, status = &quot;no GISTIC run&quot;, peak_genes = NA_integer_,
+                        universe = NA_integer_, hits = NA_integer_, p_del = NA_real_,
+                        p_amp = NA_real_, stringsAsFactors = FALSE))
+    go &lt;- local({
+      g &lt;- tryCatch(load_gistic_continuous_at(d, attend_cnv), error = function(e) NULL)
+      fp &lt;- if (is.null(g)) NULL else attr(g, &quot;feature_pos&quot;)
+      if (is.null(fp)) character(0) else as.character(fp$feature)
+    })
+    ov &lt;- crispr_peak_overlap(d, crispr = crispr, assayed = if (length(go)) go else NULL)
+    if (is.null(ov$partition))
+      return(data.frame(stratum = tok, status = &quot;no peak lists&quot;, peak_genes = NA_integer_,
+                        universe = NA_integer_, hits = NA_integer_, p_del = NA_real_,
+                        p_amp = NA_real_, stringsAsFactors = FALSE))
+    tt &lt;- if (length(go)) crispr_overlap_test(ov, run_peak_blocks(d), gene_order = go,
+                                              crispr = crispr) else NULL
+    data.frame(stratum = tok,
+               status = if (is.null(tt)) &quot;no genomic order — untested&quot; else &quot;tested&quot;,
+               peak_genes = length(ov$peak_dir), universe = length(ov$universe),
+               hits = if (is.null(ov$hits)) 0L else nrow(ov$hits),
+               p_del = if (is.null(tt)) NA_real_ else tt$p[1],
+               p_amp = if (is.null(tt)) NA_real_ else tt$p[2],
+               stringsAsFactors = FALSE)
+  })
+  tab &lt;- do.call(rbind, rows)
+  print(knitr::kable(tab, row.names = FALSE, digits = 4,
+                     caption = paste0(&quot;All four MMR x aneuploidy strata, each on its own &quot;,
+                                      &quot;GISTIC run and its own universe&quot;)))
+}</code></pre>
+<pre><code>
+
+Table: All four MMR x aneuploidy strata, each on its own GISTIC run and its own universe
+
+|stratum   |status        | peak_genes| universe| hits| p_del| p_amp|
+|:---------|:-------------|----------:|--------:|----:|-----:|-----:|
+|mmrp_low  |no GISTIC run |         NA|       NA|   NA|    NA|    NA|
+|mmrp_high |no GISTIC run |         NA|       NA|   NA|    NA|    NA|
+|mmrd_low  |no GISTIC run |         NA|       NA|   NA|    NA|    NA|
+|mmrd_high |no GISTIC run |         NA|       NA|   NA|    NA|    NA|</code></pre>
+<p>Each stratum’s two p-values were corrected within that stratum, not
+across the four: the strata are four separate questions asked of four
+different patient sets, and pooling them into one family would penalise
+each for the others having been asked. Reading down a column is
+descriptive comparison, not a test of difference between strata — that
+question is <a href="10-recurrent-cna.html">10-recurrent-cna</a>’s
+Question 2, which asks it of the loci themselves.</p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     stringi_1.8.7      hms_1.1.4         
+ [5] digest_0.6.39      magrittr_2.0.5     timechange_0.4.0   evaluate_1.0.5    
+ [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
+[13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
+[17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.8.6        withr_3.0.3       
+[25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
+[29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
+[33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         
+[37] vroom_1.7.1        pkgconfig_2.0.3    pillar_1.11.1      bslib_0.9.0       
+[41] later_1.4.8        gtable_0.3.6       glue_1.8.1         Rcpp_1.1.1-1.1    
+[45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
+[49] dichromat_2.0-0.1  farver_2.1.2       htmltools_0.5.9    rmarkdown_2.31    
+[53] compiler_4.3.2     S7_0.2.2          </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     stringi_1.8.7      hms_1.1.4         
+ [5] digest_0.6.39      magrittr_2.0.5     timechange_0.4.0   evaluate_1.0.5    
+ [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      cellranger_1.1.0  
+[13] rprojroot_2.1.1    workflowr_1.7.2    jsonlite_2.0.0     whisker_0.4.1     
+[17] promises_1.5.0     scales_1.4.0       jquerylib_0.1.4    cli_3.6.6         
+[21] crayon_1.5.3       rlang_1.2.0        bit64_4.8.6        withr_3.0.3       
+[25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         parallel_4.3.2    
+[29] tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3       
+[33] R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0         
+[37] vroom_1.7.1        pkgconfig_2.0.3    pillar_1.11.1      bslib_0.9.0       
+[41] later_1.4.8        gtable_0.3.6       glue_1.8.1         Rcpp_1.1.1-1.1    
+[45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
+[49] dichromat_2.0-0.1  farver_2.1.2       htmltools_0.5.9    rmarkdown_2.31    
+[53] compiler_4.3.2     S7_0.2.2          </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
