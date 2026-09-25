@@ -756,6 +756,155 @@ ihc_fig_style <- function(scale = attend_ihc_text_scale, title_scale = 1) {
 }
 
 # ============================================================================
+# composition_box() / composition_height() — the cell-type composition figure.
+# ============================================================================
+# Reports 04 and 05 each carried their own ~75-line copy of this builder (box_by_aneu(),
+# box_by_resp()), differing in three things: the grouping variable, its palette, and whether
+# the aneuploidy cut is a facet dimension. The copies had already drifted — 04 drew at 9 x 20
+# inches, 05 at 14 x 17 — and 05 exists to be read AGAINST 04, so any difference between the
+# two figure sets has to be a difference in the data, not in two copies of the code.
+#
+# The squash this replaced was a FIXED canvas divided by a VARIABLE row count: 20 inches over
+# the four focus cell types is 5in a row, over the ~11 of the overview it is 1.8in, at 2.5x
+# type. composition_height() derives the canvas from the rows the figure will actually have,
+# and each chunk takes its fig.height from it, so the two cannot disagree.
+#
+# `group`   the x variable and fill (aneuploidy_class, response_class).
+# `cols`    a facet COLUMN variable (as_cut_lab in 04): facet_grid(cell_type ~ cols), one row
+#           per cell type. NULL wraps the cell types instead, `ncol` wide (05's layout).
+# `free_y`  one axis per ROW under `cols`, so the two cut columns of a cell type always share
+#           one axis and differ only in which patients sit in which box.
+# `arcsin`  switches the test with the transform (raw/Wilcoxon <-> arcsin/t-test) so the two
+#           cannot drift; the transform itself is applied by the caller, into `.v`, because
+#           frac_display_y() has to see the values the panels plot.
+# Returns NULL when fewer than two groups are populated: stat_compare_means() errors on a
+# single-level grouping.
+composition_box <- function(df, group, values, legend, by_label, denom_label,
+                            arcsin = FALSE, scope = NULL, cols = NULL, ncol = NULL,
+                            width_in = 9, unit_override = NULL, extra_note = "",
+                            free_y = FALSE) {
+  d <- df[is.finite(df$.v) & !is.na(df[[group]]), , drop = FALSE]
+  d <- droplevels(as.data.frame(d))
+  if (nrow(d) == 0 || length(unique(d[[group]])) < 2) return(NULL)
+  if (!requireNamespace("ggpubr", quietly = TRUE))
+    stop("composition_box() needs ggpubr for stat_compare_means().")
+
+  method <- if (arcsin) "t.test" else "wilcox.test"
+  ylab   <- if (!is.null(unit_override)) unit_override
+            else if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
+            else        paste0("fraction of ", denom_label)
+  sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
+            else        "raw fraction; Wilcoxon rank-sum"
+  # A title fragment per scope. The fallback capitalises rather than passing the scope
+  # through verbatim -- an unmapped scope produced a title starting in lower case.
+  what <- if (is.null(scope)) "Cell types"
+          else switch(scope,
+                      `focus set`      = "Cell types (focus)",
+                      `all cell types` = "Cell types (all)",
+                      `tissue content` = "Tissue content",
+                      `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
+                      sub("^(.)", "\\U\\1", scope, perl = TRUE))
+
+  n_panels <- nlevels(droplevels(as.factor(d$cell_type)))
+  nc_grid  <- if (!is.null(cols)) nlevels(droplevels(as.factor(d[[cols]])))
+              else ncol %||% max(1L, ceiling(sqrt(n_panels)))
+  height_in <- composition_height(composition_rows(n_panels, cols = cols, ncol = nc_grid))
+
+  sty <- ihc_fig_style()
+  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
+  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
+  # word "aneuploidy", which is information, not decoration.
+  xlv        <- levels(droplevels(as.factor(d[[group]])))
+  tick_size  <- fit_tick_size(wrap_class_labels(xlv), width_in, max(1L, nc_grid),
+                              max(1L, length(xlv)), sty$base_size - 2)
+  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
+  # overflows a quarter-width panel into its neighbour. Under `cols` the cell-type strip is
+  # the ROTATED one on the right, so its room is one row's HEIGHT, not a column's width —
+  # sizing it off the width drew every name at the floor size.
+  # It is also WRAPPED there: one row's height fits "Dendritic cells" on one line at about
+  # half the axis type, and on two at nearly all of it.
+  strip_labs <- levels(droplevels(as.factor(d$cell_type)))
+  wrap_strip <- function(x) ifelse(grepl("\n", x), x,
+                                   vapply(x, function(s) paste(strwrap(s, 10), collapse = "\n"),
+                                          character(1)))
+  if (!is.null(cols)) strip_labs <- wrap_strip(strip_labs)
+  strip_room <- if (!is.null(cols)) composition_height(1) - composition_height(0) else width_in
+  strip_size <- fit_tick_size(strip_labs, strip_room,
+                              if (!is.null(cols)) 1L else max(1L, nc_grid), 1L,
+                              sty$base_size - 1, gutter_in = if (!is.null(cols)) 0 else 1.5,
+                              # a rotated row strip has no neighbour to keep a gap from
+                              fill = if (!is.null(cols)) 0.95 else 0.80,
+                              advance = 0.78)   # bold runs wider
+  # The ceiling and the p-value height come from ONE call: ggpubr's default label.y is the
+  # PLOT-WIDE maximum, so on a shared axis a single extreme patient parks every label at the
+  # ceiling and squashes every box. The facet column is a display key too — under `cols` a
+  # class is re-derived per column, so the whiskers must be computed per column as well.
+  keys <- c(group, "cell_type", cols)
+  yy   <- frac_display_y(d, ".v", keys)
+  facet <- if (!is.null(cols))
+             ggplot2::facet_grid(stats::as.formula(paste("cell_type ~", cols)),
+                                 scales = if (free_y) "free_y" else "fixed",
+                                 labeller = ggplot2::labeller(cell_type = wrap_strip))
+           else ggplot2::facet_wrap(~ cell_type, ncol = nc_grid,
+                                    scales = if (free_y) "free_y" else "fixed")
+
+  ggplot2::ggplot(d, ggplot2::aes(.data[[group]], .data$.v, fill = .data[[group]])) +
+    # The facet column is in `by` because the n-aware mark is decided PER PANEL: a group of
+    # twelve at the lower cut can be a group of four at the higher one, and that panel must
+    # then draw a median crossbar rather than quartiles from four patients.
+    attend_box(d, x = group, y = ".v", by = c("cell_type", cols), fill = NULL,
+               points = FALSE, expand_y = FALSE,
+               linewidth = sty$linewidth, label_size = sty$label_size) +
+    highlight_points(d, group, ".v", base_size = 1.0, base_alpha = 0.6,
+                     base_const = "black") +
+    facet +
+    ggplot2::scale_x_discrete(labels = wrap_class_labels) +
+    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
+    # would sit at one absolute height in panels that no longer share one. NULL hands
+    # placement back to ggpubr, which is correct per panel exactly when scales are free.
+    ggpubr::stat_compare_means(method = method, label = "p.format", size = sty$p_size,
+                               label.y = if (free_y) NULL else yy$label_y) +
+    shared_frac_y(if (free_y) NULL else yy) +
+    ggplot2::scale_fill_manual(values = values, labels = as_label, name = legend) +
+    ggplot2::labs(
+      title    = wrap_fig_text(paste0(what, " by ", by_label), width_in, sty$title_size,
+                               sty$gutter_in),
+      subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note), width_in, sty$sub_size,
+                               sty$gutter_in),
+      x = NULL,
+      y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
+    attend_theme(base_size = sty$base_size) +
+    # attend_theme() sizes the title off base_size, so these must be restated after it: the
+    # plot type is scaled up, the labelling deliberately is not.
+    ggplot2::theme(legend.position = "none",
+                   axis.text.x   = ggplot2::element_text(size = tick_size),
+                   strip.text    = ggplot2::element_text(size = strip_size, face = "bold"),
+                   # Under `cols` the column strips are the facet column's own short labels
+                   # ("AS cut 0.1"), so they keep the full strip size.
+                   strip.text.x  = ggplot2::element_text(
+                     size = if (!is.null(cols)) sty$base_size - 1 else strip_size, face = "bold"),
+                   plot.title    = ggplot2::element_text(size = sty$title_size, face = "bold"),
+                   plot.subtitle = ggplot2::element_text(size = sty$sub_size,
+                                                         colour = "grey30"))
+}
+
+# Rows a composition figure will have: one per cell type under a `cols` facet, else the
+# wrapped grid. A separate function so a chunk can size its canvas BEFORE the plot exists.
+composition_rows <- function(n_panels, cols = NULL, ncol = NULL) {
+  n_panels <- max(1L, as.integer(n_panels))
+  if (!is.null(cols)) return(n_panels)
+  ceiling(n_panels / (ncol %||% max(1L, ceiling(sqrt(n_panels)))))
+}
+
+# The canvas height for `n_rows` panel rows, in inches. `chrome` is the title, the two-line
+# subtitle and the wrapped x ticks at ihc_fig_style()'s 2.5x type; `per_row` is one panel
+# plus its strip. Scaled with the type, because the squash was type outgrowing a fixed row.
+composition_height <- function(n_rows, per_row = 1.15 * attend_ihc_text_scale,
+                               chrome = 1.25 * attend_ihc_text_scale) {
+  chrome + per_row * max(0L, as.integer(n_rows))
+}
+
+# ============================================================================
 # attend_fig_save() — the manuscript path.
 # ============================================================================
 # attend_theme() is sized for the HTML site. A figure headed for the paper needs

@@ -36,17 +36,13 @@ OVER_CAP <- c(
           "concordance part was its own report and was folded in here because validating a",
           "measurement IS quality control; splitting it back out would restore a report",
           "whose scope contract duplicated this one's"),
-  "05-response.Rmd" =
-    paste("the deliberate mirror of 04's composition panels, keyed on responder status:",
-          "every panel, normalisation and test is the same one, which is what makes the two",
-          "readable against each other, so the bulk cannot be split without separating",
-          "figures that exist to be compared. It sat exactly AT the cap, and the",
-          "response x aneuploidy cross-tab now runs at both aneuploidy cuts"),
   "07-molecular-classification.Rmd" =
     paste("two classifications of the same patients that only mean something beside each",
           "other: the 2013 TCGA cascade, whose CN-high group is a cluster, and ProMisE /",
           "WHO-ESGO, whose p53abn group is a per-patient marker. Separating them would put",
           "the concordance table in one report and both of its inputs in another")
+  # NOTE: 05-response.Rmd's exemption is GONE: its local copy of the composition builder moved
+  # into attend_plots.R as composition_box(), shared with 04, and the report fell to 750 lines.
   # NOTE: 07-mutation-and-cna.Rmd's exemption is GONE, not moved. That report was split into
   # 08-tp53-and-gene-panels.Rmd (353 lines) and 10-recurrent-cna.Rmd (623 lines), and both
   # are comfortably under the cap — which is the outcome this list is supposed to produce.

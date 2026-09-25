@@ -449,122 +449,51 @@ if (nrow(ct) > 0) {
 ```
 
 ```{r box-helpers, include=FALSE}
-# One boxplot per cell type, aneuploidy-high vs -low, all cell types on one axis. Boxes are
-# filled by aneuploidy class; the highlight overlay is drawn on top in its own colour scale
-# (colour != fill, so the two legends do not collide), partitioned so no patient is plotted
-# twice. `arcsin` switches BOTH the y variable and the test, so the raw/Wilcoxon and the
-# arcsin/t-test versions cannot drift apart the way two copied functions did.
-# The y variable is always `.v`, prepared by draw_composition() — the transform happens there
-# because the axis has to be computed on the same values the panels plot.
-#
-# THE TWO ANEUPLOIDY CUTS ARE THE COLUMNS, the cell type is the row. That way round, and not
-# the other, because `free_y` gives each ROW its own axis: with the cuts on the rows a cell
-# type would be drawn against two different y ranges and the two halves of the comparison
-# could not be read against each other, and every cell type would be back on one shared axis.
-box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL,
-                        width_in = 13, height_in = 13, unit_override = NULL,
-                        extra_note = "", free_y = FALSE) {
-  d <- df |> filter(is.finite(.v)) |> droplevels()
-  if (nrow(d) == 0) return(NULL)
-  method <- if (arcsin) "t.test" else "wilcox.test"
-  unit   <- if (!is.null(unit_override)) unit_override
-            else if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
-            else        paste0("fraction of ", denom_label)
-  sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
-            else        "raw fraction; Wilcoxon rank-sum"
-  # The ceiling and the p-value height come from ONE call: ggpubr's default label.y is the
-  # PLOT-WIDE maximum, so on this shared axis a single extreme patient parks every label at
-  # the ceiling and squashes every box. See frac_display_y() in attend_plots.R.
-  # A title fragment per scope. The fallback capitalises rather than passing the scope
-  # through verbatim -- an unmapped scope produced a title starting in lower case.
-  what <- if (is.null(scope)) "Cell types"
-          else switch(scope,
-                      `focus set`      = "Cell types (focus)",
-                      `all cell types` = "Cell types (all)",
-                      `tissue content` = "Tissue content",
-                      `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
-                      sub("^(.)", "\\U\\1", scope, perl = TRUE))
-  sty <- ihc_fig_style()
-  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
-  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
-  # word "aneuploidy", which is information, not decoration.
-  fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
-  xlv       <- levels(droplevels(as.factor(d[["aneuploidy_class"]])))
-  # The grid is two columns wide whatever the panel count: one per aneuploidy cut.
-  nc_eff    <- nlevels(droplevels(as.factor(d[["as_cut_lab"]])))
-  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, max(1L, nc_eff),
-                             max(1L, length(xlv)), sty$base_size - 2)
-  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
-  # overflows a quarter-width panel into its neighbour.
-  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in,
-                              max(1L, nc_eff), 1L, sty$base_size - 1,
-                              advance = 0.78)   # bold runs wider
-  # The cut is a display key too: a class is re-derived per cut, so the whiskers a panel is
-  # zoomed to must be computed per cut as well.
-  yy  <- frac_display_y(d, ".v", c("aneuploidy_class", "cell_type", "as_cut_lab"))
-  ggplot(d, aes(aneuploidy_class, .v, fill = aneuploidy_class)) +
-    # "as_cut_lab" is in `by` because the n-aware mark is decided PER PANEL: a group of
-    # twelve at the lower cut can be a group of four at the higher one, and that panel must
-    # then draw a median crossbar rather than quartiles from four patients.
-    attend_box(d, x = "aneuploidy_class", y = ".v", by = c("cell_type", "as_cut_lab"),
-               fill = NULL, points = FALSE, expand_y = FALSE,
-               linewidth = sty$linewidth, label_size = sty$label_size) +
-    highlight_points(d, "aneuploidy_class", ".v", base_size = 1.0, base_alpha = 0.6,
-                     base_const = "black") +
-    facet_grid(cell_type ~ as_cut_lab, scales = if (free_y) "free_y" else "fixed") +
-    scale_x_discrete(labels = wrap_class_labels) +
-    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
-    # would sit at one absolute height in panels that no longer share one. NULL hands
-    # placement back to ggpubr, which is correct per panel exactly when scales are free.
-    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
-                       label.y = if (free_y) NULL else yy$label_y) +
-    shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
-                      name = attend_as_legend) +
-    labs(title = wrap_fig_text(paste0(what, " by aneuploidy — MMRd only, both AS cuts"),
-                               width_in, sty$title_size, sty$gutter_in),
-         subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
-                                  width_in, sty$sub_size, sty$gutter_in),
-         x = NULL,
-         y = if (!nzchar(unit)) NULL else wrap_fig_text(unit, height_in, sty$sub_size)) +
-    attend_theme(base_size = sty$base_size) +
-    # attend_theme() sizes the title off base_size, so these two must be restated after it:
-    # the plot type is scaled up, the labelling deliberately is not.
-    theme(legend.position = "none",
-          axis.text.x   = element_text(size = tick_size),
-          strip.text    = element_text(size = strip_size, face = "bold"),
-          plot.title    = element_text(size = sty$title_size, face = "bold"),
-          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
-}
+# The builder is composition_box() in attend_plots.R, shared with report 05 so the two
+# composition figure sets cannot drift apart again (they had: 9 x 20 inches here, 14 x 17
+# there, two copies of the code). This wrapper fixes what is 04's own: the grouping is the
+# aneuploidy class, and THE TWO CUTS ARE THE COLUMNS, the cell type the row. That way round
+# because `free_y` gives each ROW its own axis: with the cuts on the rows a cell type would be
+# drawn against two different y ranges and the two halves of the comparison could not be read
+# against each other.
+box_by_aneu <- function(df, denom_label, arcsin = FALSE, scope = NULL, ...)
+  composition_box(df, "aneuploidy_class", attend_aneu_cols, attend_as_legend,
+                  by_label = "aneuploidy — MMRd only, both AS cuts", denom_label = denom_label,
+                  arcsin = arcsin, scope = scope, cols = "as_cut_lab", width_in = 9, ...)
 
-# ONE figure per normalization, every cell type in it, on one axis. The transform happens
-# here rather than in box_by_aneu() because the axis has to be computed on the same values
-# the panels plot.
-draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
-  d <- ct |>
-    mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
-    filter(is.finite(.v))
-  if (nrow(d) == 0) {
-    note_skip("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
+# Row counts for the chunk canvases, known BEFORE the figures exist: one row per cell type.
+# A fixed fig.height over a variable row count is what squashed the overview.
+n_focus   <- sum(attend_ihc_focus %in% ct$cell_type)
+n_overall <- n_distinct(ct$cell_type[!grepl(attend_ihc_tumor_pattern, ct$cell_type)])
+comp_h    <- function(n) composition_height(composition_rows(n, cols = "as_cut_lab"))
+
+# ONE normalization, one of its two figures, raw/Wilcoxon then arcsine/t-test. The transform
+# happens here rather than in the builder because the axis has to be computed on the same
+# values the panels plot.
+draw_composition <- function(frac_col, denom_label, which = c("focus", "all")) {
+  which <- match.arg(which)
+  for (asin in c(FALSE, TRUE)) {
+    d <- ct |>
+      mutate(.v = if (asin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
+      filter(is.finite(.v))
+    # The focus set sits under ~0.6 on the arcsin scale, so it gets an axis of its own. The
+    # overview drops the tumour phenotypes: at ~1.0 one of them flattens every immune panel,
+    # and tumour content has its own panel below.
+    d <- if (which == "focus") filter(d, cell_type %in% attend_ihc_focus)
+         else filter(d, !grepl(attend_ihc_tumor_pattern, cell_type))
+    p <- if (nrow(d) > 0)
+           box_by_aneu(d, denom_label, asin,
+                       scope = if (which == "focus") "focus set" else "all cell types",
+                       free_y = which == "all" && attend_ihc_all_free_y)
+    if (is.null(p)) {
+      note_skip("Skipped: ", denom_label, " / ", which, " — no finite fractions",
+                if (which == "focus") paste0(", or none of attend_ihc_focus (",
+                                             paste(attend_ihc_focus, collapse = ", "),
+                                             ") found in cell_type") else "", ".")
+      return(invisible(NULL))
+    }
+    print(p)
   }
-  # The focus set first, on an axis of its own: these four sit under ~0.6 on the arcsin
-  # scale, so sharing an axis with `Tumor` (~1.0) leaves them unreadable. Then every cell
-  # type on one axis, which is the comparison the shared scale exists for.
-  foc <- filter(d, cell_type %in% attend_ihc_focus)
-  if (nrow(foc) > 0) {
-    p <- box_by_aneu(foc, denom_label, arcsin, scope = "focus set",
-                     width_in = 9, height_in = 20)
-    if (!is.null(p)) print(p)
-  } else {
-    note_skip("Focus panel skipped: none of attend_ihc_focus found in cell_type (",
-            paste(attend_ihc_focus, collapse = ", "), ").")
-  }
-  # Tumour phenotypes are dropped here: at ~1.0 on the arcsine scale one of them flattens
-  # every immune panel under 0.35 into a line, and tumour content has its own panel below.
-  d_nt <- filter(d, !grepl(attend_ihc_tumor_pattern, cell_type))
-  p <- box_by_aneu(d_nt, denom_label, arcsin, scope = "all cell types",
-                   width_in = 9, height_in = 20, free_y = attend_ihc_all_free_y)
-  if (!is.null(p)) print(p)
 }
 ```
 
@@ -616,51 +545,55 @@ range is a **zoom** (`coord_cartesian()`), so every patient is still in the box 
 and in the test — nothing is dropped, and a point above the axis is counted in the subtitle.
 Groups smaller than `attend_min_box_n` still show a median crossbar instead of a box.
 
-#### Normalized by all cells inside
-
 Each cell type as a fraction of every cell in the annotation, so a panel reads "how much
-of the tissue is this". Raw fractions, Wilcoxon.
+of the tissue is this". The focus set first, raw fractions with a
+Wilcoxon and then the arcsine/t-test companion, one row per cell type.
 
-```{r box-inside, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_inside", "all cells inside")
+```{r box-inside, fig.width=9, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_inside", "all cells inside", "focus")
 ```
 
-The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
-variance-stabilised companion rather than an alternative answer.
+Every non-tumour cell type against the same denominator, each row on its own axis,
+raw then arcsine.
 
-```{r box-inside-arcsin, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
+```{r box-inside-all, fig.width=9, fig.height=comp_h(n_overall), out.width="100%"}
+draw_composition("frac_inside", "all cells inside", "all")
 ```
 
 #### Normalized by tumour cells inside
 
 Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
-survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon.
+survives a change in how much tumour the annotation caught. The focus set first, raw fractions with a
+Wilcoxon and then the arcsine/t-test companion, one row per cell type.
 
-```{r box-tumor, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_tumor", "tumour cells inside")
+```{r box-tumor, fig.width=9, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside", "focus")
 ```
 
-The arcsine/t-test companion of the panels above.
+Every non-tumour cell type against the same denominator, each row on its own axis,
+raw then arcsine.
 
-```{r box-tumor-arcsin, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
+```{r box-tumor-all, fig.width=9, fig.height=comp_h(n_overall), out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside", "all")
 ```
 
 #### Normalized by CD45+ cells inside
 
 Composition *of the immune compartment*: the denominator is leukocytes, so tumour-content
-differences between patients cannot drive the contrast. Raw fractions, Wilcoxon.
+differences between patients cannot drive the contrast. The focus set first, raw fractions with a
+Wilcoxon and then the arcsine/t-test companion, one row per cell type.
 
-```{r box-cd45, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_cd45", "CD45+ cells inside")
+```{r box-cd45, fig.width=9, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside", "focus")
 ```
 
-The arcsine/t-test companion of the panels above.
+Every non-tumour cell type against the same denominator, each row on its own axis,
+raw then arcsine.
 
-```{r box-cd45-arcsin, fig.width=9, fig.height=20, out.width="100%"}
-draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
+```{r box-cd45-all, fig.width=9, fig.height=comp_h(n_overall), out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside", "all")
 ```
+
 
 #### Tissue content: tumour, leukocyte and PD-L1+, on one axis
 
@@ -685,7 +618,7 @@ axis are not all drawn from the same patients. **Read the n printed under each b
 comparing their heights.** PD-L1+ per unit of tumour, the other denominator, is in the
 immune-content section below.
 
-```{r box-content, fig.width=9, fig.height=10, out.width="100%"}
+```{r box-content, fig.width=9, fig.height=comp_h(length(attend_ihc_content)), out.width="100%"}
 # Built from the SINGLE-ROW frames: ihc_series_metrics() reads raw counts, and a patient
 # arriving twice (once per cut) would be counted twice in every series. The cuts are joined
 # on afterwards, which is what makes the two columns of the figure.
@@ -694,7 +627,7 @@ ct_content <- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content) |> with_cuts
 for (asin in c(FALSE, TRUE)) {
   d <- ct_content |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
   p <- box_by_aneu(d, "all cells inside", asin, scope = "tissue content",
-                   width_in = 9, height_in = 10, unit_override = "")
+                   unit_override = "")
   if (!is.null(p)) print(p)
 }
 ```
@@ -723,7 +656,7 @@ raw/Wilcoxon panel whenever that count is non-zero; when it is zero the transfor
 and the two panels are the usual pair. The two aneuploidy cuts are again the columns, and
 the clamp count is a property of the ratios, so it is identical in both.
 
-```{r box-content-mixed, fig.width=9, fig.height=10, out.width="100%"}
+```{r box-content-mixed, fig.width=9, fig.height=comp_h(length(attend_ihc_content_mixed)), out.width="100%"}
 # Same single-row input as the panel above, and the clamp count is taken BEFORE the cut join
 # so it counts patients, not patient-cut rows — the two cuts do not change a ratio.
 mix_pt <- ihc_series_metrics(ct_pt, imm_pt, attend_ihc_content_mixed)
@@ -747,7 +680,7 @@ for (asin in c(FALSE, TRUE)) {
   d <- mix |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
   p <- box_by_aneu(d, "the denominator in each panel", arcsin = asin,
                    scope = "tissue content, mixed denominators",
-                   width_in = 9, height_in = 10, unit_override = "", extra_note = note)
+                   unit_override = "", extra_note = note)
   if (!is.null(p)) print(p)
 }
 ```
@@ -774,62 +707,24 @@ cat("MMR-deficient patients with immune metrics:", n_distinct(imm_metrics$pid),
 # the scale for the ones that are. Splitting on denom_label means every panel in a figure is
 # a fraction OF THE SAME THING, which is the only case where a shared axis is honest.
 #
-# Metrics are the rows and the two aneuploidy cuts are the columns, for the same reason as
-# box_by_aneu(): a free y axis is free per ROW, so the two cuts of one metric keep one scale.
-box_immune <- function(df, denom_, arcsin = FALSE, width_in = 13, height_in = 13,
-                       free_y = FALSE) {
-  d <- df |> filter(is.finite(frac), denom_label == denom_) |> droplevels()
+# The builder is composition_box(), the one every composition figure uses: metrics become its
+# rows (renamed onto `cell_type`) and the two aneuploidy cuts its columns, so a free y axis is
+# free per ROW and the two cuts of one metric keep one scale.
+box_immune <- function(df, denom_, arcsin = FALSE) {
+  d <- df |>
+    filter(is.finite(frac), denom_label == denom_) |>
+    transmute(pid, cell_type = metric, aneuploidy_class, as_cut_lab,
+              .v = if (arcsin) arcsin_sqrt(frac) else frac)
   if (nrow(d) == 0) return(NULL)
-  if (arcsin) d <- d |> mutate(frac = arcsin_sqrt(frac))
-  method <- if (arcsin) "t.test"                 else "wilcox.test"
-  ylab   <- if (arcsin) "arcsin(sqrt(fraction))" else "fraction"
-  ttl    <- if (arcsin) "arcsin(sqrt) + t-test"  else "raw fraction + Wilcoxon"
-  sty <- ihc_fig_style()
-  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
-  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
-  # word "aneuploidy", which is information, not decoration.
-  fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
-  xlv       <- levels(droplevels(as.factor(d[["aneuploidy_class"]])))
-  # Two columns, one per aneuploidy cut, whatever the metric count.
-  nc_eff    <- max(1L, nlevels(droplevels(as.factor(d[["as_cut_lab"]]))))
-  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
-                             max(1L, length(xlv)), sty$base_size - 2)
-  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
-  # overflows a quarter-width panel into its neighbour.
-  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
-                              1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
-  yy  <- frac_display_y(d, "frac", c("aneuploidy_class", "metric", "as_cut_lab"))
-  ggplot(d, aes(aneuploidy_class, frac, fill = aneuploidy_class)) +
-    # The cut is in `by` so the n-aware mark is decided inside each panel: a metric that
-    # earns a box at one cut can fall under attend_min_box_n at the other.
-    attend_box(d, x = "aneuploidy_class", y = "frac", by = c("metric", "as_cut_lab"),
-               fill = NULL, points = FALSE, expand_y = FALSE,
-               linewidth = sty$linewidth, label_size = sty$label_size) +
-    highlight_points(d, "aneuploidy_class", "frac", base_size = 1.0, base_alpha = 0.6,
-                     base_const = "black") +
-    facet_grid(metric ~ as_cut_lab, scales = if (free_y) "free_y" else "fixed") +
-    scale_x_discrete(labels = wrap_class_labels) +
-    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
-    # would sit at one absolute height in panels that no longer share one. NULL hands
-    # placement back to ggpubr, which is correct per panel exactly when scales are free.
-    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
-                       label.y = if (free_y) NULL else yy$label_y) +
-    shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_aneu_cols, labels = as_label,
-                      name = attend_as_legend) +
-    labs(title = wrap_fig_text(paste0("Immune content by aneuploidy (MMRd only, both AS cuts) — ", ttl), width_in, sty$title_size, sty$gutter_in),
-         subtitle = wrap_fig_text(paste0("normalized by ", denom_, yy$note), width_in, sty$sub_size, sty$gutter_in),
-         x = NULL,
-         y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
-    attend_theme(base_size = sty$base_size) +
-    # attend_theme() sizes the title off base_size, so these two must be restated after it:
-    # the plot type is scaled up, the labelling deliberately is not.
-    theme(legend.position = "none",
-          axis.text.x   = element_text(size = tick_size),
-          strip.text    = element_text(size = strip_size, face = "bold"),
-          plot.title    = element_text(size = sty$title_size, face = "bold"),
-          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
+  composition_box(d, "aneuploidy_class", attend_aneu_cols, attend_as_legend,
+                  by_label = "aneuploidy — MMRd only, both AS cuts", denom_label = denom_,
+                  arcsin = arcsin, scope = "immune content", cols = "as_cut_lab",
+                  width_in = 10)
 }
+
+# Rows per figure = the most metrics any one denominator carries.
+n_imm_rows <- if (nrow(imm_metrics) > 0)
+                max(table(distinct(imm_metrics, metric, denom_label)$denom_label)) else 1L
 ```
 
 CD45+ total and CD3+CD45+ fractions from imm_metrics, by aneuploidy class, one row per
@@ -840,13 +735,13 @@ same numerator over all cells inside. The denominator is named in each subtitle.
 carries its own test on the same fractions, so a contrast present in only one of them is one
 the threshold is producing.
 
-```{r immune-box, fig.width=10, fig.height=9, out.width="100%"}
+```{r immune-box, fig.width=10, fig.height=comp_h(n_imm_rows), out.width="100%"}
 if (nrow(filter(imm_metrics, is.finite(frac))) > 2) {
   # Denominator order is the order ihc_immune_metrics() declares its specs in, so the
   # figures come out widest-denominator first however the table happened to be sorted.
   for (dn in unique(imm_metrics$denom_label))
     for (asin in c(FALSE, TRUE)) {
-      p <- box_immune(imm_metrics, dn, asin, width_in = 10, height_in = 9)
+      p <- box_immune(imm_metrics, dn, asin)
       if (!is.null(p)) print(p)
     }
 } else note_skip("No finite immune metrics in the MMRd cohort (CD3/CD45 counts missing) — skipping.")

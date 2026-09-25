@@ -190,110 +190,48 @@ for (nm in names(ct_cohorts)) {
 ```
 
 ```{r box-helpers, include=FALSE}
-# One boxplot per cell type, responder vs non-responder, all cell types on one axis, for ONE
-# cohort. Boxes are filled by response class; the highlight overlay is drawn on top in its
-# own colour scale (colour != fill, so the two legends do not collide), partitioned so no
-# patient is plotted twice. `arcsin` switches BOTH the y variable and the test, so the
-# raw/Wilcoxon and arcsin/t-test versions can never drift apart. The y variable is always
-# `.v`, prepared by draw_composition() — the transform happens there because the axis has to
-# see the same values the panel plots.
+# The builder is composition_box() in attend_plots.R — the SAME one report 04 draws with, so
+# the two figure sets cannot drift apart again (they had: 9 x 20 inches there, 14 x 17 here,
+# two copies of the code). This wrapper fixes what is 05's own: the grouping is the response
+# class, the figure is ONE cohort, and the cell types wrap into a grid rather than taking
+# report 04's one-row-per-cell-type layout, which exists for its cut columns.
 box_by_resp <- function(df, denom_label, cohort_label, arcsin = FALSE, scope = NULL,
-                        width_in = 13, height_in = 13, unit_override = NULL,
-                        extra_note = "", ncol = NULL, free_y = FALSE) {
-  d <- df |> filter(is.finite(.v), !is.na(response_class)) |> droplevels()
-  # stat_compare_means() errors on a single-level grouping, so both arms must be populated.
-  if (nrow(d) == 0 || n_distinct(d$response_class) < 2) return(NULL)
-  method <- if (arcsin) "t.test"                             else "wilcox.test"
-  ylab   <- if (!is.null(unit_override)) unit_override
-            else if (arcsin) paste0("arcsin(sqrt(fraction of ", denom_label, "))")
-            else        paste0("fraction of ", denom_label)
-  sub    <- if (arcsin) "arcsine-square-root transformed fraction; two-sample t-test"
-            else        "raw fraction; Wilcoxon rank-sum"
-  # One call fixes the ceiling and the p-value height together — see box_by_aneu() in
-  # report 04 and frac_display_y() in attend_plots.R for why they cannot be separate.
-  # A title fragment per scope. The fallback capitalises rather than passing the scope
-  # through verbatim -- an unmapped scope produced a title starting in lower case.
-  what <- if (is.null(scope)) "Cell types"
-          else switch(scope,
-                      `focus set`      = "Cell types (focus)",
-                      `all cell types` = "Cell types (all)",
-                      `tissue content` = "Tissue content",
-                      `tissue content, mixed denominators` = "Tissue content (mixed denominators)",
-                      sub("^(.)", "\\U\\1", scope, perl = TRUE))
-  sty <- ihc_fig_style()
-  # Full labels, wrapped onto two lines, then drawn at the largest size that still fits the
-  # tick -- see wrap_class_labels() / fit_tick_size(). Shortening them instead deleted the
-  # word "aneuploidy", which is information, not decoration.
-  fvar      <- if ("cell_type" %in% names(d)) "cell_type" else "metric"
-  xlv       <- levels(droplevels(as.factor(d[["response_class"]])))
-  nc_eff    <- if (!is.null(ncol)) ncol else
-                 max(1L, ceiling(sqrt(nlevels(droplevels(as.factor(d[[fvar]]))))))
-  tick_size <- fit_tick_size(wrap_class_labels(xlv), width_in, nc_eff,
-                             max(1L, length(xlv)), sty$base_size - 2)
-  # One strip label per panel, so n_groups = 1. Without this "Macrophages" at 26.5pt
-  # overflows a quarter-width panel into its neighbour.
-  strip_size <- fit_tick_size(levels(droplevels(as.factor(d[[fvar]]))), width_in, nc_eff,
-                              1L, sty$base_size - 1, advance = 0.78)   # bold runs wider
-  yy  <- frac_display_y(d, ".v", c("response_class", "cell_type"))
-  ggplot(d, aes(response_class, .v, fill = response_class)) +
-    attend_box(d, x = "response_class", y = ".v", by = "cell_type", fill = NULL,
-               points = FALSE, expand_y = FALSE,
-               linewidth = sty$linewidth, label_size = sty$label_size) +
-    highlight_points(d, "response_class", ".v", base_size = 1.0, base_alpha = 0.6,
-                     base_const = "black") +
-    facet_wrap(~ cell_type, ncol = ncol, scales = if (free_y) "free_y" else "fixed") +
-    scale_x_discrete(labels = wrap_class_labels) +
-    # label.y comes from the SHARED range, so on free axes it is meaningless -- the label
-    # would sit at one absolute height in panels that no longer share one. NULL hands
-    # placement back to ggpubr, which is correct per panel exactly when scales are free.
-    stat_compare_means(method = method, label = "p.format", size = sty$p_size,
-                       label.y = if (free_y) NULL else yy$label_y) +
-    shared_frac_y(if (free_y) NULL else yy) +
-    scale_fill_manual(values = attend_resp_cols, name = attend_resp_legend) +
-    labs(title = wrap_fig_text(paste0(what, " by response — ", cohort_label),
-                               width_in, sty$title_size, sty$gutter_in),
-         subtitle = wrap_fig_text(paste0(sub, yy$note, extra_note),
-                                  width_in, sty$sub_size, sty$gutter_in),
-         x = NULL,
-         y = if (!nzchar(ylab)) NULL else wrap_fig_text(ylab, height_in, sty$sub_size)) +
-    attend_theme(base_size = sty$base_size) +
-    # attend_theme() sizes the title off base_size, so these two must be restated after it:
-    # the plot type is scaled up, the labelling deliberately is not.
-    theme(legend.position = "none",
-          axis.text.x   = element_text(size = tick_size),
-          strip.text    = element_text(size = strip_size, face = "bold"),
-          plot.title    = element_text(size = sty$title_size, face = "bold"),
-          plot.subtitle = element_text(size = sty$sub_size, colour = "grey30"))
-}
+                        width_in = 14, ...)
+  composition_box(df, "response_class", attend_resp_cols, attend_resp_legend,
+                  by_label = paste0("response — ", cohort_label), denom_label = denom_label,
+                  arcsin = arcsin, scope = scope, width_in = width_in, ...)
 
-# One figure per (normalization, cohort), every cell type in it, on one axis. The two
-# cohorts stay adjacent in the knitted page, and a cohort that degrades to a skip says so
-# instead of vanishing. Each cohort gets its OWN axis, computed from its own patients, so
-# read the pair on which cell types moved rather than on absolute box heights.
-draw_composition <- function(frac_col, denom_label, arcsin = FALSE) {
-  d_all <- ct_all |>
-    mutate(.v = if (arcsin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
-    filter(is.finite(.v))
-  if (nrow(d_all) == 0) {
-    note_skip("Skipped: ", denom_label, " — no finite fractions."); return(invisible(NULL))
-  }
-  cohorts <- list(`all patients`  = d_all,
-                  `MMR-deficient` = filter(d_all, pid %in% mmrd_pids))
-  # Focus set first for each cohort, then every cell type — same reason as report 04.
-  for (nm in names(cohorts)) {
-    foc <- filter(cohorts[[nm]], cell_type %in% attend_ihc_focus)
-    if (nrow(foc) > 0) {
-      p <- box_by_resp(foc, denom_label, nm, arcsin, scope = "focus set")
-      if (!is.null(p)) print(p)
+# Canvas heights from the rows each figure will have, known BEFORE it exists. A fixed
+# fig.height over a variable row count is what squashed the overview.
+n_focus   <- sum(attend_ihc_focus %in% ct_all$cell_type)
+n_overall <- n_distinct(ct_all$cell_type[!grepl(attend_ihc_tumor_pattern, ct_all$cell_type)])
+comp_h    <- function(n, ncol = NULL) composition_height(composition_rows(n, ncol = ncol))
+
+# ONE normalization, one of its two figures, for both cohorts, raw/Wilcoxon then
+# arcsine/t-test. The two cohorts stay adjacent in the knitted page, and a cohort that
+# degrades to a skip says so instead of vanishing. Each cohort gets its OWN axis, computed
+# from its own patients, so read the pair on which cell types moved rather than on absolute
+# box heights.
+draw_composition <- function(frac_col, denom_label, which = c("focus", "all")) {
+  which <- match.arg(which)
+  for (nm in c("all patients", "MMR-deficient")) {
+    base <- if (nm == "MMR-deficient") filter(ct_all, pid %in% mmrd_pids) else ct_all
+    # Focus set on its own axis, tumour phenotypes out of the overview — same reason as 04.
+    base <- if (which == "focus") filter(base, cell_type %in% attend_ihc_focus)
+            else filter(base, !grepl(attend_ihc_tumor_pattern, cell_type))
+    for (asin in c(FALSE, TRUE)) {
+      d <- base |>
+        mutate(.v = if (asin) arcsin_sqrt(.data[[frac_col]]) else .data[[frac_col]]) |>
+        filter(is.finite(.v))
+      p <- if (nrow(d) > 0)
+             box_by_resp(d, denom_label, nm, asin,
+                         scope = if (which == "focus") "focus set" else "all cell types",
+                         ncol = if (which == "all") 3 else NULL,
+                         free_y = which == "all" && attend_ihc_all_free_y)
+      if (is.null(p)) note_skip("Skipped: ", nm, " / ", denom_label, " / ", which,
+                                " — no finite fractions, or only one response arm present.")
+      else print(p)
     }
-    # Tumour phenotypes dropped -- see report 04: one of them at ~1.0 flattens every
-    # immune panel, and tumour content has its own panel below.
-    p <- box_by_resp(filter(cohorts[[nm]], !grepl(attend_ihc_tumor_pattern, cell_type)),
-                     denom_label, nm, arcsin, scope = "all cell types", ncol = 3,
-                     free_y = attend_ihc_all_free_y)
-    if (is.null(p)) note_skip("Skipped: ", nm, " / ", denom_label,
-                            " — no finite fractions, or only one response arm present.")
-    else print(p)
   }
 }
 ```
@@ -334,50 +272,55 @@ Groups smaller than `attend_min_box_n` still show a median crossbar instead of a
 ### Normalized by all cells inside
 
 Each cell type as a fraction of every cell in the annotation, so a panel reads "how much of
-the tissue is this". Raw fractions with a Wilcoxon, drawn for all patients and then for the
-MMR-deficient subset.
+the tissue is this".
+The focus set first, all patients and then the MMR-deficient subset, each as raw
+fractions with a Wilcoxon followed by the arcsine/t-test companion.
 
-```{r box-inside, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_inside", "all cells inside")
+```{r box-inside, fig.width=14, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_inside", "all cells inside", "focus")
 ```
 
-The same panels on the arcsine-square-root scale with a two-sample t-test, which is the
-variance-stabilised companion rather than an alternative answer.
+Every non-tumour cell type against the same denominator, in the same order: both
+cohorts, raw then arcsine.
 
-```{r box-inside-arcsin, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_inside", "all cells inside", arcsin = TRUE)
+```{r box-inside-all, fig.width=14, fig.height=comp_h(n_overall, ncol = 3), out.width="100%"}
+draw_composition("frac_inside", "all cells inside", "all")
 ```
 
 ### Normalized by tumour cells inside
 
 Each cell type per unit of tumour: the denominator is tumour cells only, so a shift here
-survives a change in how much tumour the annotation caught. Raw fractions, Wilcoxon, both
-cohorts.
+survives a change in how much tumour the annotation caught.
+The focus set first, all patients and then the MMR-deficient subset, each as raw
+fractions with a Wilcoxon followed by the arcsine/t-test companion.
 
-```{r box-tumor, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_tumor", "tumour cells inside")
+```{r box-tumor, fig.width=14, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside", "focus")
 ```
 
-The arcsine/t-test companion of the panels above.
+Every non-tumour cell type against the same denominator, in the same order: both
+cohorts, raw then arcsine.
 
-```{r box-tumor-arcsin, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_tumor", "tumour cells inside", arcsin = TRUE)
+```{r box-tumor-all, fig.width=14, fig.height=comp_h(n_overall, ncol = 3), out.width="100%"}
+draw_composition("frac_tumor", "tumour cells inside", "all")
 ```
 
 ### Normalized by CD45+ cells inside
 
 Composition *of the immune compartment*: the denominator is leukocytes, so differences in
-tumour content between patients cannot drive the contrast. Raw fractions, Wilcoxon, both
-cohorts.
+tumour content between patients cannot drive the contrast.
+The focus set first, all patients and then the MMR-deficient subset, each as raw
+fractions with a Wilcoxon followed by the arcsine/t-test companion.
 
-```{r box-cd45, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_cd45", "CD45+ cells inside")
+```{r box-cd45, fig.width=14, fig.height=comp_h(n_focus), out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside", "focus")
 ```
 
-The arcsine/t-test companion of the panels above.
+Every non-tumour cell type against the same denominator, in the same order: both
+cohorts, raw then arcsine.
 
-```{r box-cd45-arcsin, fig.width=14, fig.height=17, out.width="100%"}
-draw_composition("frac_cd45", "CD45+ cells inside", arcsin = TRUE)
+```{r box-cd45-all, fig.width=14, fig.height=comp_h(n_overall, ncol = 3), out.width="100%"}
+draw_composition("frac_cd45", "CD45+ cells inside", "all")
 ```
 
 ### Tissue content: tumour, leukocyte and PD-L1+, on one axis
@@ -401,7 +344,7 @@ axis are not all drawn from the same patients. **Read the n printed under each b
 comparing their heights.** PD-L1+ per unit of tumour, the other denominator, is in the
 immune-content section below.
 
-```{r box-content, fig.width=13, fig.height=7, out.width="100%"}
+```{r box-content, fig.width=13, fig.height=comp_h(length(attend_ihc_content)), out.width="100%"}
 content_all <- ihc_series_metrics(ct_all, imm_all, attend_ihc_content) |>
   left_join(master |> select(pid, response_class), by = "pid") |>
   filter(!is.na(response_class))
@@ -412,7 +355,7 @@ for (nm in names(content_cohorts))
   for (asin in c(FALSE, TRUE)) {
     d <- content_cohorts[[nm]] |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
     p <- box_by_resp(d, "all cells inside", nm, asin, scope = "tissue content",
-                     width_in = 13, height_in = 7, unit_override = "")
+                     width_in = 13, unit_override = "")
     if (!is.null(p)) print(p)
   }
 ```
@@ -432,7 +375,7 @@ and `arcsin_sqrt()` clamps to [0, 1], so the count of clamped values is printed 
 figures and in each transformed figure's subtitle. Read the raw panel whenever it is
 non-zero.
 
-```{r box-content-mixed, fig.width=13, fig.height=7, out.width="100%"}
+```{r box-content-mixed, fig.width=13, fig.height=comp_h(length(attend_ihc_content_mixed)), out.width="100%"}
 mix_all <- ihc_series_metrics(ct_all, imm_all, attend_ihc_content_mixed) |>
   left_join(master |> select(pid, response_class), by = "pid") |>
   filter(!is.na(response_class)) |>
@@ -453,7 +396,7 @@ for (nm in c("all patients", "MMR-deficient"))
     d <- base |> mutate(.v = if (asin) arcsin_sqrt(frac) else frac)
     p <- box_by_resp(d, "the denominator in each panel", nm, arcsin = asin,
                      scope = "tissue content, mixed denominators",
-                     width_in = 13, height_in = 7, unit_override = "", extra_note = note)
+                     width_in = 13, unit_override = "", extra_note = note)
     if (!is.null(p)) print(p)
   }
 ```
