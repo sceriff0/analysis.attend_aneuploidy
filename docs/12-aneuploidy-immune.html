@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-09-16" />
+
+<title>ATTEND — 12. Aneuploidy, immune infiltrate and PD-L1</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ATTEND</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00-methods.html">Methods</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/sceriff0/attend_aneuploidy">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">ATTEND — 12. Aneuploidy, immune infiltrate
+and PD-L1</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-09-16</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-09-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>attend_aneuploidy/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260622code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260622)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260622code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260622)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
+    Ignored:    data/aneu_scores.csv
+    Ignored:    data/attend_barcodes.csv
+    Ignored:    data/attend_data.xlsx
+    Ignored:    data/clinical_gianlu_data.csv
+    Ignored:    data/cnv_annotations/
+    Ignored:    data/gistic/
+    Ignored:    data/hrd_scores.csv
+    Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
+    Ignored:    data/old_gistic/
+    Ignored:    data/seg/
+    Ignored:    data/tcga_2013/
+    Ignored:    data/tmb_scores.csv
+    Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
+    Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+Untracked files:
+    Untracked:  gistic_7050713.log
+    Untracked:  gistic_7050714.log
+    Untracked:  refgenefiles/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/12-aneuploidy-immune.Rmd</code>)
+and HTML (<code>docs/12-aneuploidy-immune.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/f4b049cefe31ccbd2513c0f6a700e3b49571da95/analysis/12-aneuploidy-immune.Rmd" target="_blank">f4b049c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-21
+</td>
+<td>
+:sparkles: Report 12 — copy number by MMR x AS group, and the immune /
+PD-L1 calls
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Question.</strong> How is copy number laid out across the
+four MMR × aneuploidy groups, does aneuploidy track the pathologist’s
+immune infiltrate and PD-L1 calls, and does either answer depend on
+where the aneuploidy cut is put? <strong>Cohort.</strong> All 245
+patients on the master, with MMR-deficient patients beside them in the
+PD-L1 panels; the heatmap needs GISTIC output and the immune panels need
+a pathologist imaging call — each figure drops only its own missing
+values and prints how many. <strong>Reads.</strong> GISTIC
+all_data_by_genes.txt in data/gistic/ (runbooks/gistic.md), the “Imaging
+(2)” sheet of data/attend_data.xlsx, and attend_master_joined.
+<strong>Out of scope.</strong> Data-driven copy-number clusters -&gt; <a
+href="07-molecular-classification.html">07-molecular-classification</a>.
+Which peaks recur in each group -&gt; <a
+href="10-recurrent-cna.html">10-recurrent-cna</a>. FlowPath composition
+by aneuploidy, MMRd only -&gt; <a
+href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a>. The aneuploidy
+classes, the two cuts and why both are reported -&gt; <a
+href="00-methods.html">00-methods</a>.</p>
+</blockquote>
+<div id="data" class="section level2">
+<h2>Data</h2>
+<p>The four groups are add_scna_group(): MMR status from MMR IHC
+(is_mmrd(), MSI not a criterion) crossed with aneuploidy class. A
+patient missing either input has no group. <strong>Every
+aneuploidy-keyed figure in this report is drawn at both cuts</strong>,
+0.1 and 0.2 — attend_thresholds$aneuploidy and $aneuploidy_alt. The
+first is the pipeline’s primary and the one the master’s own
+aneuploidy_class carries; the second had never been measured against it,
+which is why both are shown rather than one replacing the other. The
+table below is the cost of the choice in patients.</p>
+<pre class="r"><code>cw &lt;- tryCatch(
+  build_barcode_pid(load_gianlu_clinical_data(), make_id_cfg()),
+  error = function(e) { note_skip(&quot;crosswalk unavailable: &quot;, conditionMessage(e)); NULL }
+)
+
+master_cuts |&gt;
+  count(as_cut_lab,
+        scna_group = replace_na(as.character(scna_group), &quot;no group (MMR or AS missing)&quot;)) |&gt;
+  pivot_wider(names_from = as_cut_lab, values_from = n, values_fill = 0)</code></pre>
+<pre><code># A tibble: 5 × 3
+  scna_group                   `AS cut 0.1` `AS cut 0.2`
+  &lt;chr&gt;                               &lt;int&gt;        &lt;int&gt;
+1 MMRd-high                               9            4
+2 MMRd-low                              100          105
+3 MMRp-high                              57           35
+4 MMRp-low                               67           89
+5 no group (MMR or AS missing)           12           12</code></pre>
+<p>Which patients change class between the cuts, and in which direction.
+A patient counted off the diagonal is AS High at 0.1 and AS Low at 0.2;
+nothing can move the other way, because raising a cut can only demote.
+Where that count is a large fraction of the AS High arm, the two halves
+of every figure below are not two views of one result.</p>
+<pre class="r"><code>lo_lab &lt;- paste0(&quot;AS cut &quot;, min(cuts)); hi_lab &lt;- paste0(&quot;AS cut &quot;, max(cuts))
+
+master_cuts |&gt;
+  filter(!is.na(aneuploidy_class)) |&gt;
+  select(pid, as_cut, aneuploidy_class) |&gt;
+  mutate(as_cut = ifelse(as_cut == min(cuts), &quot;lo&quot;, &quot;hi&quot;)) |&gt;
+  pivot_wider(names_from = as_cut, values_from = aneuploidy_class) |&gt;
+  transmute(!!lo_lab := as_label(lo), !!hi_lab := as_label(hi)) |&gt;
+  count(.data[[lo_lab]], .data[[hi_lab]], name = &quot;patients&quot;)</code></pre>
+<pre><code># A tibble: 3 × 3
+  `AS cut 0.1` `AS cut 0.2` patients
+  &lt;chr&gt;        &lt;chr&gt;           &lt;int&gt;
+1 AS High      AS High            39
+2 AS High      AS Low             27
+3 AS Low       AS Low            167</code></pre>
+</div>
+<div id="part-1-copy-number-across-the-four-mmr-aneuploidy-groups"
+class="section level2">
+<h2>Part 1 — copy number across the four MMR × aneuploidy groups</h2>
+<p>The layout of Kandoth et al. Fig. 1a — tumours as columns, genes as
+rows in chromosomal order, red gain and blue loss — with one change: the
+column blocks are <strong>not</strong> copy-number clusters but the four
+pre-defined groups, left to right MMRp AS Low, MMRp AS High, MMRd AS
+Low, MMRd AS High. The body is GISTIC’s all_data_by_genes.txt
+(genome-wide, continuous, not peak-restricted; data/gistic/, from the
+DRAGEN .seg), the same display matrix report 07 draws. Nothing is
+clustered into groups: within a block, tumours are only
+<strong>ordered</strong> by the pipeline’s configured pair (euclidean
+distance, ward.D2 linkage) so similar profiles sit together. One heatmap
+per cut — same tumours, same matrix, only the column split and the
+aneuploidy annotation bar move. The cut is passed in explicitly
+(aneu_cut =), because the bar derives its own high/low split and would
+otherwise take the configured primary cut in both figures and contradict
+the blocks beneath it. Since aneuploidy class defines the blocks and
+comes from arm-level ASCETS calls on these same tumours, the AS High
+blocks looking more altered is true by construction and is not evidence
+of anything; what the figure shows is <strong>where</strong> on the
+genome each group’s burden sits. Colour limits are ±98th percentile of
+|value|.</p>
+<pre class="r"><code>disp_mat &lt;- tryCatch(load_gistic_continuous(), error = function(e) NULL)
+
+if (is.null(disp_mat)) {
+  note_skip(&quot;No GISTIC all_data_by_genes.txt under data/gistic/ — run GISTIC per &quot;,
+            &quot;runbooks/gistic.md. The heatmaps are skipped; Part 2 does not need them.&quot;)
+} else if (is.null(cw)) {
+  note_skip(&quot;No barcode -&gt; pid crosswalk, so GISTIC columns cannot be given a group.&quot;)
+} else {
+  hm0 &lt;- as.matrix(disp_mat[, setdiff(names(disp_mat), &quot;ID&quot;), drop = FALSE])
+  rownames(hm0) &lt;- disp_mat$ID
+
+  pid_v &lt;- cw$pid[match(rownames(hm0), cw$barcode)]
+  fpos  &lt;- attr(disp_mat, &quot;feature_pos&quot;)
+  cyto  &lt;- if (!is.null(fpos)) setNames(fpos$cytoband, fpos$feature) else NULL
+
+  cat(&quot;ComplexHeatmap installed:&quot;, requireNamespace(&quot;ComplexHeatmap&quot;, quietly = TRUE),
+      &quot;| circlize installed:&quot;, requireNamespace(&quot;circlize&quot;, quietly = TRUE), &quot;\n&quot;)
+
+  for (k in cuts) {
+    mc   &lt;- master_cuts |&gt; filter(as_cut == k)
+    grab &lt;- function(col) mc[[col]][match(pid_v, mc$pid)]   # keyed on the matrix&#39;s barcodes
+    grp  &lt;- factor(as.character(grab(&quot;scna_group&quot;)), levels = attend_scna$group_levels)
+    names(grp) &lt;- rownames(hm0)
+
+    keep &lt;- !is.na(grp)
+    cat(&quot;\n--- AS cut&quot;, k, &quot;---\nGISTIC samples:&quot;, nrow(hm0), &quot;| with a group:&quot;, sum(keep),
+        &quot;| dropped (no pid, or MMR / AS missing):&quot;, sum(!keep), &quot;\n&quot;)
+    print(table(group = grp[keep]))
+    hm  &lt;- hm0[keep, , drop = FALSE]
+    grp &lt;- droplevels(grp[keep])
+
+    # The same covariate bars report 07 draws, built from the master so they agree with the
+    # blocks. The binary AS bar is derived inside .fig1a_top_annotation() at the cut passed
+    # below, not at the configured primary one.
+    ids  &lt;- rownames(hm)
+    mmrd &lt;- is_mmrd(grab(&quot;MMR_class&quot;)[keep])
+    ann  &lt;- data.frame(
+      MMR = factor(ifelse(is.na(mmrd), NA, ifelse(mmrd, &quot;MMRd&quot;, &quot;MMRp&quot;)), levels = c(&quot;MMRp&quot;, &quot;MMRd&quot;)),
+      Aneuploidy = suppressWarnings(as.numeric(grab(attend_cols$aneuploidy)[keep])),
+      row.names = ids)
+    tp &lt;- grab(&quot;TP53_pathogenic&quot;)[keep]
+    if (!all(is.na(tp)))
+      ann$TP53 &lt;- factor(ifelse(as.logical(tp), &quot;mut&quot;, &quot;wt&quot;), levels = c(&quot;wt&quot;, &quot;mut&quot;))
+
+    feat_pos &lt;- feature_positions(colnames(hm), cytoband = cyto)
+    cat(&quot;genes with a position:&quot;, sum(feat_pos$feature %in% colnames(hm)), &quot;\n&quot;)
+
+    if (nrow(hm) &gt;= 2 &amp;&amp; nlevels(grp) &gt;= 1) {
+      fig1a_heatmap(hm, feat_pos, grp, ann_col = ann, value_type = &quot;continuous&quot;,
+                    cluster_cols = attend_scna_cols, cluster_name = &quot;MMR x AS group&quot;,
+                    column_distance = cnv_dist, column_linkage = cnv_method,
+                    aneu_cut = k,
+                    main = paste0(&quot;SCNAs by tumour x chromosomal location; columns split by &quot;,
+                                  &quot;MMR x AS group — AS cut &quot;, k))
+    } else {
+      note_skip(&quot;AS cut &quot;, k, &quot;: fewer than two GISTIC samples carry a group; nothing to draw.&quot;)
+    }
+  }
+}</code></pre>
+<pre><code>ComplexHeatmap installed: TRUE | circlize installed: TRUE 
+
+--- AS cut 0.1 ---
+GISTIC samples: 247 | with a group: 234 | dropped (no pid, or MMR / AS missing): 13 
+group
+ MMRp-low MMRp-high  MMRd-low MMRd-high 
+       67        57       101         9 
+genes with a position: 27100 </code></pre>
+<pre><code>
+--- AS cut 0.2 ---
+GISTIC samples: 247 | with a group: 234 | dropped (no pid, or MMR / AS missing): 13 
+group
+ MMRp-low MMRp-high  MMRd-low MMRd-high 
+       89        35       106         4 
+genes with a position: 27100 </code></pre>
+<p><img src="figure/12-aneuploidy-immune.Rmd/scna-group-heatmap-1.svg" alt="" width="1056" style="display: block; margin: auto;" /><img src="figure/12-aneuploidy-immune.Rmd/scna-group-heatmap-2.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<p>The per-group GISTIC runs on disk (data/gistic/mmrd_high/ and its
+siblings) were prepared from the <strong>primary</strong> cut. Nothing
+here reads them — both heatmaps are built from the pooled genome-wide
+matrix and split in memory — but <a
+href="10-recurrent-cna.html">10-recurrent-cna</a> does, so its peaks
+remain a 0.1-cut result until those runs are regenerated.</p>
+</div>
+<div id="part-2-aneuploidy-against-the-pathologists-immune-calls"
+class="section level2">
+<h2>Part 2 — aneuploidy against the pathologist’s immune calls</h2>
+<p>All three measures come from the “Imaging (2)” sheet of
+data/attend_data.xlsx, read by load_imaging_data(), one row per image,
+keyed by pid. <strong>IC %</strong> is <em>Immune infiltrating cells
+(%)</em>, continuous, averaged over a patient’s images. The two PD-L1
+measures are <strong>banded</strong> calls, not percentages:
+<em>Percentage of tumor-infiltrating immune cells (IC) expressing
+PD-L1</em> (IC0 &lt; 1%, IC1 1–5%, IC2 5–10%, …) and <em>Percentage of
+tumor cells (TC) expressing PD-L1</em> (TC0, TC1, …). They are ordered
+by the digit after the prefix, a blank cell is <strong>not
+measured</strong> (NA, never band 0), and a patient’s first non-missing
+band across images is used — the same rule reports 04 and 05 apply.
+Aneuploidy score, class (at both cuts) and MMR group are joined from the
+master.</p>
+<pre class="r"><code>first_nonNA &lt;- function(x) { x &lt;- x[!is.na(x) &amp; x != &quot;&quot;]; if (length(x)) x[1] else NA }
+
+# Order banded calls by the number after the letters: IC0 &lt; IC1 &lt; IC2 &lt; IC3. Alphabetical
+# order happens to agree up to 9 bands, but an explicit key keeps an unexpected spelling
+# from being slotted in by string comparison.
+band_factor &lt;- function(x) {
+  x   &lt;- as.character(x)
+  lv  &lt;- unique(stats::na.omit(x))
+  key &lt;- suppressWarnings(as.integer(sub(&quot;^[A-Za-z]+\\s*([0-9]+).*$&quot;, &quot;\\1&quot;, lv)))
+  factor(x, levels = lv[order(key, lv, na.last = TRUE)])
+}
+
+imaging_raw &lt;- tryCatch(load_imaging_data(), error = function(e) {
+  note_skip(&quot;imaging sheet unavailable: &quot;, conditionMessage(e)); NULL })
+
+imm &lt;- NULL
+if (!is.null(imaging_raw)) {
+  imm_pt &lt;- imaging_raw |&gt;
+    filter(!is.na(ID)) |&gt;
+    group_by(pid = as.character(ID)) |&gt;
+    summarise(
+      IC_pct   = mean(suppressWarnings(as.numeric(Immune_infiltrate)), na.rm = TRUE),
+      PDL1_IC  = first_nonNA(as.character(Immune_infiltrate_PDL1)),
+      PDL1_TC  = first_nonNA(as.character(Tumor_cells_PDL1)),
+      .groups = &quot;drop&quot;) |&gt;
+    mutate(IC_pct  = ifelse(is.finite(IC_pct), IC_pct, NA_real_),
+           PDL1_IC = band_factor(PDL1_IC),
+           PDL1_TC = band_factor(PDL1_TC))
+
+  # Joined to the LONG master, so every patient appears once per cut carrying the class that
+  # cut gives them. The score itself is cut-independent and identical in both blocks.
+  imm &lt;- imm_pt |&gt;
+    inner_join(master_cuts |&gt;
+                 transmute(pid, as_cut, as_cut_lab, aneuploidy_class, mmr_group,
+                           aneuploidy_score = suppressWarnings(as.numeric(.data[[attend_cols$aneuploidy]]))),
+               by = &quot;pid&quot;) |&gt;
+    filter(!is.na(aneuploidy_score))
+
+  n_pt &lt;- n_distinct(imm$pid)
+  cat(&quot;Patients on the master with an aneuploidy score and an imaging row:&quot;, n_pt,
+      &quot;| MMR-deficient among them:&quot;,
+      n_distinct(imm$pid[!is.na(imm$mmr_group) &amp; imm$mmr_group == &quot;MMRd&quot;]), &quot;\n&quot;)
+  one &lt;- imm |&gt; filter(as_cut == min(cuts))
+  print(tibble(measure  = c(&quot;IC %&quot;, &quot;PD-L1 on immune cells (IC band)&quot;, &quot;PD-L1 on tumour cells (TC band)&quot;),
+               measured = c(sum(!is.na(one$IC_pct)), sum(!is.na(one$PDL1_IC)), sum(!is.na(one$PDL1_TC))),
+               not_measured = n_pt - measured))
+}</code></pre>
+<pre><code>Patients on the master with an aneuploidy score and an imaging row: 114 | MMR-deficient among them: 40 
+# A tibble: 3 × 3
+  measure                         measured not_measured
+  &lt;chr&gt;                              &lt;int&gt;        &lt;int&gt;
+1 IC %                                 114            0
+2 PD-L1 on immune cells (IC band)      108            6
+3 PD-L1 on tumour cells (TC band)      108            6</code></pre>
+<pre class="r"><code>have_imm &lt;- !is.null(imm) &amp;&amp; n_distinct(imm$pid) &gt; 2
+
+# All patients and the MMRd subset as one factor, so a figure shows them side by side rather
+# than being written twice — the shape report 05 uses for responder status. MMRd rows are a
+# SUBSET of the all-patient rows, not an independent comparison.
+with_cohorts &lt;- function(d) {
+  bind_rows(d |&gt; mutate(cohort = &quot;All patients&quot;),
+            d |&gt; filter(!is.na(mmr_group), mmr_group == &quot;MMRd&quot;) |&gt; mutate(cohort = &quot;MMRd only&quot;)) |&gt;
+    mutate(cohort = factor(cohort, levels = c(&quot;All patients&quot;, &quot;MMRd only&quot;)))
+}</code></pre>
+<div id="immune-infiltrate-by-aneuploidy-class" class="section level3">
+<h3>Immune infiltrate by aneuploidy class</h3>
+<p>IC % by AS class: columns are all patients and then each MMR group,
+rows are the two cuts. The within-MMR columns are there because
+MMR-deficient tumours are both more infiltrated and less often AS High,
+so a pooled difference can be MMR status seen twice; a difference that
+survives inside both strata cannot be. Wilcoxon rank-sum per panel,
+uncorrected, tabulated below the figure with each panel’s n — read the
+two rows against each other before reading either alone, since they are
+the same patients partitioned two ways.</p>
+<pre class="r"><code>if (have_imm &amp;&amp; sum(!is.na(imm$IC_pct)) &gt; 2) {
+  icd &lt;- bind_rows(
+    imm |&gt; mutate(panel = &quot;All patients&quot;),
+    imm |&gt; filter(!is.na(mmr_group)) |&gt; mutate(panel = as.character(mmr_group))) |&gt;
+    filter(!is.na(IC_pct), !is.na(aneuploidy_class)) |&gt;
+    mutate(panel = factor(panel, levels = c(&quot;All patients&quot;, &quot;MMRp&quot;, &quot;MMRd&quot;)))
+
+  print(
+    ggplot(icd, aes(aneuploidy_class, IC_pct, fill = aneuploidy_class)) +
+      attend_box(icd, x = &quot;aneuploidy_class&quot;, y = &quot;IC_pct&quot;, by = c(&quot;panel&quot;, &quot;as_cut_lab&quot;),
+                 fill = NULL, points = FALSE) +
+      highlight_points(icd, &quot;aneuploidy_class&quot;, &quot;IC_pct&quot;, base_size = 1.2, base_alpha = 0.55,
+                       base_const = &quot;black&quot;) +
+      facet_grid(as_cut_lab ~ panel) +
+      scale_x_discrete(labels = as_label) +
+      scale_fill_manual(values = attend_aneu_cols, labels = as_label, name = attend_as_legend) +
+      labs(title = &quot;Immune infiltrating cells by aneuploidy class, at both cuts&quot;,
+           x = NULL, y = &quot;Immune infiltrating cells, IC (%)&quot;) +
+      attend_theme() + theme(legend.position = &quot;none&quot;))
+
+  icd |&gt;
+    group_by(as_cut_lab, panel) |&gt;
+    summarise(
+      n_AS_low  = sum(grepl(&quot;low&quot;,  aneuploidy_class)),
+      n_AS_high = sum(grepl(&quot;high&quot;, aneuploidy_class)),
+      wilcox_p  = if (n_AS_low &gt;= 2 &amp;&amp; n_AS_high &gt;= 2)
+        signif(wilcox.test(IC_pct[grepl(&quot;low&quot;,  aneuploidy_class)],
+                           IC_pct[grepl(&quot;high&quot;, aneuploidy_class)], exact = FALSE)$p.value, 3)
+        else NA_real_,
+      .groups = &quot;drop&quot;)
+} else {
+  note_skip(&quot;Fewer than three patients have both an IC % and an aneuploidy score.&quot;)
+}</code></pre>
+<p><img src="figure/12-aneuploidy-immune.Rmd/ic-by-as-class-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre><code># A tibble: 6 × 5
+  as_cut_lab panel        n_AS_low n_AS_high wilcox_p
+  &lt;fct&gt;      &lt;fct&gt;           &lt;int&gt;     &lt;int&gt;    &lt;dbl&gt;
+1 AS cut 0.1 All patients       76        38   0.0273
+2 AS cut 0.1 MMRp               41        33   0.204 
+3 AS cut 0.1 MMRd               35         5   0.589 
+4 AS cut 0.2 All patients       92        22   0.147 
+5 AS cut 0.2 MMRp               54        20   0.491 
+6 AS cut 0.2 MMRd               38         2   0.729 </code></pre>
+</div>
+<div id="immune-infiltrate-against-the-continuous-aneuploidy-score"
+class="section level3">
+<h3>Immune infiltrate against the continuous aneuploidy score</h3>
+<p>The same two measures without the class cut: aneu__aneuploidy_score
+on x against IC % on y, one point per patient, all patients and MMRd
+alone. This panel is what lets either cut be judged at all — it carries
+no class, so the two dashed lines (0.1 and 0.2) are the only thing the
+choice changes, and a reader can see whether either falls anywhere the
+data suggests a break. Spearman’s rho, because both variables are
+bounded and skewed and IC % is recorded in coarse steps, which makes
+ties common.</p>
+<pre class="r"><code>if (have_imm &amp;&amp; sum(!is.na(imm$IC_pct)) &gt; 2) {
+  ics &lt;- imm |&gt; filter(as_cut == min(cuts), !is.na(IC_pct)) |&gt; with_cohorts()
+
+  rho_lab &lt;- ics |&gt;
+    group_by(cohort) |&gt;
+    summarise(n = n(),
+              rho = unname(suppressWarnings(cor.test(aneuploidy_score, IC_pct,
+                     method = &quot;spearman&quot;, exact = FALSE))$estimate),
+              p   = suppressWarnings(cor.test(aneuploidy_score, IC_pct,
+                     method = &quot;spearman&quot;, exact = FALSE))$p.value,
+              .groups = &quot;drop&quot;) |&gt;
+    mutate(strip = sprintf(&quot;%s\nrho = %.2f, p = %s, n = %d&quot;, cohort, rho,
+                           format.pval(p, digits = 2), n))
+  ics &lt;- ics |&gt; left_join(rho_lab |&gt; select(cohort, strip), by = &quot;cohort&quot;)
+
+  ggplot(ics, aes(aneuploidy_score, IC_pct)) +
+    geom_vline(xintercept = cuts, linetype = 2, colour = &quot;grey40&quot;) +
+    geom_point(size = 1.8, alpha = 0.7, colour = &quot;grey25&quot;) +
+    facet_wrap(~ strip, nrow = 1) +
+    labs(title = &quot;Immune infiltrate against aneuploidy score&quot;,
+         subtitle = paste(&quot;Dashed lines: the two AS cuts,&quot;, paste(cuts, collapse = &quot; and &quot;)),
+         x = attend_as_axis, y = &quot;Immune infiltrating cells, IC (%)&quot;) +
+    attend_theme()
+} else {
+  note_skip(&quot;Fewer than three patients have both an IC % and an aneuploidy score.&quot;)
+}</code></pre>
+<p><img src="figure/12-aneuploidy-immune.Rmd/ic-vs-as-score-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-score-across-the-pd-l1-bands"
+class="section level3">
+<h3>Aneuploidy score across the PD-L1 bands</h3>
+<p>The continuous aneuploidy score (y) within each pathologist PD-L1
+band (x), for each marker on all patients and on MMR-deficient patients
+alone. Like the scatter above, this panel is
+<strong>cut-independent</strong> — the score is plotted raw — so the
+dashed lines are the only trace of the threshold, and a band whose
+spread straddles them is one whose class the choice decides. Because the
+bands are ordered, the test is a <strong>trend</strong>, not a
+difference between unordered groups: Spearman’s rho between band rank
+(0, 1, 2, …) and the score, printed in each panel’s strip. A band
+holding fewer than five patients is drawn as a median bar rather than a
+box.</p>
+<pre class="r"><code>pdl1_long &lt;- NULL
+if (have_imm) {
+  one_cut &lt;- imm |&gt; filter(as_cut == min(cuts))
+  pdl1_long &lt;- bind_rows(
+    one_cut |&gt; transmute(pid, aneuploidy_score, mmr_group, band = as.character(PDL1_IC),
+                         rank = as.integer(PDL1_IC) - 1L, marker = &quot;PD-L1 immune cells (IC)&quot;),
+    one_cut |&gt; transmute(pid, aneuploidy_score, mmr_group, band = as.character(PDL1_TC),
+                         rank = as.integer(PDL1_TC) - 1L, marker = &quot;PD-L1 tumour cells (TC)&quot;)) |&gt;
+    filter(!is.na(band))
+}
+
+if (!is.null(pdl1_long) &amp;&amp; nrow(pdl1_long) &gt; 2) {
+  # Band order within each marker, carried into one factor so the x axis reads IC0..ICn then
+  # TC0..TCn; free_x drops the other marker&#39;s bands from each panel.
+  pdl1_long$band &lt;- factor(pdl1_long$band,
+                           levels = unique(pdl1_long$band[order(pdl1_long$marker, pdl1_long$rank)]))
+  pb &lt;- with_cohorts(pdl1_long)
+
+  trend &lt;- pb |&gt;
+    group_by(cohort, marker) |&gt;
+    summarise(n = n(), n_bands = n_distinct(rank),
+              rho = if (n_bands &gt; 1) unname(suppressWarnings(
+                cor.test(rank, aneuploidy_score, method = &quot;spearman&quot;, exact = FALSE))$estimate) else NA_real_,
+              p   = if (n_bands &gt; 1) suppressWarnings(
+                cor.test(rank, aneuploidy_score, method = &quot;spearman&quot;, exact = FALSE))$p.value else NA_real_,
+              .groups = &quot;drop&quot;) |&gt;
+    mutate(strip = sprintf(&quot;%s — %s\nrho = %.2f, p = %s, n = %d&quot;, cohort, marker, rho,
+                           format.pval(p, digits = 2), n))
+  pb &lt;- pb |&gt; left_join(trend |&gt; select(cohort, marker, strip), by = c(&quot;cohort&quot;, &quot;marker&quot;))
+
+  ggplot(pb, aes(band, aneuploidy_score)) +
+    attend_box(pb, x = &quot;band&quot;, y = &quot;aneuploidy_score&quot;, by = &quot;strip&quot;, points = FALSE) +
+    highlight_points(pb, &quot;band&quot;, &quot;aneuploidy_score&quot;, base_size = 1.2, base_alpha = 0.55,
+                     base_const = &quot;black&quot;) +
+    geom_hline(yintercept = cuts, linetype = 2, colour = &quot;grey40&quot;) +
+    facet_wrap(~ strip, scales = &quot;free_x&quot;, nrow = 2) +
+    labs(title = &quot;Aneuploidy score by pathologist PD-L1 band&quot;,
+         subtitle = paste(&quot;Dashed lines: the two AS cuts,&quot;, paste(cuts, collapse = &quot; and &quot;)),
+         x = &quot;PD-L1 band (pathologist)&quot;, y = attend_as_axis) +
+    attend_theme() +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+} else {
+  note_skip(&quot;Fewer than three patients have a PD-L1 band and an aneuploidy score.&quot;)
+}</code></pre>
+<p><img src="figure/12-aneuploidy-immune.Rmd/as-by-pdl1-band-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+</div>
+<div id="aneuploidy-class-across-the-pd-l1-bands"
+class="section level3">
+<h3>Aneuploidy class across the PD-L1 bands</h3>
+<p>Both variables as categories, and the one PD-L1 figure the cut does
+move: within each band, the fraction of patients that are AS Low and AS
+High, at each cut (rows) for each cohort and marker (columns). Bars are
+proportions, so a band of two patients and one of twenty look the same
+height — the counts are in the table below, with Fisher’s exact test of
+AS class × band per panel (exact on the whole r × 2 table, no band
+merging). These panels are not independent evidence: IC and TC bands are
+called on the same slides of the same patients, and the MMRd columns are
+a subset of the all-patient ones.</p>
+<pre class="r"><code>if (!is.null(pdl1_long) &amp;&amp; nrow(pdl1_long) &gt; 2) {
+  # Re-joined to the LONG master so each band carries the class from BOTH cuts.
+  pc &lt;- pdl1_long |&gt;
+    select(pid, band, marker) |&gt;
+    # many-to-many DECLARED, not silenced by accident: two marker rows per patient meet two
+    # cut rows per patient, and 2 x 2 is exactly the intended shape.
+    inner_join(master_cuts |&gt; select(pid, as_cut, as_cut_lab, aneuploidy_class, mmr_group),
+               by = &quot;pid&quot;, relationship = &quot;many-to-many&quot;) |&gt;
+    filter(!is.na(aneuploidy_class)) |&gt;
+    with_cohorts()
+
+  print(
+    ggplot(pc, aes(band, fill = aneuploidy_class)) +
+      geom_bar(position = &quot;fill&quot;, width = 0.7) +
+      facet_grid(as_cut_lab ~ cohort + marker, scales = &quot;free_x&quot;) +
+      scale_fill_manual(values = attend_aneu_cols, labels = as_label, name = attend_as_legend) +
+      labs(title = &quot;Aneuploidy class within each PD-L1 band, at both cuts&quot;,
+           x = &quot;PD-L1 band (pathologist)&quot;, y = &quot;fraction of patients in the band&quot;) +
+      attend_theme() +
+      theme(axis.text.x = element_text(angle = 20, hjust = 1)))
+
+  fisher_p &lt;- pc |&gt;
+    group_by(as_cut_lab, cohort, marker) |&gt;
+    summarise(fisher_p = {
+      tb &lt;- table(droplevels(band), droplevels(aneuploidy_class))
+      if (all(dim(tb) &gt;= 2)) signif(fisher.test(tb)$p.value, 3) else NA_real_
+    }, .groups = &quot;drop&quot;)
+
+  pc |&gt;
+    count(as_cut_lab, cohort, marker, band, aneuploidy_class) |&gt;
+    mutate(aneuploidy_class = as_label(aneuploidy_class)) |&gt;
+    pivot_wider(names_from = aneuploidy_class, values_from = n, values_fill = 0) |&gt;
+    left_join(fisher_p, by = c(&quot;as_cut_lab&quot;, &quot;cohort&quot;, &quot;marker&quot;))
+} else {
+  note_skip(&quot;Fewer than three patients have a PD-L1 band and an aneuploidy class.&quot;)
+}</code></pre>
+<p><img src="figure/12-aneuploidy-immune.Rmd/as-class-by-pdl1-band-1.svg" alt="" width="1056" style="display: block; margin: auto;" /></p>
+<pre><code># A tibble: 20 × 7
+   as_cut_lab cohort       marker              band  `AS Low` `AS High` fisher_p
+   &lt;fct&gt;      &lt;fct&gt;        &lt;chr&gt;               &lt;fct&gt;    &lt;int&gt;     &lt;int&gt;    &lt;dbl&gt;
+ 1 AS cut 0.1 All patients PD-L1 immune cells… IC0 …       48        31    0.384
+ 2 AS cut 0.1 All patients PD-L1 immune cells… IC1 …       17         6    0.384
+ 3 AS cut 0.1 All patients PD-L1 immune cells… IC2 …        5         1    0.384
+ 4 AS cut 0.1 All patients PD-L1 tumour cells… TC0 …       68        38    0.54 
+ 5 AS cut 0.1 All patients PD-L1 tumour cells… TC1 …        2         0    0.54 
+ 6 AS cut 0.1 MMRd only    PD-L1 immune cells… IC0 …       16         3    1    
+ 7 AS cut 0.1 MMRd only    PD-L1 immune cells… IC1 …       11         2    1    
+ 8 AS cut 0.1 MMRd only    PD-L1 immune cells… IC2 …        3         0    1    
+ 9 AS cut 0.1 MMRd only    PD-L1 tumour cells… TC0 …       29         5    1    
+10 AS cut 0.1 MMRd only    PD-L1 tumour cells… TC1 …        1         0    1    
+11 AS cut 0.2 All patients PD-L1 immune cells… IC0 …       64        15    0.823
+12 AS cut 0.2 All patients PD-L1 immune cells… IC1 …       17         6    0.823
+13 AS cut 0.2 All patients PD-L1 immune cells… IC2 …        5         1    0.823
+14 AS cut 0.2 All patients PD-L1 tumour cells… TC0 …       84        22    1    
+15 AS cut 0.2 All patients PD-L1 tumour cells… TC1 …        2         0    1    
+16 AS cut 0.2 MMRd only    PD-L1 immune cells… IC0 …       19         0    0.297
+17 AS cut 0.2 MMRd only    PD-L1 immune cells… IC1 …       11         2    0.297
+18 AS cut 0.2 MMRd only    PD-L1 immune cells… IC2 …        3         0    0.297
+19 AS cut 0.2 MMRd only    PD-L1 tumour cells… TC0 …       32         2    1    
+20 AS cut 0.2 MMRd only    PD-L1 tumour cells… TC1 …        1         0    1    </code></pre>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1      farver_2.1.2          S7_0.2.2             
+ [4] fastmap_1.2.0         promises_1.5.0        digest_0.6.39        
+ [7] timechange_0.4.0      lifecycle_1.0.5       cluster_2.1.6        
+[10] Cairo_1.6-2           magrittr_2.0.5        compiler_4.3.2       
+[13] rlang_1.2.0           sass_0.4.10           tools_4.3.2          
+[16] utf8_1.2.6            yaml_2.3.12           knitr_1.51           
+[19] labeling_0.4.3        bit_4.6.0             RColorBrewer_1.1-3   
+[22] workflowr_1.7.2       withr_3.0.3           BiocGenerics_0.48.1  
+[25] grid_4.3.2            stats4_4.3.2          git2r_0.33.0         
+[28] colorspace_2.1-2      scales_1.4.0          iterators_1.0.14     
+[31] dichromat_2.0-0.1     cli_3.6.6             rmarkdown_2.31       
+[34] crayon_1.5.3          generics_0.1.4        otel_0.2.0           
+[37] rstudioapi_0.15.0     tzdb_0.5.0            rjson_0.2.23         
+[40] cachem_1.1.0          parallel_4.3.2        cellranger_1.1.0     
+[43] matrixStats_1.1.0     vctrs_0.7.3           jsonlite_2.0.0       
+[46] IRanges_2.36.0        hms_1.1.4             GetoptLong_1.0.5     
+[49] S4Vectors_0.40.2      bit64_4.8.6           clue_0.3-65          
+[52] magick_2.8.1          foreach_1.5.2         jquerylib_0.1.4      
+[55] glue_1.8.1            codetools_0.2-19      stringi_1.8.7        
+[58] gtable_0.3.6          shape_1.4.6.1         later_1.4.8          
+[61] ComplexHeatmap_2.18.0 pillar_1.11.1         htmltools_0.5.9      
+[64] circlize_0.4.15       R6_2.6.1              doParallel_1.0.17    
+[67] rprojroot_2.1.1       vroom_1.7.1           evaluate_1.0.5       
+[70] png_0.1-8             httpuv_1.6.12         bslib_0.9.0          
+[73] Rcpp_1.1.1-1.1        whisker_0.4.1         xfun_0.58            
+[76] pkgconfig_2.0.3       GlobalOptions_0.1.4  </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] data.table_1.18.4 fs_2.1.0          readxl_1.5.0      here_1.0.2       
+ [5] lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0     dplyr_1.2.1      
+ [9] purrr_1.0.2       readr_2.2.0       tidyr_1.3.2       tibble_3.3.1     
+[13] ggplot2_4.0.3     tidyverse_2.0.0  
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1      farver_2.1.2          S7_0.2.2             
+ [4] fastmap_1.2.0         promises_1.5.0        digest_0.6.39        
+ [7] timechange_0.4.0      lifecycle_1.0.5       cluster_2.1.6        
+[10] Cairo_1.6-2           magrittr_2.0.5        compiler_4.3.2       
+[13] rlang_1.2.0           sass_0.4.10           tools_4.3.2          
+[16] utf8_1.2.6            yaml_2.3.12           knitr_1.51           
+[19] labeling_0.4.3        bit_4.6.0             RColorBrewer_1.1-3   
+[22] workflowr_1.7.2       withr_3.0.3           BiocGenerics_0.48.1  
+[25] grid_4.3.2            stats4_4.3.2          git2r_0.33.0         
+[28] colorspace_2.1-2      scales_1.4.0          iterators_1.0.14     
+[31] dichromat_2.0-0.1     cli_3.6.6             rmarkdown_2.31       
+[34] crayon_1.5.3          generics_0.1.4        otel_0.2.0           
+[37] rstudioapi_0.15.0     tzdb_0.5.0            rjson_0.2.23         
+[40] cachem_1.1.0          parallel_4.3.2        cellranger_1.1.0     
+[43] matrixStats_1.1.0     vctrs_0.7.3           jsonlite_2.0.0       
+[46] IRanges_2.36.0        hms_1.1.4             GetoptLong_1.0.5     
+[49] S4Vectors_0.40.2      bit64_4.8.6           clue_0.3-65          
+[52] magick_2.8.1          foreach_1.5.2         jquerylib_0.1.4      
+[55] glue_1.8.1            codetools_0.2-19      stringi_1.8.7        
+[58] gtable_0.3.6          shape_1.4.6.1         later_1.4.8          
+[61] ComplexHeatmap_2.18.0 pillar_1.11.1         htmltools_0.5.9      
+[64] circlize_0.4.15       R6_2.6.1              doParallel_1.0.17    
+[67] rprojroot_2.1.1       vroom_1.7.1           evaluate_1.0.5       
+[70] png_0.1-8             httpuv_1.6.12         bslib_0.9.0          
+[73] Rcpp_1.1.1-1.1        whisker_0.4.1         xfun_0.58            
+[76] pkgconfig_2.0.3       GlobalOptions_0.1.4  </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

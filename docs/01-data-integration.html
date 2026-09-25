@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-08-13" />
 
-<title>ATTEND — 01. Data integration: the join, and what it cost</title>
+<title>ATTEND — 01. Data integration and quality control</title>
 
 <script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -374,8 +374,8 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">ATTEND — 01. Data integration: the join,
-and what it cost</h1>
+<h1 class="title toc-ignore">ATTEND — 01. Data integration and quality
+control</h1>
 <h4 class="author">sceriff0</h4>
 <h4 class="date">2026-08-13</h4>
 
@@ -406,7 +406,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-09-01
+<strong>Last updated:</strong> 2026-09-25
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -538,15 +538,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree359bdc94982a94f6881992a7dd1a086551adca56targetblank359bdc9a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisattendaneuploidytree61b26bcd18b2e31df492b216255e9b75edad6295targetblank61b26bca"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -556,7 +556,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/359bdc94982a94f6881992a7dd1a086551adca56" target="_blank">359bdc9</a>.
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/tree/61b26bcd18b2e31df492b216255e9b75edad6295" target="_blank">61b26bc</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -571,9 +571,9 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
-    Ignored:    .RData
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    .mcr_cache/
     Ignored:    data/aneu_scores.csv
     Ignored:    data/attend_barcodes.csv
     Ignored:    data/attend_data.xlsx
@@ -582,12 +582,20 @@ Ignored files:
     Ignored:    data/gistic/
     Ignored:    data/hrd_scores.csv
     Ignored:    data/msi_scores.csv
+    Ignored:    data/old2_gistic/
     Ignored:    data/old_gistic/
     Ignored:    data/seg/
     Ignored:    data/tcga_2013/
     Ignored:    data/tmb_scores.csv
     Ignored:    data/variant_annotations/
+    Ignored:    gistic2.sif
     Ignored:    output/clean_data/
+    Ignored:    output/gistic_input/
+
+Untracked files:
+    Untracked:  gistic_7050713.log
+    Untracked:  gistic_7050714.log
+    Untracked:  refgenefiles/
 
 </code></pre>
 <p>
@@ -633,6 +641,59 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/0c4840ae96d9b352e3a42609dac922129b0fe2d4/analysis/01-data-integration.Rmd" target="_blank">0c4840a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-14
+</td>
+<td>
+:art: One vocabulary, one order, and a page that says why a figure is
+missing
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/793a8f20a3935acf56f3e2810c3b28bdb87c1087/analysis/01-data-integration.Rmd" target="_blank">793a8f2</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:recycle: Reorder the site 00-11, split 07, fold concordance into 01,
+add ProMisE
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.attend_aneuploidy/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/01-data-integration.html" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+<td>
+:wrench: rebuilt
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -729,13 +790,17 @@ bolt3x
 </div>
 <blockquote>
 <p><strong>Question.</strong> Which measurement belongs to which
-patient, what did the join cost, and are the joined values usable?
+patient, what did the join cost, are the joined values usable, and does
+the automated IHC quantification agree with the pathologist?
 <strong>Cohort.</strong> Every patient reached by at least one modality;
-no restriction. <strong>Reads.</strong> The code/load_*.R loaders,
-straight from HPC storage, plus data/attend_barcodes.csv. <strong>Out of
+no restriction. Part 3 is the imaged subset. <strong>Reads.</strong> The
+code/load_<em>.R loaders, straight from HPC storage, plus
+data/attend_barcodes.csv and the FlowPath export. <strong>Out of
 scope.</strong> Any biological comparison. The TMB definitions, the
 aneuploidy cut and the highlight groups are defined once in <a
-href="00-methods.html">00-methods</a>.</p>
+href="00-methods.html">00-methods</a>. What composition </em>means*
+-&gt; <a href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a>; survival
+by immune content -&gt; <a href="02-survival.html">02-survival</a>.</p>
 </blockquote>
 <p>ATTEND measures the same patients several different ways, each
 recorded with a different kind of identifier. This report puts them onto
@@ -765,7 +830,7 @@ TMB definitions available downstream:
   &lt;chr&gt;                    &lt;chr&gt;          
 1 TMB (normal)             tmb__TMB_SCORE 
 2 TMB (ancestry corrected) tmb__TMB_nassar
-Wrote attend_master_joined.csv : 245 patients x 71 columns</code></pre>
+Wrote attend_master_joined.csv : 245 patients x 73 columns</code></pre>
 <p>ATTEND measures the same patients several different ways — clinical
 records, radiology imaging, IHC, and WES-derived genomics (TMB, MSI,
 HRD, aneuploidy, and a per-variant MAF). Each modality was recorded with
@@ -808,13 +873,13 @@ tibble(
    &lt;chr&gt;      &lt;int&gt; &lt;int&gt;
  1 clinical     197    24
  2 imaging      134    14
- 3 ihc           48    12
+ 3 ihc           48    13
  4 gianlu       235    22
  5 aneu         235     9
  6 hrd          208     5
  7 msi          248     2
  8 tmb          248     2
- 9 maf          247     2
+ 9 maf          247     9
 10 conversion   229     6</code></pre>
 </div>
 <div id="building-the-two-crosswalks" class="section level3">
@@ -881,7 +946,7 @@ cat(&quot;using canonical patient-id column:&quot;,
       &quot;  &lt;- must be 0\n&quot;)
   disagree
 } else {
-  message(&quot;No patient-id column detected in attend_barcodes.csv — &quot;,
+  note_skip(&quot;No patient-id column detected in attend_barcodes.csv — &quot;,
           &quot;set canon_pid_col manually to enable the agreement check.&quot;)
 }</code></pre>
 <pre><code>barcodes where derived pid DISAGREES with canonical: 152   &lt;- must be 0</code></pre>
@@ -1064,16 +1129,17 @@ if (requireNamespace(&quot;reclin2&quot;, quietly = TRUE) &amp;&amp;
              jaro_winkler      = round(pp$barcode, 3)) |&gt;
         arrange(desc(jaro_winkler))
     else tibble()
-  }, error = function(e) { message(&quot;reclin2 near-miss check skipped: &quot;, conditionMessage(e)); tibble() })
+  }, error = function(e) { note_skip(&quot;reclin2 near-miss check skipped: &quot;, conditionMessage(e)); tibble() })
 
   if (nrow(near)) {
     cat(&quot;Canonical barcodes with a fuzzy near-miss (JW &gt;= 0.9, not exact):\n&quot;)
     print(near, n = 50)
   } else cat(&quot;No fuzzy near-misses — the exact loss above is real, not formatting drift.\n&quot;)
 } else {
-  message(&quot;reclin2 probabilistic check skipped (package missing, nothing unmatched, &quot;,
+  note_skip(&quot;reclin2 probabilistic check skipped (package missing, nothing unmatched, &quot;,
           &quot;or unmatched set too large).&quot;)
 }</code></pre>
+<pre><code>No fuzzy near-misses — the exact loss above is real, not formatting drift.</code></pre>
 </div>
 <div id="two-duplication-failure-modes" class="section level4">
 <h4>Two duplication failure modes</h4>
@@ -1179,8 +1245,603 @@ a knit.</p>
     pointblank::rows_distinct(columns = &quot;pid&quot;) |&gt;
     pointblank::interrogate()
 } else {
-  message(&quot;pointblank not installed — renv::install(&#39;pointblank&#39;) to enable the QC gate.&quot;)
+  note_skip(&quot;pointblank not installed — renv::install(&#39;pointblank&#39;) to enable the QC gate.&quot;)
 }</code></pre>
+<div id="pb_agent" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://unpkg.com/balloon-css/balloon.min.css");
+#pb_agent table {
+  font-family: 'IBM Plex Sans', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#pb_agent thead, #pb_agent tbody, #pb_agent tfoot, #pb_agent tr, #pb_agent td, #pb_agent th {
+  border-style: none;
+}
+
+#pb_agent p {
+  margin: 0;
+  padding: 0;
+}
+
+#pb_agent .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 90%;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#pb_agent .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#pb_agent .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#pb_agent .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#pb_agent .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#pb_agent .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#pb_agent .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#pb_agent .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#pb_agent .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#pb_agent .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#pb_agent .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#pb_agent .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#pb_agent .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#pb_agent .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#pb_agent .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#pb_agent .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#pb_agent .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#pb_agent .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#pb_agent .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#pb_agent .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#pb_agent .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#pb_agent .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#pb_agent .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#pb_agent .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#pb_agent .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#pb_agent .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#pb_agent .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#pb_agent .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#pb_agent .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#pb_agent .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#pb_agent .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#pb_agent .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#pb_agent .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#pb_agent .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#pb_agent .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#pb_agent .gt_left {
+  text-align: left;
+}
+
+#pb_agent .gt_center {
+  text-align: center;
+}
+
+#pb_agent .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#pb_agent .gt_font_normal {
+  font-weight: normal;
+}
+
+#pb_agent .gt_font_bold {
+  font-weight: bold;
+}
+
+#pb_agent .gt_font_italic {
+  font-style: italic;
+}
+
+#pb_agent .gt_super {
+  font-size: 65%;
+}
+
+#pb_agent .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#pb_agent .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#pb_agent .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#pb_agent .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#pb_agent .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#pb_agent .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#pb_agent .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#pb_agent .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#pb_agent div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+
+#pb_agent {
+  -webkit-font-smoothing: antialiased;
+}
+
+#pb_agent .gt_row {
+  overflow: visible;
+}
+
+#pb_agent .gt_sourcenote {
+  height: 35px;
+  padding: 0;
+}
+
+#pb_agent code {
+  font-family: 'IBM Plex Mono', monospace, courier;
+  color: black;
+  background-color: transparent;
+  padding: 0;
+}
+</style>
+<table class="gt_table" style="table-layout:fixed;width:0px;" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <colgroup>
+    <col style="width:6px;"/>
+    <col style="width:35px;"/>
+    <col style="width:190px;"/>
+    <col style="width:120px;"/>
+    <col style="width:120px;"/>
+    <col style="width:50px;"/>
+    <col style="width:50px;"/>
+    <col style="width:50px;"/>
+    <col style="width:50px;"/>
+    <col style="width:50px;"/>
+    <col style="width:30px;"/>
+    <col style="width:30px;"/>
+    <col style="width:30px;"/>
+    <col style="width:65px;"/>
+  </colgroup>
+  <thead>
+    <tr class="gt_heading">
+      <td colspan="14" class="gt_heading gt_title gt_font_normal" style="color: #444444; font-size: 28px; text-align: left; font-weight: 500;">Pointblank Validation</td>
+    </tr>
+    <tr class="gt_heading">
+      <td colspan="14" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style="font-size: 12px; text-align: left;"><span class='gt_from_md'><span style="text-decoration-style:solid;text-decoration-color:#ADD8E6;text-decoration-line:underline;text-underline-position:under;color:#333333;font-variant-numeric:tabular-nums;padding-left:4px;margin-right:5px;padding-right:2px;">ATTEND master-join QC</span></p>
+<div style="height:25px;padding-top:10px;"><span style="background-color:#F1D35A;color:#222222;padding:0.5em 0.5em;position:inherit;text-transform:uppercase;margin:5px 0px 5px 5px;font-weight:bold;border:solid 1px #F1D35A;padding:2px 15px 2px 15px;font-size:smaller;">tibble</span>
+<span style="background-color:none;color:#222222;padding:0.5em 0.5em;position:inherit;margin:5px 10px 5px -4px;font-weight:bold;border:solid 1px #F1D35A;padding:2px 15px 2px 15px;font-size:smaller;">master</span></div>
+</span></td>
+    </tr>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="status_color"></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="i"></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="type">STEP</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="columns">COLUMNS</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="values">VALUES</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="precon">TBL</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="eval_sym">EVAL</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="units">UNITS</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="n_pass">PASS</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="n_fail">FAIL</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="W">W</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="S">S</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="N">N</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="color: #666666; font-weight: bold;" scope="col" id="extract">EXT</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="status_color" class="gt_row gt_left" style="background-color: #4CA64C; height: 40px"><br /></td>
+<td headers="i" class="gt_row gt_right" style="color: #666666; font-size: 13px; font-weight: bold; height: 40px">1</td>
+<td headers="type" class="gt_row gt_left" style="height: 40px"><span class='gt_from_md'><div aria-label="Expect that column `pid` exists." data-balloon-pos="right" style="width:fit-content;">
+  <div style="margin:0;padding:0;display:inline-block;height:30px;vertical-align:middle;"><?xml version="1.0" encoding="UTF-8"?><svg width="30px" height="30px" viewBox="0 0 67 67" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">    <title>col_exists</title>    <g id="All-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="col_exists" transform="translate(0.000000, 0.827586)">            <path d="M56.712234,1.01466935 C59.1975153,1.01466935 61.4475153,2.02202867 63.076195,3.65070832 C64.7048747,5.27938798 65.712234,7.52938798 65.712234,10.0146694 L65.712234,10.0146694 L65.712234,65.0146694 L10.712234,65.0146694 C8.22695259,65.0146694 5.97695259,64.00731 4.34827294,62.3786304 C2.71959328,60.7499507 1.71223397,58.4999507 1.71223397,56.0146694 L1.71223397,56.0146694 L1.71223397,10.0146694 C1.71223397,7.52938798 2.71959328,5.27938798 4.34827294,3.65070832 C5.97695259,2.02202867 8.22695259,1.01466935 10.712234,1.01466935 L10.712234,1.01466935 Z" id="rectangle" stroke="#000000" stroke-width="2" fill="#FFFFFF"></path>            <rect id="column" fill="#000000" x="12.2117153" y="12.0146694" width="20" height="42" rx="1"></rect>            <path d="M44.3177114,43.0146694 L44.3177114,40.5136928 L46.818688,40.5136928 L46.818688,43.0146694 L44.3177114,43.0146694 Z M44.3177114,38.0000209 L44.3177114,37.314474 C44.3177114,35.6979295 44.9397755,34.178739 46.1839224,32.7568569 L46.9837271,31.830099 C48.3125097,30.3066539 48.9768911,29.058294 48.9768911,28.0849819 C48.9768911,27.3317229 48.6849019,26.7350492 48.1009146,26.2949428 C47.5169273,25.8548364 46.7298258,25.6347865 45.7395864,25.6347865 C44.4446581,25.6347865 43.0693463,25.9479345 41.6136099,26.5742397 L41.6136099,24.4541225 C43.1793729,23.9801618 44.643551,23.743185 46.006188,23.743185 C47.7327591,23.743185 49.1038392,24.1303881 50.1194692,24.9048061 C51.1350993,25.679224 51.6429067,26.7265768 51.6429067,28.0468959 C51.6429067,28.7916913 51.4969121,29.4327982 51.2049185,29.9702358 C50.9129248,30.5076733 50.3522208,31.1699389 49.5227896,31.9570522 L48.7356802,32.6933803 C47.9485669,33.4381757 47.432296,34.0623556 47.1868521,34.5659389 C46.9414081,35.0695221 46.818688,35.7487146 46.818688,36.6035365 L46.818688,38.0000209 L44.3177114,38.0000209 Z" id="?" fill="#000000"></path>        </g>    </g></svg></div>
+  <code style="font-size:11px;">&nbsp;col_exists()</code>
+</div>
+</span></td>
+<td headers="columns" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px"><span class='gt_from_md'><div aria-label="pid" data-balloon-pos="left">
+  <p style="margin-top:0;margin-bottom:0;font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:2em;">
+    <code><span style="color:purple;">&marker;</span>pid</code>
+  </p>
+</div>
+</span></td>
+<td headers="values" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px">—</td>
+<td headers="precon" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:0;color:#333333;vertical-align:middle;font-size:10px;border:none;border-radius:4px;" aria-label="No modifications of the table." data-balloon-pos="left"><svg width="25px" height="25px" viewBox="0 0 25 25" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: middle;">    <g id="unchanged" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="unchanged" transform="translate(0.500000, 0.570147)">            <rect id="Rectangle" x="0.125132506" y="0" width="23.749735" height="23.7894737"></rect>            <path d="M5.80375046,8.18194736 C3.77191832,8.18194736 2.11875046,9.83495328 2.11875046,11.8669474 C2.11875046,13.8989414 3.77191832,15.5519474 5.80375046,15.5519474 C7.8355826,15.5519474 9.48875046,13.8989414 9.48875046,11.8669474 C9.48875046,9.83495328 7.83552863,8.18194736 5.80375046,8.18194736 Z M5.80375046,14.814915 C4.17821997,14.814915 2.85578285,13.4924778 2.85578285,11.8669474 C2.85578285,10.2414169 4.17821997,8.91897975 5.80375046,8.91897975 C7.42928095,8.91897975 8.75171807,10.2414169 8.75171807,11.8669474 C8.75171807,13.4924778 7.42928095,14.814915 5.80375046,14.814915 Z" id="Shape" fill="#000000" fill-rule="nonzero"></path>            <path d="M13.9638189,8.699335 C13.9364621,8.70430925 13.9091059,8.71176968 13.8842359,8.71923074 C13.7822704,8.73663967 13.6877654,8.77643115 13.6056956,8.83860518 L10.2433156,11.3852598 C10.0766886,11.5046343 9.97720993,11.6986181 9.97720993,11.9025491 C9.97720993,12.1064807 10.0766886,12.3004639 10.2433156,12.4198383 L13.6056956,14.966493 C13.891697,15.1803725 14.2970729,15.1231721 14.5109517,14.8371707 C14.7248313,14.5511692 14.6676309,14.145794 14.3816294,13.9319145 L12.5313257,12.5392127 L21.8812495,12.5392127 L21.8812495,11.2658854 L12.5313257,11.2658854 L14.3816294,9.87318364 C14.6377872,9.71650453 14.7497006,9.40066014 14.6477351,9.11714553 C14.5482564,8.83363156 14.262255,8.65954352 13.9638189,8.699335 Z" id="arrow" fill="#000000" transform="translate(15.929230, 11.894737) rotate(-180.000000) translate(-15.929230, -11.894737) "></path>        </g>    </g></svg></span></span></td>
+<td headers="eval_sym" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:5px;color:#4CA64C;vertical-align:middle;font-size:15px;border:none;" aria-label="No evaluation issues." data-balloon-pos="left">✓</span></span></td>
+<td headers="units" class="gt_row gt_right" style="font-size: 11px; height: 40px"><code>1</code></td>
+<td headers="n_pass" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>1</code><br><code>1.00</code></td>
+<td headers="n_fail" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>0</code><br><code>0.00</code></td>
+<td headers="W" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="S" class="gt_row gt_center" style="background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="N" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="extract" class="gt_row gt_center" style="height: 40px"><span class='gt_from_md'>—</span></td></tr>
+    <tr><td headers="status_color" class="gt_row gt_left" style="background-color: #4CA64C; height: 40px"><br /></td>
+<td headers="i" class="gt_row gt_right" style="color: #666666; font-size: 13px; font-weight: bold; height: 40px">2</td>
+<td headers="type" class="gt_row gt_left" style="height: 40px"><span class='gt_from_md'><div aria-label="Expect that all values in `pid` should not be NULL. " data-balloon-pos="right" style="width:fit-content;">
+  <div style="margin:0;padding:0;display:inline-block;height:30px;vertical-align:middle;"><?xml version="1.0" encoding="UTF-8"?><svg width="30px" height="30px" viewBox="0 0 67 67" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">    <title>col_vals_not_null</title>    <g id="All-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="col_vals_not_null" transform="translate(0.000000, 0.551724)">            <path d="M56.712234,1 C59.1975153,1 61.4475153,2.00735931 63.076195,3.63603897 C64.7048747,5.26471863 65.712234,7.51471863 65.712234,10 L65.712234,10 L65.712234,65 L10.712234,65 C8.22695259,65 5.97695259,63.9926407 4.34827294,62.363961 C2.71959328,60.7352814 1.71223397,58.4852814 1.71223397,56 L1.71223397,56 L1.71223397,10 C1.71223397,7.51471863 2.71959328,5.26471863 4.34827294,3.63603897 C5.97695259,2.00735931 8.22695259,1 10.712234,1 L10.712234,1 Z" id="rectangle" stroke="#000000" stroke-width="2" fill="#FFFFFF"></path>            <path d="M40.6120805,47.037834 C37.4692348,47.037834 35.0126139,45.9348613 33.712234,44.0140597 C32.4118541,45.9348613 29.9552331,47.037834 26.8123883,47.037834 C22.6574397,47.037834 16.0646712,43.4437723 16.0646712,33.8021619 C16.0646712,29.3401361 17.4715879,18.962166 30.5035862,18.962166 C30.9454018,18.962166 31.3057481,19.3225124 31.3057481,19.7643279 L31.3057481,21.3686518 C31.3057481,21.8104674 30.9454018,22.1708138 30.5035862,22.1708138 C26.6400486,22.1708138 22.4819668,25.8118774 22.4819668,33.8021619 C22.4819668,37.5090277 23.7635456,43.0270243 27.2949384,43.0270243 C29.795428,43.0270243 31.224279,40.4231312 32.0985095,38.2861221 C30.5067194,35.6101596 29.7014243,33.1034035 29.7014243,30.8347892 C29.7014243,25.6238707 31.8603677,23.7751377 33.712234,23.7751377 C35.5641002,23.7751377 37.7230437,25.6238707 37.7230437,30.8347892 C37.7230437,33.1347383 36.9396828,35.5788255 35.3290916,38.2861221 C36.6294715,41.4321009 38.243196,43.0270243 40.1295295,43.0270243 C43.6609223,43.0270243 44.9425012,37.5090277 44.9425012,33.8021619 C44.9425012,25.8118774 40.7844193,22.1708138 36.9208817,22.1708138 C36.4759329,22.1708138 36.1187198,21.8104674 36.1187198,21.3686518 L36.1187198,19.7643279 C36.1187198,19.3225124 36.4759329,18.962166 36.9208817,18.962166 C49.9528801,18.962166 51.3597967,29.3401361 51.3597967,33.8021619 C51.3597967,43.4437723 44.7670282,47.037834 40.6120805,47.037834 Z" id="omega" fill="#000000" fill-rule="nonzero"></path>            <path d="M33,7.93597705 C33.2761424,7.93597705 33.5,8.15983467 33.5,8.43597705 L33.5,57.564023 C33.5,57.8401653 33.2761424,58.064023 33,58.064023 C32.7238576,58.064023 32.5,57.8401653 32.5,57.564023 L32.5,8.43597705 C32.5,8.15983467 32.7238576,7.93597705 33,7.93597705 Z" id="line_black" fill="#000000" transform="translate(33.000000, 33.000000) rotate(-320.000000) translate(-33.000000, -33.000000) "></path>            <polygon id="line_white" fill="#FFFFFF" transform="translate(34.899496, 32.153303) rotate(-320.000000) translate(-34.899496, -32.153303) " points="34.3994962 8.54160469 35.3994962 8.54160469 35.3994962 55.7650019 34.3994962 55.7650019"></polygon>        </g>    </g></svg></div>
+  <code style="font-size:10px;">&nbsp;col_vals_not_null()</code>
+</div>
+</span></td>
+<td headers="columns" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px"><span class='gt_from_md'><div aria-label="pid" data-balloon-pos="left">
+  <p style="margin-top:0;margin-bottom:0;font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:2em;">
+    <code><span style="color:purple;">&marker;</span>pid</code>
+  </p>
+</div>
+</span></td>
+<td headers="values" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px">—</td>
+<td headers="precon" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:0;color:#333333;vertical-align:middle;font-size:10px;border:none;border-radius:4px;" aria-label="No modifications of the table." data-balloon-pos="left"><svg width="25px" height="25px" viewBox="0 0 25 25" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: middle;">    <g id="unchanged" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="unchanged" transform="translate(0.500000, 0.570147)">            <rect id="Rectangle" x="0.125132506" y="0" width="23.749735" height="23.7894737"></rect>            <path d="M5.80375046,8.18194736 C3.77191832,8.18194736 2.11875046,9.83495328 2.11875046,11.8669474 C2.11875046,13.8989414 3.77191832,15.5519474 5.80375046,15.5519474 C7.8355826,15.5519474 9.48875046,13.8989414 9.48875046,11.8669474 C9.48875046,9.83495328 7.83552863,8.18194736 5.80375046,8.18194736 Z M5.80375046,14.814915 C4.17821997,14.814915 2.85578285,13.4924778 2.85578285,11.8669474 C2.85578285,10.2414169 4.17821997,8.91897975 5.80375046,8.91897975 C7.42928095,8.91897975 8.75171807,10.2414169 8.75171807,11.8669474 C8.75171807,13.4924778 7.42928095,14.814915 5.80375046,14.814915 Z" id="Shape" fill="#000000" fill-rule="nonzero"></path>            <path d="M13.9638189,8.699335 C13.9364621,8.70430925 13.9091059,8.71176968 13.8842359,8.71923074 C13.7822704,8.73663967 13.6877654,8.77643115 13.6056956,8.83860518 L10.2433156,11.3852598 C10.0766886,11.5046343 9.97720993,11.6986181 9.97720993,11.9025491 C9.97720993,12.1064807 10.0766886,12.3004639 10.2433156,12.4198383 L13.6056956,14.966493 C13.891697,15.1803725 14.2970729,15.1231721 14.5109517,14.8371707 C14.7248313,14.5511692 14.6676309,14.145794 14.3816294,13.9319145 L12.5313257,12.5392127 L21.8812495,12.5392127 L21.8812495,11.2658854 L12.5313257,11.2658854 L14.3816294,9.87318364 C14.6377872,9.71650453 14.7497006,9.40066014 14.6477351,9.11714553 C14.5482564,8.83363156 14.262255,8.65954352 13.9638189,8.699335 Z" id="arrow" fill="#000000" transform="translate(15.929230, 11.894737) rotate(-180.000000) translate(-15.929230, -11.894737) "></path>        </g>    </g></svg></span></span></td>
+<td headers="eval_sym" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:5px;color:#4CA64C;vertical-align:middle;font-size:15px;border:none;" aria-label="No evaluation issues." data-balloon-pos="left">✓</span></span></td>
+<td headers="units" class="gt_row gt_right" style="font-size: 11px; height: 40px"><code>245</code></td>
+<td headers="n_pass" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>245</code><br><code>1.00</code></td>
+<td headers="n_fail" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>0</code><br><code>0.00</code></td>
+<td headers="W" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="S" class="gt_row gt_center" style="background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="N" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="extract" class="gt_row gt_center" style="height: 40px"><span class='gt_from_md'>—</span></td></tr>
+    <tr><td headers="status_color" class="gt_row gt_left" style="background-color: #4CA64C; height: 40px"><br /></td>
+<td headers="i" class="gt_row gt_right" style="color: #666666; font-size: 13px; font-weight: bold; height: 40px">3</td>
+<td headers="type" class="gt_row gt_left" style="height: 40px"><span class='gt_from_md'><div aria-label="Expect entirely distinct rows across `pid`. " data-balloon-pos="right" style="width:fit-content;">
+  <div style="margin:0;padding:0;display:inline-block;height:30px;vertical-align:middle;"><?xml version="1.0" encoding="UTF-8"?><svg width="30px" height="30px" viewBox="0 0 67 67" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">    <title>rows_distinct</title>    <g id="All-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="rows_distinct" transform="translate(0.000000, 0.482759)">            <path d="M56.712234,1 C59.1975153,1 61.4475153,2.00735931 63.076195,3.63603897 C64.7048747,5.26471863 65.712234,7.51471863 65.712234,10 L65.712234,10 L65.712234,65 L10.712234,65 C8.22695259,65 5.97695259,63.9926407 4.34827294,62.363961 C2.71959328,60.7352814 1.71223397,58.4852814 1.71223397,56 L1.71223397,56 L1.71223397,10 C1.71223397,7.51471863 2.71959328,5.26471863 4.34827294,3.63603897 C5.97695259,2.00735931 8.22695259,1 10.712234,1 L10.712234,1 Z" id="rectangle" stroke="#000000" stroke-width="2" fill="#FFFFFF"></path>            <g id="no_gemini" transform="translate(17.000000, 13.000000)">                <path d="M3.66705619,6.62107508 C3.12510104,6.64066386 2.67455974,7.04767444 2.60273432,7.58527682 C2.52873228,8.1228792 2.85303526,8.6343627 3.37104848,8.79760239 C4.40489909,9.15455286 6.70113553,9.87063021 9.86580595,10.364702 L9.86580595,30.7369976 C6.65978137,31.2332458 4.37225104,31.964559 3.37104848,32.3215095 C2.78991555,32.5282797 2.48520173,33.1681784 2.69197196,33.7493114 C2.8987422,34.3304443 3.53864094,34.6351581 4.11977387,34.4283879 C5.54975217,33.9190808 10.2031678,32.4608072 16.5172734,32.4608072 C22.7943781,32.4608072 27.5500901,33.8907855 29.0540706,34.4109757 C29.6352036,34.6133926 30.2707495,34.304326 30.4731664,33.7231931 C30.6755833,33.1420601 30.3665167,32.5065142 29.7853838,32.3040973 C28.7493568,31.9449704 26.4313554,31.2441283 23.2383897,30.7544098 L23.2383897,10.3821143 C26.4444143,9.88804243 28.745004,9.16108259 29.7679716,8.79760239 C30.3491045,8.59083215 30.6538184,7.95093341 30.4470481,7.36980048 C30.2402779,6.78866755 29.6003791,6.48395373 29.0192462,6.69072396 C27.5587963,7.20873774 22.9162637,8.65830464 16.6391589,8.65830464 C10.3707603,8.65830464 5.61287188,7.21309051 4.10236166,6.69072396 C3.96306391,6.6384873 3.81506005,6.61454548 3.66705619,6.62107508 Z M12.0945699,10.6432975 C13.4940771,10.789125 15.0198226,10.8870686 16.6391589,10.8870686 C18.1997289,10.8870686 19.6623552,10.7978311 21.0096257,10.6607098 L21.0096257,30.4584021 C19.623178,30.316928 18.1191975,30.2320433 16.5172734,30.2320433 C14.9327615,30.2320433 13.4570763,30.3191044 12.0945699,30.4584021 L12.0945699,10.6432975 Z" id="gemini" stroke="#000000" stroke-width="2" fill="#000000" fill-rule="nonzero"></path>                <path d="M16.6605354,-5.05929499 C16.9366778,-5.05929499 17.1605354,-4.83543737 17.1605354,-4.55929499 L17.1605354,44.5687509 C17.1605354,44.8448933 16.9366778,45.0687509 16.6605354,45.0687509 C16.384393,45.0687509 16.1605354,44.8448933 16.1605354,44.5687509 L16.1605354,-4.55929499 C16.1605354,-4.83543737 16.384393,-5.05929499 16.6605354,-5.05929499 Z" id="line_black" fill="#000000" transform="translate(16.660535, 20.004728) rotate(-320.000000) translate(-16.660535, -20.004728) "></path>                <polygon id="line_white" fill="#FFFFFF" transform="translate(18.560032, 19.158031) rotate(-320.000000) translate(-18.560032, -19.158031) " points="18.0600316 -4.45366735 19.0600316 -4.45366735 19.0600316 42.7697299 18.0600316 42.7697299"></polygon>            </g>        </g>    </g></svg></div>
+  <code style="font-size:11px;">&nbsp;rows_distinct()</code>
+</div>
+</span></td>
+<td headers="columns" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px"><span class='gt_from_md'><div aria-label="pid" data-balloon-pos="left">
+  <p style="margin-top:0;margin-bottom:0;font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:2em;">
+    <code><span style="color:purple;">&marker;</span>pid</code>
+  </p>
+</div>
+</span></td>
+<td headers="values" class="gt_row gt_left" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; height: 40px">—</td>
+<td headers="precon" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:0;color:#333333;vertical-align:middle;font-size:10px;border:none;border-radius:4px;" aria-label="No modifications of the table." data-balloon-pos="left"><svg width="25px" height="25px" viewBox="0 0 25 25" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: middle;">    <g id="unchanged" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">        <g id="unchanged" transform="translate(0.500000, 0.570147)">            <rect id="Rectangle" x="0.125132506" y="0" width="23.749735" height="23.7894737"></rect>            <path d="M5.80375046,8.18194736 C3.77191832,8.18194736 2.11875046,9.83495328 2.11875046,11.8669474 C2.11875046,13.8989414 3.77191832,15.5519474 5.80375046,15.5519474 C7.8355826,15.5519474 9.48875046,13.8989414 9.48875046,11.8669474 C9.48875046,9.83495328 7.83552863,8.18194736 5.80375046,8.18194736 Z M5.80375046,14.814915 C4.17821997,14.814915 2.85578285,13.4924778 2.85578285,11.8669474 C2.85578285,10.2414169 4.17821997,8.91897975 5.80375046,8.91897975 C7.42928095,8.91897975 8.75171807,10.2414169 8.75171807,11.8669474 C8.75171807,13.4924778 7.42928095,14.814915 5.80375046,14.814915 Z" id="Shape" fill="#000000" fill-rule="nonzero"></path>            <path d="M13.9638189,8.699335 C13.9364621,8.70430925 13.9091059,8.71176968 13.8842359,8.71923074 C13.7822704,8.73663967 13.6877654,8.77643115 13.6056956,8.83860518 L10.2433156,11.3852598 C10.0766886,11.5046343 9.97720993,11.6986181 9.97720993,11.9025491 C9.97720993,12.1064807 10.0766886,12.3004639 10.2433156,12.4198383 L13.6056956,14.966493 C13.891697,15.1803725 14.2970729,15.1231721 14.5109517,14.8371707 C14.7248313,14.5511692 14.6676309,14.145794 14.3816294,13.9319145 L12.5313257,12.5392127 L21.8812495,12.5392127 L21.8812495,11.2658854 L12.5313257,11.2658854 L14.3816294,9.87318364 C14.6377872,9.71650453 14.7497006,9.40066014 14.6477351,9.11714553 C14.5482564,8.83363156 14.262255,8.65954352 13.9638189,8.699335 Z" id="arrow" fill="#000000" transform="translate(15.929230, 11.894737) rotate(-180.000000) translate(-15.929230, -11.894737) "></path>        </g>    </g></svg></span></span></td>
+<td headers="eval_sym" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'><span style="background:transparent;padding:5px;color:#4CA64C;vertical-align:middle;font-size:15px;border:none;" aria-label="No evaluation issues." data-balloon-pos="left">✓</span></span></td>
+<td headers="units" class="gt_row gt_right" style="font-size: 11px; height: 40px"><code>245</code></td>
+<td headers="n_pass" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>245</code><br><code>1.00</code></td>
+<td headers="n_fail" class="gt_row gt_right" style="border-left-width: 1px; border-left-style: dashed; border-left-color: #E5E5E5; font-size: 11px; height: 40px"><code>0</code><br><code>0.00</code></td>
+<td headers="W" class="gt_row gt_center" style="border-left-width: 1px; border-left-style: solid; border-left-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="S" class="gt_row gt_center" style="background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="N" class="gt_row gt_center" style="border-right-width: 1px; border-right-style: solid; border-right-color: #D3D3D3; background-color: #FCFCFC; height: 40px"><span class='gt_from_md'>—</span></td>
+<td headers="extract" class="gt_row gt_center" style="height: 40px"><span class='gt_from_md'>—</span></td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="gt_sourcenotes">
+      <td class="gt_sourcenote" colspan="14"><span class='gt_from_md'><span style="background-color:#FFF;color:#444;padding:0.5em 0.5em;position:inherit;text-transform:uppercase;margin-left:10px;border:solid 1px #999999;font-variant-numeric:tabular-nums;border-radius:0;padding:2px 10px 2px 10px;padding:2px 10px 2px 10px;">2026-09-25 13:34:27 CEST</span>
+<span style="background-color:#FFF;color:#444;padding:0.5em 0.5em;position:inherit;margin:5px 1px 5px 0;border:solid 1px #999999;font-variant-numeric:tabular-nums;border-radius:0;padding:2px 10px 2px 10px;">&lt; 1 s</span>
+<span style="background-color:#FFF;color:#444;padding:0.5em 0.5em;position:inherit;text-transform:uppercase;margin:5px 1px 5px -1px;border:solid 1px #999999;font-variant-numeric:tabular-nums;border-radius:0;padding:2px 10px 2px 10px;">2026-09-25 13:34:27 CEST</span></span></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
 <p>Each raw table is additionally written to its own intermediate next
 to the master, so every input is preserved individually and downstream
 reports that need raw rows (rather than the collapsed master) can read
@@ -1195,7 +1856,7 @@ join, so the losses are counted here rather than discovered downstream.
 “Unmapped” means three different things — at record level, at patient
 level, and at cohort level — and each is reported separately.</p>
 <p>Presence is not the same as usable, so the last section checks the
-<em>contents</em> of the table report 01 wrote. That file is the
+<em>contents</em> of the table this report just wrote. That file is the
 contract every later report inherits, and a bad value is cheapest to
 catch here.</p>
 <div id="records-that-never-reached-a-patient" class="section level3">
@@ -1417,6 +2078,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/01-data-integration.Rmd/plot-loss-1.svg" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-loss-1.svg" target="_blank">ed3a227</a>
 </td>
 <td>
@@ -1526,6 +2198,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/01-data-integration.Rmd/plot-degree-1.svg" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-degree-1.svg" target="_blank">ed3a227</a>
 </td>
 <td>
@@ -1586,6 +2269,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/01-data-integration.Rmd/plot-availability-1.svg" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-availability-1.svg" target="_blank">ed3a227</a>
 </td>
 <td>
@@ -1626,7 +2320,7 @@ modality that mostly failed to join.</p>
   arrange(desc(frac_NA))
 
 print(col_missing, n = Inf)</code></pre>
-<pre><code># A tibble: 71 × 2
+<pre><code># A tibble: 73 × 2
    column                          frac_NA
    &lt;chr&gt;                             &lt;dbl&gt;
  1 gianlu__CLONAL_LOSS_AREA         0.824 
@@ -1638,78 +2332,80 @@ print(col_missing, n = Inf)</code></pre>
  7 ihc__n_cd3_inside                0.804 
  8 ihc__n_cd3cd45_inside            0.804 
  9 ihc__n_tumor_aridia_inside       0.804 
-10 ihc__n_tumor_pdl1_inside         0.804 
-11 ihc__n_cd45_pd1_inside           0.804 
-12 ihc__n_cd45_pdl1_inside          0.804 
-13 imaging__Tumor_cells_PDL1        0.514 
-14 imaging__Immune_infiltrate_PDL1  0.514 
-15 imaging__Immune_infiltrate_PD1   0.506 
-16 imaging__treatment               0.490 
-17 imaging__Neoplastic_cellularity  0.490 
-18 imaging__Immune_infiltrate       0.490 
-19 imaging__ARID1A                  0.490 
-20 imaging__MMR_Status              0.490 
-21 imaging__PFS_Months              0.490 
-22 imaging__PFS_Event               0.490 
-23 imaging__patient_id              0.486 
-24 imaging__MSI_Status              0.486 
-25 hrd__LOH_Score                   0.196 
-26 hrd__TAI_Score                   0.196 
-27 hrd__LST_Score                   0.196 
-28 hrd__HRD_Score                   0.196 
-29 gianlu__HISTO_TYPE               0.110 
-30 gianlu__HISTO_GRADE              0.110 
-31 gianlu__FIGO                     0.0531
-32 aneu__aneuploidy_score           0.0490
-33 gianlu__SEQ_CODE                 0.0449
-34 gianlu__MSI_STATUS               0.0449
-35 gianlu__TREATMENT                0.0449
-36 gianlu__RACE                     0.0449
-37 gianlu__MALIGNANCY               0.0449
-38 gianlu__STATUS                   0.0449
-39 gianlu__NEOPLASTIC_CELLULARITY   0.0449
-40 gianlu__IMMUNE_INFILTRATE        0.0449
-41 gianlu__ARID1A                   0.0449
-42 gianlu__MLH1                     0.0449
-43 gianlu__PMS2                     0.0449
-44 gianlu__MSH6                     0.0449
-45 gianlu__MSH2                     0.0449
-46 gianlu__MMR_STATUS               0.0449
-47 gianlu__PFS_EVENT                0.0449
-48 gianlu__PFS_MONTHS               0.0449
-49 tmb__TMB_SCORE                   0.0449
-50 msi__MSI_SCORE                   0.0449
-51 aneu__clinical_id                0.0449
-52 aneu__other_id                   0.0449
-53 aneu__time                       0.0449
-54 aneu__status                     0.0449
-55 aneu__arm                        0.0449
-56 aneu__aneuploidy                 0.0449
-57 aneu__MMR_status                 0.0449
-58 TP53_pathogenic                  0.0449
-59 panel_pathogenic                 0.0449
-60 tmb__TMB_robust                  0.0449
-61 tmb__TMB_matched                 0.0449
-62 tmb__TMB_nassar                  0.0449
-63 pid                              0     
-64 in_tmb                           0     
-65 in_msi                           0     
-66 in_maf                           0     
-67 in_hrd                           0     
-68 in_aneu                          0     
-69 in_gianlu                        0     
-70 in_imaging                       0     
-71 in_ihc                           0     </code></pre>
+10 ihc__n_pdl1_inside               0.804 
+11 ihc__n_tumor_pdl1_inside         0.804 
+12 ihc__n_cd45_pd1_inside           0.804 
+13 ihc__n_cd45_pdl1_inside          0.804 
+14 imaging__Tumor_cells_PDL1        0.514 
+15 imaging__Immune_infiltrate_PDL1  0.514 
+16 imaging__Immune_infiltrate_PD1   0.506 
+17 imaging__treatment               0.490 
+18 imaging__Neoplastic_cellularity  0.490 
+19 imaging__Immune_infiltrate       0.490 
+20 imaging__ARID1A                  0.490 
+21 imaging__MMR_Status              0.490 
+22 imaging__PFS_Months              0.490 
+23 imaging__PFS_Event               0.490 
+24 imaging__patient_id              0.486 
+25 imaging__MSI_Status              0.486 
+26 hrd__LOH_Score                   0.196 
+27 hrd__TAI_Score                   0.196 
+28 hrd__LST_Score                   0.196 
+29 hrd__HRD_Score                   0.196 
+30 gianlu__HISTO_TYPE               0.110 
+31 gianlu__HISTO_GRADE              0.110 
+32 gianlu__FIGO                     0.0531
+33 aneu__aneuploidy_score           0.0490
+34 gianlu__SEQ_CODE                 0.0449
+35 gianlu__MSI_STATUS               0.0449
+36 gianlu__TREATMENT                0.0449
+37 gianlu__RACE                     0.0449
+38 gianlu__MALIGNANCY               0.0449
+39 gianlu__STATUS                   0.0449
+40 gianlu__NEOPLASTIC_CELLULARITY   0.0449
+41 gianlu__IMMUNE_INFILTRATE        0.0449
+42 gianlu__ARID1A                   0.0449
+43 gianlu__MLH1                     0.0449
+44 gianlu__PMS2                     0.0449
+45 gianlu__MSH6                     0.0449
+46 gianlu__MSH2                     0.0449
+47 gianlu__MMR_STATUS               0.0449
+48 gianlu__PFS_EVENT                0.0449
+49 gianlu__PFS_MONTHS               0.0449
+50 tmb__TMB_SCORE                   0.0449
+51 msi__MSI_SCORE                   0.0449
+52 aneu__clinical_id                0.0449
+53 aneu__other_id                   0.0449
+54 aneu__time                       0.0449
+55 aneu__status                     0.0449
+56 aneu__arm                        0.0449
+57 aneu__aneuploidy                 0.0449
+58 aneu__MMR_status                 0.0449
+59 mut_screened                     0.0449
+60 TP53_pathogenic                  0.0449
+61 panel_pathogenic                 0.0449
+62 tmb__TMB_robust                  0.0449
+63 tmb__TMB_matched                 0.0449
+64 tmb__TMB_nassar                  0.0449
+65 pid                              0     
+66 in_tmb                           0     
+67 in_msi                           0     
+68 in_maf                           0     
+69 in_hrd                           0     
+70 in_aneu                          0     
+71 in_gianlu                        0     
+72 in_imaging                       0     
+73 in_ihc                           0     </code></pre>
 <p>The same picture with a ranked plot (naniar) and a typed per-column
 summary (skimr). Both optional.</p>
 <pre class="r"><code>if (requireNamespace(&quot;naniar&quot;, quietly = TRUE)) {
   print(naniar::miss_var_summary(master), n = 25)
   print(naniar::gg_miss_var(master) +
           ggplot2::labs(title = &quot;Missingness per column (master)&quot;))
-} else message(&quot;naniar not installed — skipping missingness summary/plot.&quot;)</code></pre>
-<pre><code># A tibble: 71 × 3
+} else note_skip(&quot;naniar not installed — skipping missingness summary/plot.&quot;)</code></pre>
+<pre><code># A tibble: 73 × 3
    variable                        n_miss pct_miss
-   &lt;chr&gt;                            &lt;int&gt;    &lt;dbl&gt;
+   &lt;chr&gt;                            &lt;int&gt;    &lt;num&gt;
  1 gianlu__CLONAL_LOSS_AREA           202     82.4
  2 ihc__n_cells                       197     80.4
  3 ihc__n_inside                      197     80.4
@@ -1719,23 +2415,23 @@ summary (skimr). Both optional.</p>
  7 ihc__n_cd3_inside                  197     80.4
  8 ihc__n_cd3cd45_inside              197     80.4
  9 ihc__n_tumor_aridia_inside         197     80.4
-10 ihc__n_tumor_pdl1_inside           197     80.4
-11 ihc__n_cd45_pd1_inside             197     80.4
-12 ihc__n_cd45_pdl1_inside            197     80.4
-13 imaging__Tumor_cells_PDL1          126     51.4
-14 imaging__Immune_infiltrate_PDL1    126     51.4
-15 imaging__Immune_infiltrate_PD1     124     50.6
-16 imaging__treatment                 120     49.0
-17 imaging__Neoplastic_cellularity    120     49.0
-18 imaging__Immune_infiltrate         120     49.0
-19 imaging__ARID1A                    120     49.0
-20 imaging__MMR_Status                120     49.0
-21 imaging__PFS_Months                120     49.0
-22 imaging__PFS_Event                 120     49.0
-23 imaging__patient_id                119     48.6
-24 imaging__MSI_Status                119     48.6
-25 hrd__LOH_Score                      48     19.6
-# ℹ 46 more rows</code></pre>
+10 ihc__n_pdl1_inside                 197     80.4
+11 ihc__n_tumor_pdl1_inside           197     80.4
+12 ihc__n_cd45_pd1_inside             197     80.4
+13 ihc__n_cd45_pdl1_inside            197     80.4
+14 imaging__Tumor_cells_PDL1          126     51.4
+15 imaging__Immune_infiltrate_PDL1    126     51.4
+16 imaging__Immune_infiltrate_PD1     124     50.6
+17 imaging__treatment                 120     49.0
+18 imaging__Neoplastic_cellularity    120     49.0
+19 imaging__Immune_infiltrate         120     49.0
+20 imaging__ARID1A                    120     49.0
+21 imaging__MMR_Status                120     49.0
+22 imaging__PFS_Months                120     49.0
+23 imaging__PFS_Event                 120     49.0
+24 imaging__patient_id                119     48.6
+25 imaging__MSI_Status                119     48.6
+# ℹ 48 more rows</code></pre>
 <p><img src="figure/01-data-integration.Rmd/eda-naniar-skimr-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-eda-naniar-skimr-1">
@@ -1775,7 +2471,7 @@ sceriff0
 </div>
 </div>
 <pre class="r"><code>if (requireNamespace(&quot;skimr&quot;, quietly = TRUE)) skimr::skim(master) else
-  message(&quot;skimr not installed — skipping typed EDA summary.&quot;)</code></pre>
+  note_skip(&quot;skimr not installed — skipping typed EDA summary.&quot;)</code></pre>
 <table>
 <caption>Data summary</caption>
 <tbody>
@@ -1789,7 +2485,7 @@ sceriff0
 </tr>
 <tr class="odd">
 <td align="left">Number of columns</td>
-<td align="left">71</td>
+<td align="left">73</td>
 </tr>
 <tr class="even">
 <td align="left">_______________________</td>
@@ -1805,11 +2501,11 @@ sceriff0
 </tr>
 <tr class="odd">
 <td align="left">logical</td>
-<td align="left">10</td>
+<td align="left">11</td>
 </tr>
 <tr class="even">
 <td align="left">numeric</td>
-<td align="left">30</td>
+<td align="left">31</td>
 </tr>
 <tr class="odd">
 <td align="left">________________________</td>
@@ -2171,69 +2867,76 @@ sceriff0
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">mut_screened</td>
+<td align="right">11</td>
+<td align="right">0.96</td>
+<td align="right">1.00</td>
+<td align="left">TRU: 234</td>
+</tr>
+<tr class="even">
 <td align="left">TP53_pathogenic</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
 <td align="right">0.34</td>
 <td align="left">FAL: 154, TRU: 80</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">panel_pathogenic</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
-<td align="right">0.00</td>
-<td align="left">FAL: 234</td>
+<td align="right">0.21</td>
+<td align="left">FAL: 185, TRU: 49</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">in_tmb</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.96</td>
 <td align="left">TRU: 234, FAL: 11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">in_msi</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.96</td>
 <td align="left">TRU: 234, FAL: 11</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">in_maf</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.96</td>
 <td align="left">TRU: 234, FAL: 11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">in_hrd</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.80</td>
 <td align="left">TRU: 197, FAL: 48</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">in_aneu</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.96</td>
 <td align="left">TRU: 234, FAL: 11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">in_gianlu</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.96</td>
 <td align="left">TRU: 234, FAL: 11</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">in_imaging</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
 <td align="right">0.51</td>
 <td align="left">TRU: 126, FAL: 119</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">in_ihc</td>
 <td align="right">0</td>
 <td align="right">1.00</td>
@@ -2469,6 +3172,19 @@ sceriff0
 <td align="left">▇▁▁▁▁</td>
 </tr>
 <tr class="even">
+<td align="left">ihc__n_pdl1_inside</td>
+<td align="right">197</td>
+<td align="right">0.20</td>
+<td align="right">5103.79</td>
+<td align="right">11480.43</td>
+<td align="right">33.00</td>
+<td align="right">577.25</td>
+<td align="right">1999.00</td>
+<td align="right">4782.50</td>
+<td align="right">76762.00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
 <td align="left">ihc__n_tumor_pdl1_inside</td>
 <td align="right">197</td>
 <td align="right">0.20</td>
@@ -2481,7 +3197,7 @@ sceriff0
 <td align="right">6651.00</td>
 <td align="left">▇▂▁▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">ihc__n_cd45_pd1_inside</td>
 <td align="right">197</td>
 <td align="right">0.20</td>
@@ -2494,7 +3210,7 @@ sceriff0
 <td align="right">157613.00</td>
 <td align="left">▇▁▁▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">ihc__n_cd45_pdl1_inside</td>
 <td align="right">197</td>
 <td align="right">0.20</td>
@@ -2507,7 +3223,7 @@ sceriff0
 <td align="right">74415.00</td>
 <td align="left">▇▁▁▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">tmb__TMB_SCORE</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2520,7 +3236,7 @@ sceriff0
 <td align="right">208.42</td>
 <td align="left">▇▂▁▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">msi__MSI_SCORE</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2533,7 +3249,7 @@ sceriff0
 <td align="right">50.87</td>
 <td align="left">▇▁▂▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">hrd__LOH_Score</td>
 <td align="right">48</td>
 <td align="right">0.80</td>
@@ -2546,7 +3262,7 @@ sceriff0
 <td align="right">54.00</td>
 <td align="left">▇▃▁▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">hrd__TAI_Score</td>
 <td align="right">48</td>
 <td align="right">0.80</td>
@@ -2559,7 +3275,7 @@ sceriff0
 <td align="right">37.00</td>
 <td align="left">▅▇▃▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">hrd__LST_Score</td>
 <td align="right">48</td>
 <td align="right">0.80</td>
@@ -2572,7 +3288,7 @@ sceriff0
 <td align="right">38.00</td>
 <td align="left">▇▇▅▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">hrd__HRD_Score</td>
 <td align="right">48</td>
 <td align="right">0.80</td>
@@ -2585,7 +3301,7 @@ sceriff0
 <td align="right">101.00</td>
 <td align="left">▇▇▅▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">aneu__time</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2598,7 +3314,7 @@ sceriff0
 <td align="right">53.06</td>
 <td align="left">▇▃▂▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">aneu__status</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2611,7 +3327,7 @@ sceriff0
 <td align="right">1.00</td>
 <td align="left">▃▁▁▁▇</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">aneu__aneuploidy_score</td>
 <td align="right">12</td>
 <td align="right">0.95</td>
@@ -2624,7 +3340,7 @@ sceriff0
 <td align="right">1.00</td>
 <td align="left">▇▁▁▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">tmb__TMB_robust</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2637,7 +3353,7 @@ sceriff0
 <td align="right">73.34</td>
 <td align="left">▇▂▁▁▁</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">tmb__TMB_matched</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2650,7 +3366,7 @@ sceriff0
 <td align="right">74.93</td>
 <td align="left">▇▂▁▁▁</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">tmb__TMB_nassar</td>
 <td align="right">11</td>
 <td align="right">0.96</td>
@@ -2712,8 +3428,9 @@ if (nrow(score_bounds) &gt; 0) {
            n_violations = sum(x &lt; lower | x &gt; upper, na.rm = TRUE))
   })
 } else {
-  message(&quot;score_bounds empty — fill in column names to enable hard-bound checks.&quot;)
+  note_skip(&quot;score_bounds empty — fill in column names to enable hard-bound checks.&quot;)
 }</code></pre>
+<pre><code>NOTE: score_bounds empty — fill in column names to enable hard-bound checks.</code></pre>
 <p>One histogram per numeric score column of the master, so these are
 the post-collapse values every downstream report sees. Look for
 impossible values, a spike at zero (a failed measurement coded as 0
@@ -2735,7 +3452,7 @@ if (nrow(score_long) &gt; 0) {
          x = &quot;Score (units differ per panel; see 00-methods)&quot;, y = &quot;Patients (count)&quot;) +
     attend_theme()
 } else {
-  message(&quot;No numeric score columns matched in master — check column prefixes.&quot;)
+  note_skip(&quot;No numeric score columns matched in master — check column prefixes.&quot;)
 }</code></pre>
 <p><img src="figure/01-data-integration.Rmd/plot-score-dist-1.svg" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
@@ -2760,6 +3477,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/01-data-integration.Rmd/plot-score-dist-1.svg" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/plot-score-dist-1.svg" target="_blank">ed3a227</a>
@@ -2811,7 +3539,7 @@ if (have_cols(master, msi_score_col, attend_cols$msi_status)) {
          y = &quot;WES MSI score (% unstable sites)&quot;) +
     attend_theme()
 } else {
-  message(&quot;Both msi__MSI_SCORE and &quot;, attend_cols$msi_status,
+  note_skip(&quot;Both msi__MSI_SCORE and &quot;, attend_cols$msi_status,
           &quot; must be in the master — skipping MSI concordance plot.&quot;)
 }</code></pre>
 <p><img src="figure/01-data-integration.Rmd/msi-score-vs-status-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
@@ -2839,6 +3567,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/39279fbafce086367a93bf9491b3f30782aa7c1d/docs/figure/01-data-integration.Rmd/msi-score-vs-status-1.svg" target="_blank">39279fb</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-01
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.attend_aneuploidy/blob/ed3a2279796b5a6d6839fc88a213531c210f6100/docs/figure/01-data-integration.Rmd/msi-score-vs-status-1.svg" target="_blank">ed3a227</a>
 </td>
 <td>
@@ -2852,6 +3591,728 @@ sceriff0
 </table>
 </div>
 </div>
+</div>
+</div>
+<div id="flowpath-concordance" class="section level2">
+<h2>Part 3 — FlowPath vs the pathologist</h2>
+<p>FlowPath counts individual cells on each IHC slide and turns them
+into positivity and composition fractions; a pathologist independently
+scored the same slides by eye. Whether those two agree is a
+<strong>measurement-validation</strong> question — the same kind of
+question Parts 1 and 2 ask of the join — so it belongs here rather than
+beside the biology it feeds. It runs on every imaged patient:
+restricting it to a molecular subgroup would only make it noisier.</p>
+<p>Every composition figure in <a
+href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a> and <a
+href="05-response.html">05-response</a>, and the immune-content survival
+split in <a href="02-survival.html">02-survival</a>, rest on the
+agreement measured below. ### Loading and mapping to patients</p>
+<p>The FlowPath export is keyed by image_id, the imaging annotation
+sheet carries both image_id and the patient id, and the master is keyed
+by pid. Everything is put onto pid through the image crosswalk built in
+code/attend_harmonise.R — the same one <a
+href="01-data-integration.html">01-data-integration</a> used, so this
+report’s cohort cannot drift from the master’s. The two counts below are
+the ceiling for everything that follows: rows that fail to map are
+invisible to every figure in this report.</p>
+<pre class="r"><code>id_cfg         &lt;- make_id_cfg()
+cw_image_pid   &lt;- build_image_pid(imaging_data, id_cfg)   # image -&gt; pid
+cw_barcode_pid &lt;- build_barcode_pid(load_gianlu_clinical_data(), id_cfg)
+pid_vector     &lt;- make_pid_vector(cw_barcode_pid, cw_image_pid)
+
+ihc_pid     &lt;- ihc_data     |&gt; mutate(pid = pid_vector(ihc_data,     id_cfg$ihc))
+imaging_pid &lt;- imaging_data |&gt; mutate(pid = pid_vector(imaging_data, id_cfg$imaging))
+
+cat(&quot;IHC rows mapped to a patient    :&quot;, sum(!is.na(ihc_pid$pid)),     &quot;/&quot;, nrow(ihc_pid), &quot;\n&quot;)</code></pre>
+<pre><code>IHC rows mapped to a patient    : 48 / 48 </code></pre>
+<pre class="r"><code>cat(&quot;imaging rows mapped to a patient:&quot;, sum(!is.na(imaging_pid$pid)), &quot;/&quot;, nrow(imaging_pid), &quot;\n&quot;)</code></pre>
+<pre><code>imaging rows mapped to a patient: 126 / 134 </code></pre>
+<div id="the-imaged-cohort" class="section level3">
+<h3>The imaged cohort</h3>
+<p>Per-image FlowPath counts joined to the pathologist annotations, with
+the positivity/composition ratios derived by ihc_image_metrics()
+(code/attend_ihc.R). The summary table describes the cohort the IHC
+slides came from — not the whole ATTEND cohort, which is the relevant
+denominator here.</p>
+<pre class="r"><code>ihc_img &lt;- ihc_image_metrics(ihc_data, imaging_data)
+cat(&quot;IHC images joined to imaging annotations:&quot;, sum(!is.na(ihc_img$ID)), &quot;/&quot;, nrow(ihc_img), &quot;\n&quot;)</code></pre>
+<pre><code>IHC images joined to imaging annotations: 48 / 48 </code></pre>
+<pre class="r"><code>if (requireNamespace(&quot;gtsummary&quot;, quietly = TRUE)) {
+  ihc_img |&gt;
+    select(any_of(c(&quot;MSI_Status&quot;, &quot;treatment&quot;, &quot;ARID1A&quot;, &quot;MMR_Status&quot;))) |&gt;
+    gtsummary::tbl_summary()
+}</code></pre>
+<div id="ldxgemnkfm" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ldxgemnkfm table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#ldxgemnkfm thead, #ldxgemnkfm tbody, #ldxgemnkfm tfoot, #ldxgemnkfm tr, #ldxgemnkfm td, #ldxgemnkfm th {
+  border-style: none;
+}
+
+#ldxgemnkfm p {
+  margin: 0;
+  padding: 0;
+}
+
+#ldxgemnkfm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#ldxgemnkfm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#ldxgemnkfm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#ldxgemnkfm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#ldxgemnkfm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#ldxgemnkfm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#ldxgemnkfm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#ldxgemnkfm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#ldxgemnkfm .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#ldxgemnkfm .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#ldxgemnkfm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#ldxgemnkfm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#ldxgemnkfm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#ldxgemnkfm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#ldxgemnkfm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldxgemnkfm .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#ldxgemnkfm .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#ldxgemnkfm .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#ldxgemnkfm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldxgemnkfm .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#ldxgemnkfm .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldxgemnkfm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#ldxgemnkfm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldxgemnkfm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ldxgemnkfm .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldxgemnkfm .gt_left {
+  text-align: left;
+}
+
+#ldxgemnkfm .gt_center {
+  text-align: center;
+}
+
+#ldxgemnkfm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#ldxgemnkfm .gt_font_normal {
+  font-weight: normal;
+}
+
+#ldxgemnkfm .gt_font_bold {
+  font-weight: bold;
+}
+
+#ldxgemnkfm .gt_font_italic {
+  font-style: italic;
+}
+
+#ldxgemnkfm .gt_super {
+  font-size: 65%;
+}
+
+#ldxgemnkfm .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#ldxgemnkfm .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#ldxgemnkfm .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#ldxgemnkfm .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#ldxgemnkfm .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#ldxgemnkfm .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#ldxgemnkfm .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#ldxgemnkfm .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#ldxgemnkfm div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label"><span class='gt_from_md'><strong>Characteristic</strong></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_0"><span class='gt_from_md'><strong>N = 48</strong></span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="label" class="gt_row gt_left">MSI_Status</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Instable (MSI)</td>
+<td headers="stat_0" class="gt_row gt_center">41 (85%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Stable (MSS)</td>
+<td headers="stat_0" class="gt_row gt_center">7 (15%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">treatment</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Atezolizumab</td>
+<td headers="stat_0" class="gt_row gt_center">30 (63%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Placebo</td>
+<td headers="stat_0" class="gt_row gt_center">18 (38%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">ARID1A</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Clonal loss</td>
+<td headers="stat_0" class="gt_row gt_center">16 (33%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Complete loss</td>
+<td headers="stat_0" class="gt_row gt_center">21 (44%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Positive</td>
+<td headers="stat_0" class="gt_row gt_center">11 (23%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">MMR_Status</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Deficient</td>
+<td headers="stat_0" class="gt_row gt_center">41 (85%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Intact</td>
+<td headers="stat_0" class="gt_row gt_center">7 (15%)</td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="gt_footnotes">
+      <td class="gt_footnote" colspan="2"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span> <span class='gt_from_md'>n (%)</span></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+</div>
+<div id="concordance-continuous-measures" class="section level3">
+<h3>Concordance — continuous measures</h3>
+<p>For these three, the pathologist also gave a <strong>number</strong>,
+so the two methods can be plotted against each other directly. Each
+point is one image. The dashed red line is x = y, perfect agreement:
+points systematically above it mean the pathologist scored higher than
+FlowPath, below it the reverse. Spearman’s rho measures whether the two
+<strong>rank</strong> images the same way, which is the weaker but more
+robust claim — a high rho with points far off the diagonal means
+consistent but miscalibrated.</p>
+<p>Pathologist percentages are divided by 100 so both axes are
+fractions.</p>
+<div id="neoplastic-cellularity" class="section level4">
+<h4>Neoplastic cellularity</h4>
+<p>FlowPath tumour fraction = all tumour cells / all cells, against the
+pathologist’s neoplastic-cellularity percentage.</p>
+<pre class="r"><code>cc &lt;- ihc_img |&gt;
+  transmute(ID,                                          # ID == pid; kept so the highlight can match
+            flowpath    = tumor_over_all,
+            pathologist = suppressWarnings(as.numeric(Neoplastic_cellularity)) / 100) |&gt;
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(cc) &gt; 2) {
+  rho &lt;- cor(cc$flowpath, cc$pathologist, method = &quot;spearman&quot;, use = &quot;complete.obs&quot;)
+  ggplot(cc, aes(flowpath, pathologist)) +
+    highlight_points(cc, &quot;flowpath&quot;, &quot;pathologist&quot;, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_abline(slope = 1, linetype = &quot;dashed&quot;, colour = &quot;grey40&quot;) +
+    coord_equal() +
+    annotate(&quot;text&quot;, x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0(&quot;Spearman = &quot;, round(rho, 2))) +
+    labs(title = &quot;Neoplastic cellularity&quot;, x = &quot;FlowPath tumour fraction&quot;,
+         y = &quot;Pathologist cellularity&quot;) +
+    attend_theme()
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-cellularity-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="immune-infiltrate" class="section level4">
+<h4>Immune infiltrate</h4>
+<p>FlowPath immune content = CD45+ cells / all cells inside the
+annotation, against the pathologist’s immune-infiltrate percentage.</p>
+<pre class="r"><code>ii &lt;- ihc_img |&gt;
+  transmute(ID,
+            flowpath    = cd45_over_inside,
+            pathologist = suppressWarnings(as.numeric(Immune_infiltrate)) / 100) |&gt;
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(ii) &gt; 2) {
+  rho &lt;- cor(ii$flowpath, ii$pathologist, method = &quot;spearman&quot;, use = &quot;complete.obs&quot;)
+  ggplot(ii, aes(flowpath, pathologist)) +
+    highlight_points(ii, &quot;flowpath&quot;, &quot;pathologist&quot;, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_abline(slope = 1, linetype = &quot;dashed&quot;, colour = &quot;grey40&quot;) +
+    coord_equal() +
+    annotate(&quot;text&quot;, x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0(&quot;Spearman = &quot;, round(rho, 2))) +
+    labs(title = &quot;Immune infiltrate&quot;, x = &quot;FlowPath CD45 fraction (inside)&quot;,
+         y = &quot;Pathologist immune infiltrate&quot;) +
+    attend_theme()
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-immune-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pd-1-on-immune-cells" class="section level4">
+<h4>PD-1 on immune cells</h4>
+<p>FlowPath PD-1+ immune = PD-1+ CD45 cells / CD45 cells inside the
+annotation. A linear trend line replaces the x = y line here, because
+the pathologist’s PD-1 score is not on the same scale as the FlowPath
+fraction — only the ranking is comparable.</p>
+<pre class="r"><code>pd1 &lt;- ihc_img |&gt;
+  transmute(ID,
+            flowpath    = cd45_pd1_over_cd45_inside,
+            pathologist = suppressWarnings(as.numeric(Immune_infiltrate_PD1)) / 100) |&gt;
+  filter(!is.na(flowpath), !is.na(pathologist))
+
+if (nrow(pd1) &gt; 2) {
+  rho &lt;- cor(pd1$flowpath, pd1$pathologist, method = &quot;spearman&quot;, use = &quot;complete.obs&quot;)
+  ggplot(pd1, aes(flowpath, pathologist)) +
+    highlight_points(pd1, &quot;flowpath&quot;, &quot;pathologist&quot;, jitter_width = 0, base_size = 1.5, base_alpha = 0.6) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = &quot;grey40&quot;, linewidth = 0.6) +
+    annotate(&quot;text&quot;, x = -Inf, y = Inf, hjust = -0.2, vjust = 2,
+             label = paste0(&quot;Spearman = &quot;, round(rho, 2))) +
+    labs(title = &quot;PD-1 on immune cells&quot;, x = &quot;FlowPath PD-1+ / CD45 (inside)&quot;,
+         y = &quot;Pathologist PD-1 infiltrate&quot;) +
+    attend_theme()
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-pd1-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="concordance-categorical-calls" class="section level3">
+<h3>Concordance — categorical calls</h3>
+<p>For these three the pathologist gave a <strong>category</strong>, not
+a number, so the comparison is a boxplot: the FlowPath fraction
+distribution within each pathologist call. Concordance looks like boxes
+that step monotonically across the categories. Overlapping boxes mean
+the automated fraction does not reproduce the call.</p>
+<div id="arid1a" class="section level4">
+<h4>ARID1A</h4>
+<p>FlowPath ARID1A+ = ARID1A+ tumour cells / tumour cells inside the
+annotation. The pathologist’s categories run from complete loss through
+clonal loss to positive, so the FlowPath fraction should
+<strong>increase</strong> left to right.</p>
+<pre class="r"><code>if (&quot;ARID1A&quot; %in% names(ihc_img)) {
+  d &lt;- ihc_img |&gt;
+    mutate(ARID1A = factor(ARID1A, levels = c(&quot;Complete loss&quot;, &quot;Clonal loss&quot;, &quot;Positive&quot;))) |&gt;
+    filter(!is.na(ARID1A), !is.na(tumor_aridia_over_tumor_inside))
+  # `colour = ARID1A` duplicated the x axis, spending the palette and a whole &quot;Pathologist&quot;
+  # legend on information the ticks already carry. Points come from highlight_points(); the
+  # pathologist categories are small (e.g. &quot;Complete loss&quot;), so attend_box() picks the mark.
+  ggplot(d, aes(ARID1A, tumor_aridia_over_tumor_inside)) +
+      attend_box(d, x = &quot;ARID1A&quot;, y = &quot;tumor_aridia_over_tumor_inside&quot;, points = FALSE) +
+      highlight_points(d, &quot;ARID1A&quot;, &quot;tumor_aridia_over_tumor_inside&quot;, base_const = &quot;black&quot;,
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = &quot;ARID1A on tumour cells&quot;, x = NULL,
+           y = &quot;FlowPath ARID1A+ tumour cells (fraction)&quot;) +
+      attend_theme()
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-aridia-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pd-l1-on-immune-cells" class="section level4">
+<h4>PD-L1 on immune cells</h4>
+<p>FlowPath PD-L1+ immune = PD-L1+ CD45 cells / CD45 cells inside. The
+pathologist’s IC categories are explicit percentage bands (IC0 &lt; 1%,
+IC1 1–5%, IC2 5–10%), so this is the strictest of the categorical checks
+— the FlowPath fraction should land inside the named band, not merely
+increase across bands.</p>
+<pre class="r"><code>if (&quot;Immune_infiltrate_PDL1&quot; %in% names(ihc_img)) {
+  d &lt;- ihc_img |&gt;
+    mutate(Immune_infiltrate_PDL1 = factor(Immune_infiltrate_PDL1,
+             levels = c(&quot;&quot;, &quot;IC0 (&lt;1%)&quot;, &quot;IC1 (&gt;=1% and &lt;5%)&quot;, &quot;IC2 (&gt;=5% and &lt;10%)&quot;))) |&gt;
+    filter(!is.na(Immune_infiltrate_PDL1), !is.na(cd45_pdl1_over_cd45_inside))
+  ggplot(d, aes(Immune_infiltrate_PDL1, cd45_pdl1_over_cd45_inside)) +
+      attend_box(d, x = &quot;Immune_infiltrate_PDL1&quot;, y = &quot;cd45_pdl1_over_cd45_inside&quot;, points = FALSE) +
+      highlight_points(d, &quot;Immune_infiltrate_PDL1&quot;, &quot;cd45_pdl1_over_cd45_inside&quot;,
+                       base_const = &quot;black&quot;,
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = &quot;PD-L1 on immune cells&quot;, x = NULL,
+           y = &quot;FlowPath PD-L1+ CD45 cells (fraction)&quot;) +
+      attend_theme()
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-pdl1-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pd-l1-on-tumour-cells" class="section level4">
+<h4>PD-L1 on tumour cells</h4>
+<p>FlowPath PD-L1+ tumour = PD-L1+ tumour cells / tumour cells inside
+the annotation.</p>
+<pre class="r"><code>if (&quot;Tumor_cells_PDL1&quot; %in% names(ihc_img)) {
+  d &lt;- ihc_img |&gt;
+    filter(!is.na(Tumor_cells_PDL1), Tumor_cells_PDL1 != &quot;&quot;, !is.na(tumor_pdl1_over_tumor_inside))
+  ggplot(d, aes(Tumor_cells_PDL1, tumor_pdl1_over_tumor_inside)) +
+      attend_box(d, x = &quot;Tumor_cells_PDL1&quot;, y = &quot;tumor_pdl1_over_tumor_inside&quot;, points = FALSE) +
+      highlight_points(d, &quot;Tumor_cells_PDL1&quot;, &quot;tumor_pdl1_over_tumor_inside&quot;,
+                       base_const = &quot;black&quot;,
+                       jitter_width = 0.2, base_size = 1.5, base_alpha = 0.6) +
+      labs(title = &quot;PD-L1 on tumour cells&quot;, x = NULL,
+           y = &quot;FlowPath PD-L1+ tumour cells (fraction)&quot;) +
+      attend_theme() +
+      theme(axis.text.x = element_text(angle = 20, hjust = 1))
+}</code></pre>
+<p><img src="figure/01-data-integration.Rmd/fp-concordance-tcpdl1-1.svg" alt="" width="768" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="per-patient-ihc-metrics" class="section level3">
+<h3>Per-patient IHC metrics</h3>
+<p>Everything above is per <strong>image</strong>. A patient can
+contribute several images, so the metrics are collapsed to one row per
+patient (mean across that patient’s images) before being used against
+patient-level variables. ihc_patient_metrics() is the entry point <a
+href="02-survival.html">02-survival</a> and <a
+href="04-aneuploidy-mmrd.html">04-aneuploidy-mmrd</a> call to get the
+same per-patient values.</p>
+<pre class="r"><code>ihc_pt &lt;- ihc_patient_metrics(ihc_data, imaging_data)
+glimpse(ihc_pt)</code></pre>
+<pre><code>Rows: 48
+Columns: 7
+$ pid                            &lt;chr&gt; &quot;0101-005&quot;, &quot;0101-007&quot;, &quot;0101-010&quot;, &quot;01…
+$ tumor_over_all                 &lt;dbl&gt; 0.3152985, 0.1048114, 0.1985659, 0.6918…
+$ cd45_over_inside               &lt;dbl&gt; 0.06040798, 0.19704487, 0.25222497, 0.3…
+$ tumor_aridia_over_tumor_inside &lt;dbl&gt; 0.015536721, 0.059361196, 0.022086530, …
+$ tumor_pdl1_over_tumor_inside   &lt;dbl&gt; 0.0044826845, 0.0030241250, 0.001245154…
+$ cd45_pd1_over_cd45_inside      &lt;dbl&gt; 0.024887759, 0.004196315, 0.044679154, …
+$ cd45_pdl1_over_cd45_inside     &lt;dbl&gt; 0.024006777, 0.007297938, 0.005746362, …</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>R version 4.3.2 (2023-10-31)
 Platform: x86_64-pc-linux-gnu (64-bit)
@@ -2873,28 +4334,32 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] data.table_1.18.4 readxl_1.5.0      UpSetR_1.4.0      fs_2.1.0         
+ [1] data.table_1.18.4 readxl_1.5.0      UpSetR_1.4.1      fs_2.1.0         
  [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
  [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
 [13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
 
 loaded via a namespace (and not attached):
- [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        visdat_0.6.0      
- [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
- [9] parallel_4.3.2     pkgconfig_2.0.3    skimr_2.2.2        RColorBrewer_1.1-3
-[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
-[17] git2r_0.33.0       repr_1.1.7         httpuv_1.6.12      htmltools_0.5.9   
-[21] sass_0.4.10        yaml_2.3.12        later_1.4.8        pillar_1.11.1     
-[25] crayon_1.5.3       jquerylib_0.1.4    whisker_0.4.1      cachem_1.1.0      
-[29] naniar_1.0.0       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
-[33] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
-[37] cli_3.6.6          magrittr_2.0.5     base64enc_0.1-3    dichromat_2.0-0.1 
-[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
-[45] bit64_4.0.5        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
-[49] otel_0.2.0         gridExtra_2.3      workflowr_1.7.2    cellranger_1.1.0  
-[53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
-[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
-[61] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9        </code></pre>
+ [1] tidyselect_1.2.1   farver_2.1.2       S7_0.2.2           fastmap_1.2.0     
+ [5] promises_1.5.0     digest_0.6.39      timechange_0.4.0   lifecycle_1.0.5   
+ [9] magrittr_2.0.5     compiler_4.3.2     rlang_1.2.0        sass_0.4.10       
+[13] tools_4.3.2        utf8_1.2.6         yaml_2.3.12        gt_1.3.0          
+[17] knitr_1.51         skimr_2.2.2        labeling_0.4.3     bit_4.6.0         
+[21] plyr_1.8.9         xml2_1.5.2         repr_1.1.7         RColorBrewer_1.1-3
+[25] workflowr_1.7.2    withr_3.0.3        grid_4.3.2         git2r_0.33.0      
+[29] gtsummary_2.5.1    scales_1.4.0       dichromat_2.0-0.1  cli_3.6.6         
+[33] rmarkdown_2.31     crayon_1.5.3       pointblank_0.12.4  generics_0.1.4    
+[37] otel_0.2.0         stringdist_0.9.17  rstudioapi_0.15.0  tzdb_0.5.0        
+[41] commonmark_2.0.0   cachem_1.1.0       splines_4.3.2      parallel_4.3.2    
+[45] cellranger_1.1.0   base64enc_0.1-3    vctrs_0.7.3        Matrix_1.6-4      
+[49] jsonlite_2.0.0     naniar_1.1.0       litedown_0.9       hms_1.1.4         
+[53] bit64_4.8.6        visdat_0.6.0       reclin2_0.6.0      jquerylib_0.1.4   
+[57] glue_1.8.1         blastula_0.3.6     stringi_1.8.7      gtable_0.3.6      
+[61] later_1.4.8        pillar_1.11.1      htmltools_0.5.9    R6_2.6.1          
+[65] rprojroot_2.1.1    lattice_0.22-5     vroom_1.7.1        evaluate_1.0.5    
+[69] lpSolve_5.6.23     markdown_2.0       cards_0.8.0        httpuv_1.6.12     
+[73] bslib_0.9.0        Rcpp_1.1.1-1.1     gridExtra_2.3.1    nlme_3.1-164      
+[77] mgcv_1.9-0         whisker_0.4.1      xfun_0.58          pkgconfig_2.0.3   </code></pre>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -2924,28 +4389,32 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] data.table_1.18.4 readxl_1.5.0      UpSetR_1.4.0      fs_2.1.0         
+ [1] data.table_1.18.4 readxl_1.5.0      UpSetR_1.4.1      fs_2.1.0         
  [5] here_1.0.2        lubridate_1.9.5   forcats_1.0.1     stringr_1.6.0    
  [9] dplyr_1.2.1       purrr_1.0.2       readr_2.2.0       tidyr_1.3.2      
 [13] tibble_3.3.1      ggplot2_4.0.3     tidyverse_2.0.0  
 
 loaded via a namespace (and not attached):
- [1] gtable_0.3.6       xfun_0.58          bslib_0.9.0        visdat_0.6.0      
- [5] tzdb_0.5.0         vctrs_0.7.3        tools_4.3.2        generics_0.1.4    
- [9] parallel_4.3.2     pkgconfig_2.0.3    skimr_2.2.2        RColorBrewer_1.1-3
-[13] S7_0.2.2           lifecycle_1.0.5    compiler_4.3.2     farver_2.1.2      
-[17] git2r_0.33.0       repr_1.1.7         httpuv_1.6.12      htmltools_0.5.9   
-[21] sass_0.4.10        yaml_2.3.12        later_1.4.8        pillar_1.11.1     
-[25] crayon_1.5.3       jquerylib_0.1.4    whisker_0.4.1      cachem_1.1.0      
-[29] naniar_1.0.0       tidyselect_1.2.1   digest_0.6.39      stringi_1.8.7     
-[33] labeling_0.4.3     rprojroot_2.1.1    fastmap_1.2.0      grid_4.3.2        
-[37] cli_3.6.6          magrittr_2.0.5     base64enc_0.1-3    dichromat_2.0-0.1 
-[41] utf8_1.2.6         withr_3.0.3        scales_1.4.0       promises_1.5.0    
-[45] bit64_4.0.5        timechange_0.4.0   rmarkdown_2.31     bit_4.6.0         
-[49] otel_0.2.0         gridExtra_2.3      workflowr_1.7.2    cellranger_1.1.0  
-[53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         rlang_1.2.0       
-[57] Rcpp_1.1.1-1.1     glue_1.8.1         rstudioapi_0.15.0  vroom_1.7.1       
-[61] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9        </code></pre>
+ [1] tidyselect_1.2.1   farver_2.1.2       S7_0.2.2           fastmap_1.2.0     
+ [5] promises_1.5.0     digest_0.6.39      timechange_0.4.0   lifecycle_1.0.5   
+ [9] magrittr_2.0.5     compiler_4.3.2     rlang_1.2.0        sass_0.4.10       
+[13] tools_4.3.2        utf8_1.2.6         yaml_2.3.12        gt_1.3.0          
+[17] knitr_1.51         skimr_2.2.2        labeling_0.4.3     bit_4.6.0         
+[21] plyr_1.8.9         xml2_1.5.2         repr_1.1.7         RColorBrewer_1.1-3
+[25] workflowr_1.7.2    withr_3.0.3        grid_4.3.2         git2r_0.33.0      
+[29] gtsummary_2.5.1    scales_1.4.0       dichromat_2.0-0.1  cli_3.6.6         
+[33] rmarkdown_2.31     crayon_1.5.3       pointblank_0.12.4  generics_0.1.4    
+[37] otel_0.2.0         stringdist_0.9.17  rstudioapi_0.15.0  tzdb_0.5.0        
+[41] commonmark_2.0.0   cachem_1.1.0       splines_4.3.2      parallel_4.3.2    
+[45] cellranger_1.1.0   base64enc_0.1-3    vctrs_0.7.3        Matrix_1.6-4      
+[49] jsonlite_2.0.0     naniar_1.1.0       litedown_0.9       hms_1.1.4         
+[53] bit64_4.8.6        visdat_0.6.0       reclin2_0.6.0      jquerylib_0.1.4   
+[57] glue_1.8.1         blastula_0.3.6     stringi_1.8.7      gtable_0.3.6      
+[61] later_1.4.8        pillar_1.11.1      htmltools_0.5.9    R6_2.6.1          
+[65] rprojroot_2.1.1    lattice_0.22-5     vroom_1.7.1        evaluate_1.0.5    
+[69] lpSolve_5.6.23     markdown_2.0       cards_0.8.0        httpuv_1.6.12     
+[73] bslib_0.9.0        Rcpp_1.1.1-1.1     gridExtra_2.3.1    nlme_3.1-164      
+[77] mgcv_1.9-0         whisker_0.4.1      xfun_0.58          pkgconfig_2.0.3   </code></pre>
 </div>
 </div>
 </div>
